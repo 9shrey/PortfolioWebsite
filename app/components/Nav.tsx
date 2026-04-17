@@ -4,10 +4,9 @@ import { useEffect, useState } from "react";
 
 const sections = [
   { id: "about", label: "I. About" },
-  { id: "work", label: "II. Work" },
-  { id: "projects", label: "III. Projects" },
-  { id: "toolkit", label: "IV. Toolkit" },
-  { id: "contact", label: "V. Contact" },
+  { id: "projects", label: "II. Work" },
+  { id: "toolkit", label: "III. Toolkit" },
+  { id: "contact", label: "IV. Contact" },
 ];
 
 export default function Nav() {
@@ -45,14 +44,6 @@ export default function Nav() {
               {s.label}
             </a>
           ))}
-          <a
-            href="https://github.com/9shrey"
-            target="_blank"
-            rel="noreferrer"
-            className="micro link-hover hover:text-[color:var(--fg)]"
-          >
-            GitHub ↗
-          </a>
         </nav>
 
         <button
@@ -77,14 +68,6 @@ export default function Nav() {
                 {s.label}
               </a>
             ))}
-            <a
-              href="https://github.com/9shrey"
-              target="_blank"
-              rel="noreferrer"
-              className="micro"
-            >
-              GitHub ↗
-            </a>
           </div>
         </div>
       )}
