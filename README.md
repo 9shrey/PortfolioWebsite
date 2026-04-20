@@ -9,12 +9,26 @@ serif display typography (Instrument Serif), monospaced micro-labels
 
 ## Sections
 
-- **Prologue** — hero + terminal-style identity card
+- **Prologue** — hero with animated flow-field background + identity
 - **I. About** — bio + at-a-glance facts
-- **II. Fieldwork** — experience (NetApp) & education (MIT, Manipal)
-- **III. Artifacts** — projects (drawers that open to full detail)
-- **IV. Toolkit** — languages, ML, data, infra + competitive-programming stats
-- **V. Signal** — contact
+- **II. Work** — selected projects with 3D tilt parallax
+- **III. Toolkit** — languages, ML, data, infra
+- **IV. Contact** — signal
+
+## Interactions
+
+Built without external animation libraries — pure React + Canvas2D + CSS.
+
+- **Flow-field hero background** — particle field with mouse parallax pull
+- **Custom cursor** — dot + ring with `mix-blend-mode: difference` and a soft accent spotlight
+- **Scroll progress bar** — gradient indicator at the top of the page
+- **Section rail** — right-edge scroll-spy with active-section indicator
+- **Magnetic buttons** — CTAs gently attract toward the cursor
+- **3D tilt** — project images respond to pointer with perspective + sheen
+- **Split-text title** — letter-by-letter staggered reveal of the hero name
+- **Live IST clock** — Bengaluru time in the navigation
+- **Marquee ribbons** — seamless scrolling labels between sections
+- **Reduced-motion + touch** — all effects gracefully degrade
 
 ## Develop
 

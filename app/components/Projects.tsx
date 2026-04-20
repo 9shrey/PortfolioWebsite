@@ -1,5 +1,6 @@
 import Reveal from "./Reveal";
 import SectionHeader from "./SectionHeader";
+import Tilt from "./Tilt";
 
 type Project = {
   code: string;
@@ -110,14 +111,16 @@ export default function Projects() {
                     i % 2 === 1 ? "md:order-2" : ""
                   }`}
                 >
-                  <figure className="border border-[color:var(--rule)] overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.image}
-                      alt={p.title}
-                      className="w-full aspect-[4/3] object-cover grayscale group-hover:grayscale-0 transition-all duration-700 opacity-90"
-                    />
-                  </figure>
+                  <Tilt className="block">
+                    <figure className="border border-[color:var(--rule)] overflow-hidden">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.image}
+                        alt={p.title}
+                        className="w-full aspect-[4/3] object-cover grayscale group-hover:grayscale-0 transition-all duration-700 opacity-90"
+                      />
+                    </figure>
+                  </Tilt>
                 </div>
 
                 <div className="md:col-span-6">

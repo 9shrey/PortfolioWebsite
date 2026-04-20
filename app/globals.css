@@ -105,3 +105,161 @@ details.drawer[open] .drawer-chev { transform: rotate(45deg); }
 
 @keyframes blink { 50% { opacity: 0; } }
 .cursor-blink { animation: blink 1.05s steps(1) infinite; }
+
+/* ---------- Custom cursor ---------- */
+.custom-cursor,
+.custom-cursor * { cursor: none !important; }
+
+.cursor-dot,
+.cursor-ring,
+.cursor-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: 70;
+  transform: translate3d(-9999px, -9999px, 0);
+  will-change: transform;
+}
+.cursor-dot {
+  width: 6px; height: 6px;
+  margin: -3px 0 0 -3px;
+  background: var(--fg);
+  border-radius: 9999px;
+  mix-blend-mode: difference;
+}
+.cursor-ring {
+  width: 34px; height: 34px;
+  margin: -17px 0 0 -17px;
+  border: 1px solid var(--fg-dim);
+  border-radius: 9999px;
+  transition: width 220ms ease, height 220ms ease, margin 220ms ease,
+              border-color 220ms ease, background-color 220ms ease;
+  mix-blend-mode: difference;
+}
+.cursor-ring.is-hover {
+  width: 64px; height: 64px;
+  margin: -32px 0 0 -32px;
+  border-color: var(--accent);
+  background: rgba(217, 119, 87, 0.06);
+}
+.cursor-glow {
+  width: 520px; height: 520px;
+  margin: -260px 0 0 -260px;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    rgba(217, 119, 87, 0.12),
+    rgba(217, 119, 87, 0.04) 40%,
+    transparent 70%
+  );
+  filter: blur(8px);
+  z-index: 1;
+}
+
+/* ---------- SplitText letters ---------- */
+.split-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.55em);
+  transition: opacity 600ms cubic-bezier(.2,.7,.2,1),
+              transform 700ms cubic-bezier(.2,.7,.2,1);
+}
+.split-letter.in { opacity: 1; transform: translateY(0); }
+
+/* ---------- Tilt ---------- */
+.tilt {
+  perspective: 1000px;
+  transform-style: preserve-3d;
+}
+.tilt-inner {
+  position: relative;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transition: transform 220ms cubic-bezier(.2,.7,.2,1);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+.tilt-inner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    320px circle at var(--mx, 50%) var(--my, 50%),
+    rgba(237, 232, 216, 0.10),
+    transparent 60%
+  );
+  mix-blend-mode: screen;
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+.tilt:hover .tilt-inner::after { opacity: 1; }
+
+/* ---------- Hero glow orb ---------- */
+.hero-orb {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  max-width: 900px;
+  max-height: 900px;
+  left: -10vw;
+  top: -10vw;
+  border-radius: 9999px;
+  background: radial-gradient(
+    closest-side,
+    rgba(217, 119, 87, 0.18),
+    rgba(217, 119, 87, 0.06) 45%,
+    transparent 70%
+  );
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
+.hero-orb.alt {
+  left: auto;
+  right: -15vw;
+  top: 15vw;
+  background: radial-gradient(
+    closest-side,
+    rgba(237, 232, 216, 0.10),
+    transparent 70%
+  );
+}
+
+/* ---------- Vignette ---------- */
+.vignette::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 45;
+  background: radial-gradient(
+    120% 80% at 50% 50%,
+    transparent 55%,
+    rgba(0, 0, 0, 0.45) 100%
+  );
+}
+
+/* ---------- Marquee already defined; just expose wrap mask ---------- */
+.marquee-wrap {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+          mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track { animation: none; }
+  .reveal { opacity: 1; transform: none; transition: none; }
+  .split-letter { opacity: 1; transform: none; transition: none; }
+}

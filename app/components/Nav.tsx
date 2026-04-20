@@ -9,9 +9,28 @@ const sections = [
   { id: "contact", label: "IV. Contact" },
 ];
 
+function useIstClock() {
+  const [time, setTime] = useState<string>("");
+  useEffect(() => {
+    const fmt = new Intl.DateTimeFormat("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+      timeZone: "Asia/Kolkata",
+    });
+    const tick = () => setTime(fmt.format(new Date()));
+    tick();
+    const id = window.setInterval(tick, 1000);
+    return () => window.clearInterval(id);
+  }, []);
+  return time;
+}
+
 export default function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const time = useIstClock();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -45,6 +64,13 @@ export default function Nav() {
             </a>
           ))}
         </nav>
+
+        <div className="hidden md:flex items-center gap-3">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-[color:var(--accent)] animate-pulse" />
+          <span className="micro tabular-nums" aria-label="Bengaluru time">
+            BLR {time || "—:—:—"}
+          </span>
+        </div>
 
         <button
           onClick={() => setOpen((v) => !v)}

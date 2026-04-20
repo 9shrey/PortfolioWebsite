@@ -42,7 +42,7 @@ export default function RootLayout({
       lang="en"
       className={`${sans.variable} ${serif.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full grain">{children}</body>
+      <body className="min-h-full grain vignette">{children}</body>
     </html>
   );
 }
