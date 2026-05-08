@@ -333,6 +333,37 @@ section[id] {
   outline: none;
 }
 
+.tear-gate {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(255, 255, 255, 0.9), transparent 22rem),
+    radial-gradient(circle at 82% 76%, rgba(153, 185, 255, 0.28), transparent 26rem),
+    rgba(239, 245, 255, 0.76);
+  backdrop-filter: blur(28px) saturate(1.25);
+  -webkit-backdrop-filter: blur(28px) saturate(1.25);
+}
+
+.tear-gate-sheet {
+  filter: drop-shadow(0 32px 90px rgba(35, 51, 80, 0.18));
+}
+
+.tear-gate-sheet .tearable-face {
+  transform: translateZ(28px);
+}
+
+.tear-gate-sheet.is-revealed .tearable-face {
+  clip-path: polygon(0 0, 48% 0, 42% 12%, 50% 24%, 43% 38%, 51% 50%, 42% 64%, 50% 78%, 43% 90%, 48% 100%, 0 100%);
+}
+
+.tear-gate-sheet .tearable-reveal {
+  inset-block: 20px;
+  right: 20px;
+  max-width: min(420px, 46%);
+}
+
+.tear-gate-sheet.is-revealed .tearable-reveal {
+  min-width: min(420px, 46%);
+}
+
 button.tearable-panel {
   width: 100%;
   border: 0;

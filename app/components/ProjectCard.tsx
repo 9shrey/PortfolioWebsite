@@ -1,7 +1,6 @@
 import type { Project } from "@/app/data/projects";
 import GlassCard from "./GlassCard";
 import ProjectVisual from "./ProjectVisual";
-import TearablePanel from "./TearablePanel";
 
 export default function ProjectCard({
   project,
@@ -12,38 +11,13 @@ export default function ProjectCard({
   compact?: boolean;
   onOpen: (project: Project) => void;
 }) {
-  const reveal = (
-    <div className="flex h-full flex-col justify-between p-4 text-left">
-      <div>
-        <p className="micro mb-3 text-[var(--fg)]">Pull reveal</p>
-        <p className="text-sm font-semibold leading-6 text-[var(--fg)]">{project.outcome}</p>
-        <p className="mt-3 text-xs font-medium leading-5 text-[var(--fg-dim)]">
-          {project.problem}
-        </p>
-      </div>
-      <div className="mt-4 flex flex-wrap gap-1.5">
-        {project.stack.slice(0, 5).map((item) => (
-          <span key={item} className="rounded-full bg-white/58 px-2 py-1 text-[10px] font-semibold text-[var(--fg-dim)]">
-            {item}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-
   return (
-    <TearablePanel
-      className="h-full rounded-[var(--radius-lg)]"
-      intensity={compact ? 0.55 : 0.8}
-      threshold={compact ? 78 : 92}
-      reveal={reveal}
+    <GlassCard
+      as="article"
+      className={`group specular-hover h-full cursor-pointer ${
+        compact ? "rounded-[var(--radius-md)] p-5" : "p-6 md:p-7"
+      }`}
     >
-      <GlassCard
-        as="article"
-        className={`group specular-hover h-full cursor-pointer ${
-          compact ? "rounded-[var(--radius-md)] p-5" : "p-6 md:p-7"
-        }`}
-      >
         <div
           role="button"
           tabIndex={0}
@@ -110,7 +84,6 @@ export default function ProjectCard({
             </button>
           </div>
         </div>
-      </GlassCard>
-    </TearablePanel>
+    </GlassCard>
   );
 }

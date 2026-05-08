@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import GlassNav from "./components/GlassNav";
 import Hero from "./components/Hero";
 import RecruiterModeSection from "./components/RecruiterModeSection";
+import TearableLanding from "./components/TearableLanding";
 import SelectedWork from "./components/SelectedWork";
 import ProjectIndex from "./components/ProjectIndex";
 import Experience from "./components/Experience";
@@ -16,6 +17,7 @@ import type { Project } from "./data/projects";
 
 export default function Home() {
   const [drawerProject, setDrawerProject] = useState<Project | null>(null);
+  const [showLanding, setShowLanding] = useState(true);
 
   const openProject = useCallback((project: Project) => {
     setDrawerProject(project);
@@ -40,6 +42,7 @@ export default function Home() {
       </main>
       <Footer />
       <ProjectDrawer project={drawerProject} onClose={closeDrawer} />
+      {showLanding ? <TearableLanding onComplete={() => setShowLanding(false)} /> : null}
     </>
   );
 }

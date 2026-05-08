@@ -4,7 +4,6 @@ import GlassCard from "./GlassCard";
 import MetricChip from "./MetricChip";
 import Reveal from "./Reveal";
 import SectionHeader from "./SectionHeader";
-import TearablePanel from "./TearablePanel";
 
 const metrics = [
   { value: "1.5M+", label: "records" },
@@ -35,19 +34,8 @@ export default function Experience() {
           text="A production-facing internship focused on revenue forecasting and commission modeling at enterprise scale."
         />
 
-        <TearablePanel
-          className="rounded-[var(--radius-lg)]"
-          threshold={120}
-          intensity={0.55}
-          reveal={
-            <div className="p-5 text-sm leading-6 text-[var(--fg-dim)]">
-              <p className="mb-2 font-semibold text-[var(--fg)]">Hidden context</p>
-              <p>Forecasting work touched finance-facing planning, commission modeling, and automated reporting workflows.</p>
-            </div>
-          }
-        >
-          <GlassCard className="p-5 md:p-8 lg:p-10">
-            <div className="grid gap-8 lg:grid-cols-[0.9fr_1.5fr]">
+        <GlassCard className="p-5 md:p-8 lg:p-10">
+          <div className="grid gap-8 lg:grid-cols-[0.9fr_1.5fr]">
             <div>
               <div className="rounded-[var(--radius-lg)] border border-white/70 bg-white/52 p-6">
                 <p className="micro mb-4">Machine Learning Intern</p>
@@ -98,9 +86,8 @@ export default function Experience() {
                 ))}
               </div>
             </div>
-            </div>
-          </GlassCard>
-        </TearablePanel>
+          </div>
+        </GlassCard>
       </div>
     </section>
   );

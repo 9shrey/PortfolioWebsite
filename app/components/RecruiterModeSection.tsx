@@ -4,7 +4,6 @@ import { BriefcaseBusiness, Code2, Database, Network } from "lucide-react";
 import GlassCard from "./GlassCard";
 import Reveal from "./Reveal";
 import SectionHeader from "./SectionHeader";
-import TearablePanel from "./TearablePanel";
 
 const rows = [
   {
@@ -45,18 +44,7 @@ export default function RecruiterModeSection() {
             const Icon = row.icon;
             return (
               <Reveal key={row.title} delay={index * 45}>
-                <TearablePanel
-                  className="h-full rounded-[var(--radius-lg)]"
-                  threshold={92}
-                  intensity={0.65}
-                  reveal={
-                    <div className="p-5 text-sm leading-6 text-[var(--fg-dim)]">
-                      <p className="mb-2 font-semibold text-[var(--fg)]">Why it matters</p>
-                      <p>{row.text}</p>
-                    </div>
-                  }
-                >
-                  <GlassCard className="h-full p-6 md:p-7">
+                <GlassCard className="h-full p-6 md:p-7">
                     <div className="flex gap-4">
                       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/70 bg-white/54 text-[var(--accent)]">
                         <Icon size={22} strokeWidth={1.8} />
@@ -68,8 +56,7 @@ export default function RecruiterModeSection() {
                         </p>
                       </div>
                     </div>
-                  </GlassCard>
-                </TearablePanel>
+                </GlassCard>
               </Reveal>
             );
           })}

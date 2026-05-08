@@ -27,6 +27,7 @@ export default function TearablePanel({
   asButton = false,
   label,
   onClick,
+  onReveal,
 }: {
   children: ReactNode;
   reveal?: ReactNode;
@@ -36,6 +37,7 @@ export default function TearablePanel({
   asButton?: boolean;
   label?: string;
   onClick?: () => void;
+  onReveal?: () => void;
 }) {
   const reduceMotion = useReducedMotion();
   const pointers = useRef<PointerMap>(new Map());
@@ -94,6 +96,7 @@ export default function TearablePanel({
       setRevealed(next);
       tension.set(next ? 1 : 0);
       resetPosition();
+      if (next) onReveal?.();
     } else {
       reset();
     }
@@ -151,7 +154,10 @@ export default function TearablePanel({
           const delta = Math.abs(distance(pointers.current) - startPinch.current);
           const pull = Math.min(1, delta / threshold);
           tension.set(pull);
-          if (reveal && pull > 0.86) setRevealed(true);
+          if (reveal && pull > 0.86) {
+            setRevealed(true);
+            onReveal?.();
+          }
         }
       }}
       style={
