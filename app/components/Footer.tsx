@@ -1,21 +1,21 @@
 export default function Footer() {
   const year = new Date().getFullYear();
   return (
-    <footer className="border-t border-[color:var(--rule)] mt-10">
-      <div className="mx-auto max-w-[1400px] px-6 md:px-10 py-10 md:py-14">
-        <div className="grid md:grid-cols-12 gap-8 items-end">
-          <div className="md:col-span-8">
-            <p className="display text-4xl md:text-6xl leading-none">
+    <footer className="border-t border-[var(--rule-soft)] bg-[var(--bg-2)]">
+      <div className="mx-auto max-w-[1200px] px-6 md:px-8 py-10 md:py-14">
+        <div className="grid md:grid-cols-2 gap-8 items-start">
+          <div>
+            <p className="display text-4xl md:text-5xl leading-none">
               Shrey Singh<span className="display-italic">.</span>
             </p>
-            <p className="mt-4 text-[color:var(--fg-dim)] max-w-md text-[15px] leading-relaxed">
-              ML, systems, and backend — shipping code that earns its place in
-              production.
+            <p className="mt-3 text-[var(--fg-dim)] text-[15px] leading-relaxed max-w-sm">
+              AI/ML engineer building agentic systems, MLOps pipelines, and
+              backend infrastructure.
             </p>
           </div>
-          <div className="md:col-span-4">
-            <p className="micro mb-3">ELSEWHERE</p>
-            <ul className="space-y-2 text-[color:var(--fg-dim)] text-sm">
+          <div className="md:text-right">
+            <p className="micro mb-3">Elsewhere</p>
+            <ul className="space-y-1.5 text-sm text-[var(--fg-dim)]">
               <li>
                 <a
                   href="https://github.com/9shrey"
@@ -28,22 +28,12 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://www.linkedin.com/in/shrey-singh-9722b5231/"
+                  href="https://linkedin.com/in/9shrey"
                   target="_blank"
                   rel="noreferrer"
                   className="link-hover"
                 >
                   LinkedIn ↗
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://www.kaggle.com/jrashrey"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="link-hover"
-                >
-                  Kaggle ↗
                 </a>
               </li>
               <li>
@@ -55,11 +45,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-14 pt-6 border-t border-[color:var(--rule)] flex flex-wrap items-center justify-between gap-4">
+        <div className="mt-12 pt-6 border-t border-[var(--rule-soft)] flex flex-wrap items-center justify-between gap-3">
           <p className="micro micro-dim">
-            © {year} SHREY SINGH · BUILT WITH NEXT.JS &amp; TAILWIND
+            &copy; {year} Shrey Singh &middot; Built with Next.js &amp; Tailwind
           </p>
-          <p className="micro micro-dim">V 2026.04 · BENGALURU · IST</p>
+          <p className="micro micro-dim">Bengaluru, IN &middot; IST</p>
         </div>
       </div>
     </footer>

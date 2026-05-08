@@ -26,11 +26,9 @@ export default function ScrollProgress() {
       className="fixed top-0 left-0 right-0 h-[2px] z-[60] pointer-events-none"
     >
       <div
-        className="h-full origin-left"
+        className="h-full origin-left bg-[var(--accent)]"
         style={{
           transform: `scaleX(${p})`,
-          background:
-            "linear-gradient(90deg, var(--accent), var(--fg) 80%)",
           transition: "transform 80ms linear",
         }}
       />
