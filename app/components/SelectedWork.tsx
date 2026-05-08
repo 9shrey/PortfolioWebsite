@@ -19,7 +19,7 @@ export default function SelectedWork({
           eyebrow="Selected Work"
           kicker="Six systems"
           title="Production-style AI systems with measurable edges."
-          text="A curated set of RAG, agentic automation, MLOps, backend, and quantitative ML projects. Each card keeps the hiring signal visible: what it does, what proves it, and where the code lives."
+          text="A curated set of RAG, agentic automation, MLOps, backend, and quantitative ML projects. Each card now includes a compact visual demo of the system shape, workflow, and measurable outcome."
         />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">

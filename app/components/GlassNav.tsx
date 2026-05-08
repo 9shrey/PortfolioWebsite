@@ -51,8 +51,8 @@ export default function GlassNav() {
           </nav>
 
           <div className="hidden md:block">
-            <a href="#snapshot" className="button-primary min-h-10 px-4 text-sm">
-              Recruiter Snapshot
+            <a href="/Shrey_Singh_Resume.pdf" target="_blank" rel="noreferrer" className="liquid-button min-h-10 px-4 text-sm">
+              Resume
             </a>
           </div>
 
@@ -99,11 +99,13 @@ export default function GlassNav() {
               </a>
             ))}
             <a
-              href="#snapshot"
+              href="/Shrey_Singh_Resume.pdf"
+              target="_blank"
+              rel="noreferrer"
               onClick={() => setOpen(false)}
-              className="button-primary mt-2 w-full"
+              className="liquid-button mt-2 w-full"
             >
-              Recruiter Snapshot
+              Resume
             </a>
           </nav>
         </div>

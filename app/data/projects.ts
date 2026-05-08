@@ -6,6 +6,7 @@ export type ProjectCategory =
   | "Quant"
   | "Backend"
   | "Systems"
+  | "Product Systems"
   | "Applied ML"
   | "ML Systems"
   | "Agentic AI / Product"
@@ -179,6 +180,28 @@ export const projects: Project[] = [
       "Gemini function calling with typed tool schemas, stateful conversation memory, structured menu schema with allergy awareness, Docker Compose for full-stack local dev.",
   },
   {
+    slug: "lifeos",
+    title: "LIFEOS",
+    category: "Product Systems",
+    filterTags: ["GenAI", "Backend", "Systems"],
+    stack: ["Next.js", "TypeScript", "AI Agents", "PostgreSQL", "Product Engineering"],
+    blurb:
+      "Personal operating-system concept for organizing goals, workflows, and AI-assisted productivity into one product surface.",
+    outcome: "Product systems, agents, planning UX",
+    proofTags: ["architecture", "reproducible"],
+    proofDescription:
+      "Product-first AI workflow with structured planning surfaces, agent-ready architecture, and recruiter-readable system design.",
+    resumeBullet:
+      "Built LIFEOS as a product-style AI workspace for goals, workflows, and planning, emphasizing clean UX, structured data, and agent-ready product architecture.",
+    github: "https://github.com/9shrey",
+    problem:
+      "Personal productivity tools often split goals, tasks, and context across separate apps, making AI assistance hard to ground.",
+    system:
+      "Next.js product shell -> structured planning data -> AI workflow layer -> persistent state -> clean glass UI for daily review and execution.",
+    technicalInterest:
+      "Product engineering around AI-assisted planning, structured context, responsive interaction design, and extensible agent surfaces.",
+  },
+  {
     slug: "api-gateway",
     title: "High-Performance API Gateway",
     category: "Backend / Systems",
@@ -325,12 +348,11 @@ export const filterCategories = [
 ];
 
 export const selectedProjectSlugs = [
+  "ai-waiter",
+  "rl-statistical-arbitrage",
   "rag-knowledge-assistant",
   "agentic-workflow-assistant",
-  "automl-pipeline-framework",
-  "cicd-retraining-pipeline",
-  "rl-statistical-arbitrage",
-  "ai-waiter",
+  "lifeos",
 ];
 
 export function getProjectBySlug(slug: string): Project | undefined {

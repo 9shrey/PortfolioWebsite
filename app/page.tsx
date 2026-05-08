@@ -3,7 +3,7 @@
 import { useCallback, useState } from "react";
 import GlassNav from "./components/GlassNav";
 import Hero from "./components/Hero";
-import RecruiterSnapshot from "./components/RecruiterSnapshot";
+import RecruiterModeSection from "./components/RecruiterModeSection";
 import SelectedWork from "./components/SelectedWork";
 import ProjectIndex from "./components/ProjectIndex";
 import Experience from "./components/Experience";
@@ -31,7 +31,7 @@ export default function Home() {
       <GlassNav />
       <main>
         <Hero />
-        <RecruiterSnapshot />
+        <RecruiterModeSection />
         <SelectedWork onOpenProject={openProject} />
         <ProjectIndex onOpenProject={openProject} />
         <Experience />

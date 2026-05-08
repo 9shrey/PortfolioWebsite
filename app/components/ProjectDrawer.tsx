@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect } from "react";
 import type { Project } from "@/app/data/projects";
+import ProjectVisual from "./ProjectVisual";
 
 export default function ProjectDrawer({
   project,
@@ -59,6 +60,8 @@ export default function ProjectDrawer({
             </h2>
             <p className="mt-3 text-base font-semibold text-[var(--accent)]">{project.outcome}</p>
           </div>
+
+          <ProjectVisual project={project} />
 
           {[
             ["Problem", project.problem],
