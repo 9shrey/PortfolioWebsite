@@ -1,35 +1,42 @@
 import Reveal from "./Reveal";
 
 export default function SectionHeader({
-  numeral,
+  eyebrow,
   kicker,
   title,
+  text,
+  numeral,
   lede,
+  className = "",
 }: {
-  numeral: string;
-  kicker: string;
+  eyebrow?: string;
+  kicker?: string;
   title: React.ReactNode;
-  lede?: React.ReactNode;
+  text?: string;
+  numeral?: string;
+  lede?: string;
+  className?: string;
 }) {
+  const label = eyebrow ?? numeral ?? "";
+  const body = text ?? lede;
+
   return (
-    <div className="border-t border-[color:var(--rule)] pt-8 md:pt-12">
-      <div className="flex items-baseline gap-4 mb-8 md:mb-14">
-        <span className="micro">{numeral}</span>
-        <span className="flex-1 h-px bg-[color:var(--rule)]" />
-        <span className="micro">{kicker}</span>
-      </div>
-      <Reveal>
-        <h2 className="display text-4xl sm:text-6xl md:text-7xl max-w-5xl">
+    <Reveal>
+      <div className={`mb-10 md:mb-14 ${className}`}>
+        <div className="mb-6 flex items-center gap-3">
+          {label ? <span className="micro">{label}</span> : null}
+          <span className="h-px flex-1 bg-[var(--rule-soft)]" />
+          {kicker ? <span className="micro text-[var(--fg-mute)]">{kicker}</span> : null}
+        </div>
+        <h2 className="display max-w-4xl text-balance text-4xl sm:text-5xl md:text-7xl">
           {title}
         </h2>
-      </Reveal>
-      {lede && (
-        <Reveal delay={120}>
-          <p className="mt-6 md:mt-10 max-w-2xl text-[color:var(--fg-dim)] text-base md:text-lg leading-relaxed">
-            {lede}
+        {body ? (
+          <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--fg-dim)] md:text-lg">
+            {body}
           </p>
-        </Reveal>
-      )}
-    </div>
+        ) : null}
+      </div>
+    </Reveal>
   );
 }
