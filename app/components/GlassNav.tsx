@@ -23,34 +23,32 @@ export default function GlassNav() {
   return (
     <header className="fixed inset-x-0 top-4 z-50 px-4">
       <div
-        className={`mx-auto max-w-[1120px] rounded-full border px-3 py-2 transition-all duration-300 md:px-4 ${
-          scrolled
-            ? "border-white/75 bg-white/68 shadow-[0_18px_55px_rgba(25,34,48,0.16)] backdrop-blur-2xl"
-            : "border-white/55 bg-white/42 shadow-[0_12px_38px_rgba(25,34,48,0.1)] backdrop-blur-xl"
+        className={`liquid-nav mx-auto max-w-[1120px] rounded-full px-3 py-2 transition-all duration-300 md:px-4 ${
+          scrolled ? "is-scrolled" : ""
         }`}
       >
         <div className="flex items-center justify-between gap-3">
           <a
             href="#hero"
-            className="rounded-full px-3 py-2 text-sm font-semibold text-[var(--fg)] transition-colors hover:bg-white/55"
+            className="relative z-10 rounded-full px-3 py-2 text-sm font-semibold text-[var(--fg)] transition-colors hover:bg-white/24"
             onClick={() => setOpen(false)}
           >
             Shrey Singh
           </a>
 
-          <nav className="hidden items-center gap-1 rounded-full bg-white/34 p-1 md:flex">
+          <nav className="relative z-10 hidden items-center gap-1 rounded-full border border-white/25 bg-white/12 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] md:flex">
             {sections.map((section) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className="rounded-full px-4 py-2 text-sm font-medium text-[var(--fg-dim)] transition-colors hover:bg-white/70 hover:text-[var(--fg)]"
+                className="rounded-full px-4 py-2 text-sm font-medium text-[var(--fg-dim)] transition-colors hover:bg-white/26 hover:text-[var(--fg)]"
               >
                 {section.label}
               </a>
             ))}
           </nav>
 
-          <div className="hidden md:block">
+          <div className="relative z-10 hidden md:block">
             <a href="/Shrey_Singh_Resume.pdf" target="_blank" rel="noreferrer" className="liquid-button min-h-10 px-4 text-sm">
               Resume
             </a>
@@ -61,7 +59,7 @@ export default function GlassNav() {
             aria-label="Toggle navigation menu"
             aria-expanded={open}
             onClick={() => setOpen((value) => !value)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/58 text-[var(--fg)] shadow-sm md:hidden"
+            className="relative z-10 inline-flex h-10 w-10 items-center justify-center rounded-full border border-white/45 bg-white/18 text-[var(--fg)] shadow-sm backdrop-blur-xl md:hidden"
           >
             <span className="sr-only">Menu</span>
             <span className="relative h-3.5 w-4" aria-hidden>
@@ -86,14 +84,14 @@ export default function GlassNav() {
       </div>
 
       {open ? (
-        <div className="mx-auto mt-2 max-w-[1120px] rounded-[var(--radius-lg)] border border-white/70 bg-white/78 p-3 shadow-[var(--shadow-md)] backdrop-blur-2xl md:hidden">
+        <div className="liquid-nav mx-auto mt-2 max-w-[1120px] rounded-[var(--radius-lg)] p-3 md:hidden">
           <nav className="flex flex-col gap-1">
             {sections.map((section) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
                 onClick={() => setOpen(false)}
-                className="rounded-2xl px-4 py-3 text-sm font-semibold text-[var(--fg)] hover:bg-white/70"
+                className="rounded-2xl px-4 py-3 text-sm font-semibold text-[var(--fg)] hover:bg-white/24"
               >
                 {section.label}
               </a>
