@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import GlassNav from "./components/GlassNav";
 import Hero from "./components/Hero";
+import VoiceIntro from "./components/VoiceIntro";
 import RecruiterModeSection from "./components/RecruiterModeSection";
 import TearableLanding from "./components/TearableLanding";
 import SelectedWork from "./components/SelectedWork";
@@ -33,6 +34,7 @@ export default function Home() {
       <GlassNav />
       <main>
         <Hero />
+        <VoiceIntro />
         <RecruiterModeSection />
         <SelectedWork onOpenProject={openProject} />
         <ProjectIndex onOpenProject={openProject} />
