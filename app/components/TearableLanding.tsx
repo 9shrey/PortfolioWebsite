@@ -92,27 +92,27 @@ function drawWelcomeTexture(canvas: HTMLCanvasElement, width: number, height: nu
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const bg = ctx.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, "#eef3fb");
-  bg.addColorStop(0.46, "#fbfcff");
-  bg.addColorStop(1, "#e7edf7");
+  bg.addColorStop(0, "#02040a");
+  bg.addColorStop(0.46, "#090d16");
+  bg.addColorStop(1, "#111827");
   ctx.fillStyle = bg;
   ctx.fillRect(0, 0, width, height);
 
   const glowA = ctx.createRadialGradient(width * 0.2, height * 0.2, 0, width * 0.2, height * 0.2, width * 0.55);
-  glowA.addColorStop(0, "rgba(255,255,255,0.95)");
-  glowA.addColorStop(1, "rgba(255,255,255,0)");
+  glowA.addColorStop(0, "rgba(96, 165, 250, 0.24)");
+  glowA.addColorStop(1, "rgba(96, 165, 250, 0)");
   ctx.fillStyle = glowA;
   ctx.fillRect(0, 0, width, height);
 
   const glowB = ctx.createRadialGradient(width * 0.8, height * 0.72, 0, width * 0.8, height * 0.72, width * 0.5);
-  glowB.addColorStop(0, "rgba(155,176,218,0.28)");
-  glowB.addColorStop(1, "rgba(155,176,218,0)");
+  glowB.addColorStop(0, "rgba(45, 212, 191, 0.16)");
+  glowB.addColorStop(1, "rgba(45, 212, 191, 0)");
   ctx.fillStyle = glowB;
   ctx.fillRect(0, 0, width, height);
 
   ctx.save();
-  ctx.globalAlpha = 0.025;
-  ctx.strokeStyle = "rgba(55, 70, 96, 0.22)";
+  ctx.globalAlpha = 0.08;
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
   ctx.lineWidth = 1;
   for (let x = -height; x < width; x += 18) {
     ctx.beginPath();
@@ -120,7 +120,7 @@ function drawWelcomeTexture(canvas: HTMLCanvasElement, width: number, height: nu
     ctx.lineTo(x + height, height);
     ctx.stroke();
   }
-  ctx.globalAlpha = 0.018;
+  ctx.globalAlpha = 0.05;
   for (let y = 0; y < height; y += 14) {
     ctx.beginPath();
     ctx.moveTo(0, y);
@@ -131,17 +131,17 @@ function drawWelcomeTexture(canvas: HTMLCanvasElement, width: number, height: nu
 
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillStyle = "#111827";
+  ctx.fillStyle = "#f8fbff";
   ctx.font = `700 ${Math.min(126, Math.max(56, width * 0.075))}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif`;
-  ctx.shadowColor = "rgba(255, 255, 255, 0.95)";
-  ctx.shadowBlur = 12;
+  ctx.shadowColor = "rgba(96, 165, 250, 0.45)";
+  ctx.shadowBlur = 18;
   const lines = ["WELCOME, TEAR TO", "SEE SHREY'S WEBSITE."];
   const lineHeight = Math.min(132, Math.max(62, width * 0.078));
   const centerY = height * 0.48;
   lines.forEach((line, i) => ctx.fillText(line, width / 2, centerY + (i - 0.5) * lineHeight));
   ctx.shadowBlur = 0;
 
-  ctx.fillStyle = "rgba(44, 56, 80, 0.68)";
+  ctx.fillStyle = "rgba(226, 232, 240, 0.72)";
   ctx.font = `500 ${Math.min(22, Math.max(15, width * 0.014))}px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif`;
   ctx.fillText("Grab the surface and pull until it gives.", width / 2, centerY + lineHeight * 1.18);
 
@@ -151,11 +151,11 @@ function drawWelcomeTexture(canvas: HTMLCanvasElement, width: number, height: nu
   const pillY = centerY + lineHeight * 1.55;
   ctx.beginPath();
   ctx.roundRect(pillX, pillY, pillW, pillH, pillH / 2);
-  ctx.fillStyle = "rgba(255, 255, 255, 0.58)";
+  ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
   ctx.fill();
-  ctx.strokeStyle = "rgba(116, 134, 166, 0.24)";
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.28)";
   ctx.stroke();
-  ctx.fillStyle = "#243044";
+  ctx.fillStyle = "#f8fbff";
   ctx.font = "700 14px -apple-system, BlinkMacSystemFont, sans-serif";
   ctx.fillText("DRAG TO TEAR", width / 2, pillY + pillH / 2 + 1);
 }
@@ -308,11 +308,6 @@ export default function TearableLanding({ onComplete }: { onComplete: () => void
 
       ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      const bg = ctx.createLinearGradient(0, 0, width, height);
-      bg.addColorStop(0, "#eef3fb");
-      bg.addColorStop(1, "#dfe8f4");
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, width, height);
 
       const tearGoal = window.innerWidth < 720 ? 108 : 176;
       cloth.opening += cloth.broken > tearGoal ? 0.009 : 0;
