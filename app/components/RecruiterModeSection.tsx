@@ -14,7 +14,7 @@ const rows = [
   {
     icon: Database,
     title: "NetApp impact",
-    text: "$1B+ revenue planning, 1.5M+ records, 4,900+ sales users, 6-10% MAPE",
+    text: "$150M+ quarterly planning, 1.5M+ records, 4,900+ sales reps, 15% accuracy lift, 6-10% MAPE",
   },
   {
     icon: Network,
@@ -24,7 +24,7 @@ const rows = [
   {
     icon: Code2,
     title: "Stack",
-    text: "Python, TypeScript, FastAPI, Next.js, PostgreSQL, Docker, MLflow, GitHub Actions",
+    text: "Python, SQL, Go, TypeScript, FastAPI, LangGraph, XGBoost, Redis, Docker, CI/CD",
   },
 ];
 
@@ -35,8 +35,8 @@ export default function RecruiterModeSection() {
         <SectionHeader
           eyebrow="Recruiter Mode"
           kicker="Scan fast"
-          title="The resume signal stays visible, even when the glass moves."
-          text="This section is intentionally static-readable first. Drag the panels to reveal extra context, but nothing important is hidden from a recruiter scan."
+          title="The resume signal stays visible in one scan."
+          text="A static-readable snapshot of target roles, internship impact, systems focus, and stack depth."
         />
 
         <div className="grid gap-4 md:grid-cols-2">

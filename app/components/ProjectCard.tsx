@@ -1,4 +1,4 @@
-import type { Project } from "@/app/data/projects";
+import { getCodeStatusLabel, type Project } from "@/app/data/projects";
 import GlassCard from "./GlassCard";
 import ProjectVisual from "./ProjectVisual";
 
@@ -63,15 +63,21 @@ export default function ProjectCard({
           </div>
 
           <div className="mt-6 flex items-center justify-between gap-3 border-t border-white/60 pt-4">
-            <a
-              href={project.github}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(event) => event.stopPropagation()}
-              className="text-sm font-semibold text-[var(--fg)] link-hover"
-            >
-              GitHub
-            </a>
+            {project.github && project.codeStatus === "public" ? (
+              <a
+                href={project.github}
+                target="_blank"
+                rel="noreferrer"
+                onClick={(event) => event.stopPropagation()}
+                className="text-sm font-semibold text-[var(--fg)] link-hover"
+              >
+                GitHub
+              </a>
+            ) : (
+              <span className="text-sm font-semibold text-[var(--fg-dim)]">
+                {getCodeStatusLabel(project.codeStatus)}
+              </span>
+            )}
             <button
               type="button"
               onClick={(event) => {

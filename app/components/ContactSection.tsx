@@ -16,7 +16,7 @@ export default function ContactSection() {
                   Have a role, project, or hard system worth building?
                 </h2>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-[var(--fg-dim)] md:text-lg">
-                  Open to full-time AI/ML, GenAI, MLOps, backend, and applied ML roles starting 2026.
+                  Open to AI/ML, GenAI, MLOps, backend, and applied ML roles where practical systems matter more than slideware.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-3">
                   <a href="mailto:9shrey@gmail.com" className="button-primary">

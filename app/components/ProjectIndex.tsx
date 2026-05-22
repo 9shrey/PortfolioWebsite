@@ -32,10 +32,10 @@ export default function ProjectIndex({
     <section id="projects" className="py-16 md:py-24">
       <div className="container-shell">
         <SectionHeader
-          eyebrow="Full Project Catalogue"
+          eyebrow="Project Index"
           kicker={`${filtered.length} shown`}
-          title="The broader build history, kept compact."
-          text="Search and filter the full set without adding floating controls or visual noise."
+          title="Systems, not filler."
+          text="Filter by domain or stack. Every card here has a real system, proof point, or product angle."
         />
 
         <GlassCard className="p-4 md:p-6">

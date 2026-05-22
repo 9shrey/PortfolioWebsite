@@ -546,6 +546,90 @@ section[id] {
   font-weight: 800;
 }
 
+.hero-ambient-field {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  opacity: 1;
+  mask-image: linear-gradient(to bottom, black 0%, black 82%, transparent 100%);
+}
+
+.hero-ambient-field::before,
+.hero-ambient-field::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 999px;
+}
+
+.hero-ambient-field::before {
+  right: max(-14vw, -160px);
+  top: clamp(42px, 8vw, 110px);
+  z-index: 1;
+  width: clamp(360px, 44vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(11, 99, 206, 0.15);
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.62), transparent 34%),
+    radial-gradient(circle at 56% 42%, rgba(32, 164, 184, 0.2), transparent 48%),
+    conic-gradient(from 80deg, rgba(11, 99, 206, 0), rgba(11, 99, 206, 0.2), rgba(225, 154, 72, 0.09), rgba(32, 164, 184, 0.16), rgba(11, 99, 206, 0));
+  filter: blur(0.1px);
+  animation: ambient-orbit 38s linear infinite;
+}
+
+.hero-ambient-field::after {
+  left: max(-16vw, -190px);
+  bottom: -7%;
+  z-index: 1;
+  width: clamp(320px, 52vw, 840px);
+  aspect-ratio: 1.7;
+  background:
+    radial-gradient(ellipse at 50% 50%, rgba(11, 99, 206, 0.18), transparent 62%),
+    radial-gradient(ellipse at 62% 42%, rgba(32, 164, 184, 0.16), transparent 52%),
+    radial-gradient(ellipse at 28% 54%, rgba(225, 154, 72, 0.08), transparent 44%);
+  filter: blur(14px);
+  animation: ambient-breathe 16s ease-in-out infinite alternate;
+}
+
+.hero-ambient-mesh {
+  position: absolute;
+  inset: -14% -8%;
+  z-index: 1;
+  opacity: 0.46;
+  background-image:
+    linear-gradient(100deg, rgba(11, 99, 206, 0.1) 1px, transparent 1px),
+    linear-gradient(10deg, rgba(32, 164, 184, 0.07) 1px, transparent 1px),
+    radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.1) 1px, transparent 0);
+  background-size: 96px 96px, 124px 124px, 32px 32px;
+  mask-image:
+    radial-gradient(ellipse at 72% 36%, black 0%, transparent 64%),
+    linear-gradient(to bottom, black 0%, transparent 90%);
+  transform: rotate(-7deg);
+  animation: ambient-mesh-slide 22s ease-in-out infinite alternate;
+}
+
+.hero-ambient-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-ambient-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  opacity: 0.16;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0, rgba(15, 23, 42, 0.04) 1px, transparent 2px),
+    repeating-linear-gradient(180deg, transparent 0, rgba(255, 255, 255, 0.36) 1px, transparent 2px);
+  background-size: 3px 3px;
+  mix-blend-mode: soft-light;
+}
+
 .liquid-demo::before {
   content: "";
   position: absolute;
@@ -755,6 +839,32 @@ button.tearable-panel {
   }
 }
 
+@keyframes ambient-orbit {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ambient-breathe {
+  from {
+    transform: translate3d(-1.5%, 0, 0) scale(0.98);
+    opacity: 0.62;
+  }
+  to {
+    transform: translate3d(1.5%, -2%, 0) scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+@keyframes ambient-mesh-slide {
+  from {
+    transform: translate3d(-1%, -0.6%, 0) rotate(-7deg);
+  }
+  to {
+    transform: translate3d(1.2%, 0.8%, 0) rotate(-7deg);
+  }
+}
+
 .float-soft {
   animation: float-soft 7s ease-in-out infinite;
 }
@@ -813,5 +923,21 @@ button.tearable-panel {
 
   .tearable-panel.is-revealed .tearable-face {
     clip-path: none;
+  }
+
+  .hero-ambient-field::before,
+  .hero-ambient-field::after,
+  .hero-ambient-mesh {
+    animation: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-ambient-field {
+    opacity: 0.92;
+  }
+
+  .hero-ambient-mesh {
+    opacity: 0.32;
   }
 }

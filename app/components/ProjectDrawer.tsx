@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect } from "react";
-import type { Project } from "@/app/data/projects";
+import { getCodeStatusLabel, type Project } from "@/app/data/projects";
 import ProjectVisual from "./ProjectVisual";
 
 export default function ProjectDrawer({
@@ -40,7 +40,10 @@ export default function ProjectDrawer({
         aria-label={`Project details: ${project.title}`}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/65 bg-white/72 px-5 py-4 backdrop-blur-2xl">
-          <span className="chip text-[var(--accent)]">{project.category}</span>
+          <div className="flex flex-wrap gap-2">
+            <span className="chip text-[var(--accent)]">{project.category}</span>
+            <span className="chip">{getCodeStatusLabel(project.codeStatus)}</span>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -95,9 +98,15 @@ export default function ProjectDrawer({
             <p className="text-sm leading-7 text-[var(--fg-dim)]">{project.resumeBullet}</p>
           </section>
 
-          <a href={project.github} target="_blank" rel="noreferrer" className="button-primary w-full sm:w-auto">
-            View on GitHub
-          </a>
+          {project.github && project.codeStatus === "public" ? (
+            <a href={project.github} target="_blank" rel="noreferrer" className="button-primary w-full sm:w-auto">
+              View on GitHub
+            </a>
+          ) : (
+            <div className="rounded-[var(--radius-md)] border border-white/70 bg-white/46 p-5 text-sm font-semibold text-[var(--fg-dim)]">
+              Code status: {getCodeStatusLabel(project.codeStatus)}
+            </div>
+          )}
         </div>
       </aside>
     </>

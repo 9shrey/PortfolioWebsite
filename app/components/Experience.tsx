@@ -7,19 +7,25 @@ import SectionHeader from "./SectionHeader";
 
 const metrics = [
   { value: "1.5M+", label: "records" },
-  { value: "$1B+", label: "revenue planning" },
-  { value: "4,900+", label: "users" },
+  { value: "$150M+", label: "quarterly planning" },
+  { value: "4,900+", label: "sales reps" },
+  { value: "15%", label: "accuracy lift" },
   { value: "6-10%", label: "MAPE" },
+  { value: "2h", label: "runtime" },
 ];
 
 const features = [
   {
     title: "Revenue Forecasting Platform",
-    text: "Designed forecasting infrastructure for quarterly revenue planning, including cleaning, anomaly handling, smoothing, feature engineering, batch inference, and reporting around irregular enterprise time-series data.",
+    text: "Built and deployed a one-click forecasting pipeline for $150M+ quarterly revenue planning over 1.5M+ records, with interpolation, anomaly detection, smoothing, feature engineering, validation, and batch inference.",
   },
   {
     title: "Sales Commission Forecasting Model",
-    text: "Built ensemble regression models for 4,900+ users with 60+ engineered features across lag variables, seasonality, rolling statistics, and business-calendar signals.",
+    text: "Improved commission forecast accuracy by 15% with XGBoost ensembles for 4,900+ sales representatives, reducing MAPE to 6-10% using 60+ lag, trend, seasonality, rolling-stat, and business-calendar features.",
+  },
+  {
+    title: "Runtime and Scenario Modeling",
+    text: "Added cold-start logic, quantile forecasts, and market upside/downside scenarios while reducing the end-to-end preprocessing, training, validation, and inference workflow from 6-8 hours to 2 hours.",
   },
 ];
 
@@ -30,8 +36,8 @@ export default function Experience() {
         <SectionHeader
           eyebrow="Experience"
           kicker="NetApp"
-          title="Forecasting systems for real planning workflows."
-          text="A production-facing internship focused on revenue forecasting and commission modeling at enterprise scale."
+          title="Forecasting systems for real GTM planning workflows."
+          text="A production-facing ML internship focused on revenue forecasting, sales commission prediction, and scalable batch ML workflows."
         />
 
         <GlassCard className="p-5 md:p-8 lg:p-10">
@@ -49,12 +55,12 @@ export default function Experience() {
                   </div>
                   <div className="flex justify-between gap-4 border-t border-white/65 pt-4">
                     <dt className="text-[var(--fg-dim)]">Duration</dt>
-                    <dd className="font-semibold text-[var(--fg)]">Jun 2025 - Mar 2026</dd>
+                    <dd className="font-semibold text-[var(--fg)]">Jun 2025 - May 2026</dd>
                   </div>
                   <div className="flex justify-between gap-4 border-t border-white/65 pt-4">
                     <dt className="text-[var(--fg-dim)]">Domain</dt>
                     <dd className="max-w-[12rem] text-right font-semibold text-[var(--fg)]">
-                      Forecasting and commission modeling
+                      Forecasting, accruals, and batch ML
                     </dd>
                   </div>
                 </dl>

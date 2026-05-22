@@ -1,19 +1,22 @@
 "use client";
 
 import MetricChip from "./MetricChip";
+import HeroAmbientField from "./HeroAmbientField";
 import ProfilePortrait from "./ProfilePortrait";
 import Reveal from "./Reveal";
 
 const metrics = [
   { value: "1.5M+", label: "records" },
-  { value: "4,900+", label: "sales users" },
+  { value: "4,900+", label: "sales reps" },
+  { value: "15%", label: "accuracy lift" },
   { value: "6-10%", label: "MAPE" },
-  { value: "$1B+", label: "planning" },
+  { value: "2h", label: "runtime" },
 ];
 
 export default function ProfileHero() {
   return (
     <section id="hero" className="relative overflow-hidden pb-14 pt-32 md:pb-20 md:pt-40">
+      <HeroAmbientField />
       <div className="container-shell relative z-10">
         <div className="grid items-center gap-12 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16">
           <div className="rounded-[44px] p-6 md:p-8">
@@ -27,12 +30,12 @@ export default function ProfileHero() {
             </Reveal>
             <Reveal delay={120}>
               <p className="mt-6 max-w-2xl text-xl font-medium leading-9 text-[var(--fg)] md:text-2xl md:leading-10">
-                I build ML systems, forecasting infrastructure, GenAI agents, and product-grade tools that turn complex data into decisions.
+                I build practical AI systems across forecasting, agentic workflows, recommendation engines, and backend infrastructure.
               </p>
             </Reveal>
             <Reveal delay={180}>
               <p className="mt-5 max-w-xl text-base leading-8 text-[var(--fg-dim)] md:text-lg">
-                Final-year CSE (AI/ML) student. NetApp ML Intern. Focused on agentic systems, MLOps, backend systems, and applied ML research.
+                Final-year CSE (AI/ML) student and ex-NetApp ML intern focused on production-oriented ML workflows, LangGraph agents, RAG evaluation, and scalable APIs.
               </p>
             </Reveal>
 
@@ -60,7 +63,7 @@ export default function ProfileHero() {
         </div>
 
         <Reveal delay={300}>
-          <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
             {metrics.map((metric) => (
               <MetricChip key={metric.label} value={metric.value} label={metric.label} />
             ))}

@@ -1,23 +1,20 @@
 export type ProjectCategory =
-  | "GenAI"
-  | "Agents"
-  | "RAG"
-  | "MLOps"
-  | "Quant"
-  | "Backend"
-  | "Systems"
-  | "Product Systems"
-  | "Applied ML"
-  | "ML Systems"
+  | "RAG / Evaluation"
+  | "Agents / Automation"
+  | "RAG / GenAI"
   | "Agentic AI / Product"
-  | "Backend / Systems"
+  | "Fairness / Planning"
+  | "MLOps"
+  | "ML Systems"
   | "Quant / RL"
+  | "Backend / Systems"
+  | "Agents / Browser Automation"
   | "Quant / Deep Learning"
   | "Quant / Web Product"
-  | "Systems / Rust"
-  | "Agents / Automation"
-  | "Agents / Browser Automation"
-  | "RAG / GenAI";
+  | "Applied ML"
+  | "Systems / Rust";
+
+export type CodeStatus = "public" | "private" | "profile-only";
 
 export type ProofTag =
   | "tests"
@@ -26,7 +23,8 @@ export type ProofTag =
   | "evals"
   | "architecture"
   | "observability"
-  | "reproducible";
+  | "reproducible"
+  | "product";
 
 export interface Project {
   slug: string;
@@ -39,7 +37,8 @@ export interface Project {
   proofTags: ProofTag[];
   proofDescription: string;
   resumeBullet: string;
-  github: string;
+  github?: string;
+  codeStatus: CodeStatus;
   problem: string;
   system: string;
   technicalInterest: string;
@@ -47,6 +46,52 @@ export interface Project {
 }
 
 export const projects: Project[] = [
+  {
+    slug: "rag-proj",
+    title: "RAG / Agent Evaluation Lab",
+    category: "RAG / Evaluation",
+    filterTags: ["GenAI", "RAG", "MLOps", "Applied ML"],
+    stack: ["Python", "LangGraph", "pgvector", "JSONL", "CI", "pytest", "HTML Reports"],
+    blurb:
+      "Customer-intelligence RAG evaluation lab with a deterministic 100-question benchmark, citation checks, LangGraph tool calls, and CI quality gates.",
+    outcome: "Recall@5 0.960, MRR 0.840, CI gate",
+    proofTags: ["tests", "CI", "evals", "observability", "reproducible"],
+    proofDescription:
+      "100-question benchmark, Recall@5 0.960, MRR 0.840, citation coverage 0.971, hallucination rate 0.030, static report artifacts, and threshold-enforced CI.",
+    resumeBullet:
+      "Built a production-style RAG and agent evaluation lab with deterministic fixtures, retrieval metrics, citation-grounding checks, LangGraph tool workflows, and CI thresholds that fail on quality regressions.",
+    github: "https://github.com/9shrey/rag-proj",
+    codeStatus: "public",
+    problem:
+      "RAG portfolios often claim quality without measurable proof. Recruiters and reviewers need a deterministic benchmark that shows retrieval, citation, latency, and hallucination behavior.",
+    system:
+      "Synthetic customer-intelligence corpus -> heading-aware chunker -> deterministic embeddings -> pgvector-compatible store -> retriever -> cited answer baseline plus LangGraph tool workflow -> eval runner -> CI threshold gate -> static report.",
+    technicalInterest:
+      "Evaluation-first RAG design with recall, MRR, citation coverage, faithfulness, hallucination, p95 latency, and estimated cost tracked as reproducible artifacts.",
+  },
+  {
+    slug: "agentic-workflow-assistant",
+    title: "Agentic Workflow Automation Assistant",
+    category: "Agents / Automation",
+    filterTags: ["GenAI", "Agents", "Backend"],
+    stack: ["Python", "FastAPI", "LangGraph", "Gmail API", "Google Calendar API", "SQLite", "Pydantic"],
+    blurb:
+      "LangGraph workflow agent that searches email threads, summarizes invoice context, drafts reminders, and schedules follow-ups with approval checkpoints.",
+    outcome: "Typed state, 75+ tests, audit logs",
+    proofTags: ["tests", "architecture", "observability", "reproducible"],
+    proofDescription:
+      "FastAPI workflow endpoints, typed LangGraph state, Pydantic tool schemas, OAuth-based Google API access, retry/fallback handling, SQLite audit logs, and deterministic routing.",
+    resumeBullet:
+      "Built a LangGraph-based automation agent integrating Gmail and Google Calendar APIs to search email threads, summarize invoice context, draft reminder emails, and schedule follow-ups with human approval checkpoints.",
+    github: "https://github.com/9shrey/agentic-workflow-assistant",
+    codeStatus: "public",
+    problem:
+      "Routine email and calendar workflows require context gathering, tool use, and approval boundaries that plain chatbots do not enforce.",
+    system:
+      "FastAPI workflow layer -> LangGraph planner -> Gmail search -> invoice/context summarizer -> draft generator -> human approval checkpoint -> Calendar scheduler -> SQLite audit trail.",
+    technicalInterest:
+      "The project emphasizes typed multi-step agent state, explicit approval gates, tool schema validation, and inspectable state transitions instead of opaque one-shot LLM calls.",
+  },
   {
     slug: "rag-knowledge-assistant",
     title: "Production RAG Knowledge Assistant",
@@ -58,60 +103,62 @@ export const projects: Project[] = [
     outcome: "65 backend tests, eval dashboard, citations",
     proofTags: ["tests", "Docker", "evals", "observability", "reproducible"],
     proofDescription:
-      "65 backend tests, Docker-ready, eval dashboard, query observability, citations",
+      "65 backend tests, six frontend pages, Docker-ready FastAPI and Next.js stack, citation highlighting, eval framework, hallucination checks, and query-level observability.",
     resumeBullet:
-      "Built a production RAG assistant with document ingestion, semantic chunking, pgvector retrieval, citation-grounded answers, evaluation workflows, and FastAPI inference endpoints.",
+      "Built a production RAG assistant with PDF ingestion, semantic chunking, pgvector-based hybrid retrieval, citation-grounded answer generation, and FastAPI inference endpoints.",
     github: "https://github.com/9shrey/rag-knowledge-assistant",
+    codeStatus: "public",
     problem:
-      "Teams need to query internal documents with grounded, citation-backed answers — not black-box LLM responses.",
+      "Teams need document Q&A that points back to source material instead of returning ungrounded LLM answers.",
     system:
-      "PDF ingestion pipeline → semantic chunker → pgvector hybrid retrieval → LangChain RAG chain → FastAPI endpoint → Next.js UI with citation highlighting.",
+      "PDF upload -> text extraction -> semantic chunking -> vector and keyword retrieval -> LangChain answer generation -> citation highlighting -> eval and debug pages.",
     technicalInterest:
-      "Hybrid retrieval combining dense embeddings with keyword search, evaluation dashboard measuring faithfulness and relevance, production Docker setup with observability.",
+      "Hybrid retrieval, grounded answer generation, Dockerized service boundaries, evaluation workflow, latency/token-cost logging, and citation coverage scoring.",
   },
   {
-    slug: "agentic-workflow-assistant",
-    title: "Agentic Workflow Automation Assistant",
-    category: "Agents / Automation",
-    filterTags: ["GenAI", "Agents", "Backend"],
-    stack: ["Python", "FastAPI", "LangGraph", "Gmail API", "Google Calendar API", "SQLite", "Pydantic"],
+    slug: "ai-waiter",
+    title: "AI Waiter",
+    category: "Agentic AI / Product",
+    filterTags: ["GenAI", "Agents", "Applied ML", "Product"],
+    stack: ["Next.js", "TypeScript", "FastAPI", "Gemini", "Tailwind", "Docker"],
     blurb:
-      "LangGraph workflow agent that searches emails, summarizes invoice context, drafts reminders, and schedules follow-ups with human approval.",
-    outcome: "Typed state, 75+ tests, audit logs",
-    proofTags: ["tests", "architecture", "observability", "reproducible"],
+      "Conversational restaurant ordering MVP that recommends dishes, remembers preferences, updates carts, and hands off orders through WhatsApp.",
+    outcome: "Function calling, menu cards, WhatsApp handoff",
+    proofTags: ["Docker", "architecture", "reproducible", "product"],
     proofDescription:
-      "Typed state, Pydantic tool schemas, OAuth, approval checkpoints, audit logs, 75+ tests",
+      "Gemini function calling, FastAPI tool endpoints, structured menu schemas, rich menu-card UI, visitor memory, live cart state, upsell flow, and Docker Compose.",
     resumeBullet:
-      "Built a LangGraph-based workflow automation agent integrating Gmail and Google Calendar APIs with typed state, human approval checkpoints, retry/fallback handling, and SQLite audit logs.",
-    github: "https://github.com/9shrey/agentic-workflow-assistant",
+      "Built an AI restaurant ordering agent with Gemini function calling, FastAPI tool endpoints, structured menu schemas, allergy-aware recommendations, cart updates, repeat-customer personalization, and WhatsApp checkout handoff.",
+    github: "https://github.com/9shrey/ai_waiter",
+    codeStatus: "public",
     problem:
-      "Manual email triage and calendar scheduling drain engineering time — an agent with guardrails can handle routine workflows autonomously.",
+      "Static restaurant menus do not adapt to preferences, allergies, budgets, or repeat customers.",
     system:
-      "LangGraph state machine → Gmail search tool → invoice parser → draft generator → human approval checkpoint → Calendar API scheduler → SQLite audit trail.",
+      "Next.js chat UI -> Gemini function calling -> FastAPI menu/cart tools -> preference memory -> menu-card recommendations -> cart state machine -> WhatsApp checkout.",
     technicalInterest:
-      "Typed state graph with Pydantic schema enforcement, OAuth integration, human-in-the-loop checkpoints, retry/fallback handling, and full audit logging.",
+      "A practical product surface for agentic commerce: typed tool calls, personalization, structured menu data, allergy-aware recommendations, and owner-demo-ready UX.",
   },
   {
-    slug: "automl-pipeline-framework",
-    title: "AutoML Pipeline Framework",
-    category: "ML Systems",
-    filterTags: ["MLOps", "Applied ML", "ML Systems"],
-    stack: ["Python", "Scikit-learn", "Optuna", "SHAP", "Typer", "Pandas"],
+    slug: "fairmeet",
+    title: "FairMeet: Fairness-Aware Group Activity Planner",
+    category: "Fairness / Planning",
+    filterTags: ["Agents", "Applied ML", "Product", "Backend"],
+    stack: ["Python", "LangGraph", "Flask", "SQLite", "Pydantic", "Jinja"],
     blurb:
-      "Modular AutoML library for tabular data with preprocessing search, Bayesian optimization, ASHA pruning, ensembling, explainability, and reproducible run artifacts.",
-    outcome: "200+ tests, CLI, sklearn-compatible",
-    proofTags: ["tests", "architecture", "reproducible"],
+      "Group planning engine that recommends fair meetups across location, interests, budget, energy level, and long-term compromise history.",
+    outcome: "Fairness ledger, approval loops, dashboard",
+    proofTags: ["tests", "architecture", "product"],
     proofDescription:
-      "200+ tests, CLI, sklearn-compatible API, benchmark artifacts, SHAP explanations",
+      "Typed planning state, conditional routing, revision loops, persistent memory, fairness ledger, Flask/Jinja dashboard, CLI simulation flow, and local test coverage.",
     resumeBullet:
-      "Built a modular AutoML framework with Optuna/TPE search, ASHA pruning, warm-start meta-learning, top-k ensembling, explainability, and reproducible run artifacts.",
-    github: "https://github.com/9shrey/automl-pipeline-framework",
+      "Built a LangGraph-based group planning engine with typed graph state, conditional routing, revision loops, persistent memory, and human approval checkpoints.",
+    codeStatus: "private",
     problem:
-      "Tabular ML workflows are repetitive — preprocessing, HPO, ensembling, and explainability should be automated and reproducible.",
+      "Friend groups often default to whoever is closest, loudest, or easiest to satisfy, causing the same people to compromise repeatedly.",
     system:
-      "Typed preprocessing search space → Optuna TPE sampler → ASHA pruner → warm-start meta-learner → top-k ensembler → SHAP explainer → Typer CLI → artifact store.",
+      "Group state -> constraints -> meeting zone -> activity candidates -> multi-factor scoring -> fairness evaluation -> explanation -> approval or revision -> fairness ledger update.",
     technicalInterest:
-      "Bayesian optimization with ASHA pruning, sklearn-compatible API design, warm-start meta-learning from prior runs, reproducible artifact bundles.",
+      "The planner combines deterministic fairness scoring with memory concepts such as preference debt, compromise score, priority credit, and approval checkpoints.",
   },
   {
     slug: "cicd-retraining-pipeline",
@@ -120,130 +167,113 @@ export const projects: Project[] = [
     filterTags: ["MLOps", "Backend"],
     stack: ["Python", "GitHub Actions", "MLflow", "DVC", "FastAPI", "Prometheus", "Grafana", "Docker"],
     blurb:
-      "Production-style MLOps pipeline that detects drift, retrains models, gates promotion, and rolls out deployments using shadow, canary, and blue-green strategies.",
-    outcome: "Drift checks, eval gates, observability",
+      "Production-style MLOps reference for drift detection, automated retraining, evaluation gates, and shadow/canary/blue-green deployment.",
+    outcome: "Drift checks, eval gates, rollback demo",
     proofTags: ["tests", "Docker", "CI", "evals", "observability"],
     proofDescription:
-      "Drift checks, evaluation gates, local observability stack, rollback demo, CI workflows",
+      "GitHub Actions CI and drift-check workflows, MLflow/MinIO/Prometheus/Grafana stack, champion-challenger promotion, canary rollout, rollback demo, and reproducible make targets.",
     resumeBullet:
       "Built an automated MLOps retraining pipeline with drift detection, evaluation gates, champion-challenger promotion, canary rollout, rollback handling, and GitHub Actions orchestration.",
     github: "https://github.com/9shrey/cicd-retraining-pipeline",
+    codeStatus: "public",
     problem:
-      "Models degrade silently in production — teams need automated drift detection, gated retraining, and safe rollout strategies.",
+      "Models degrade silently after deployment unless data drift, retraining, promotion, and rollback are automated.",
     system:
-      "Drift detector → conditional retraining trigger → MLflow experiment → evaluation gate → champion/challenger comparison → canary deployment → Prometheus/Grafana dashboards.",
+      "Drift runner -> retraining trigger -> MLflow experiment -> evaluation gate -> champion/challenger promotion -> shadow/canary/blue-green deployment -> monitoring and rollback.",
     technicalInterest:
-      "End-to-end MLOps on GitHub Actions, drift detection with statistical tests, canary/blue-green deployment patterns, local observability stack with Prometheus + Grafana.",
+      "End-to-end operational ML workflow design with measurable gates, local observability, controlled rollout stages, and CI-driven automation.",
+  },
+  {
+    slug: "automl-pipeline-framework",
+    title: "AutoML Pipeline Framework",
+    category: "ML Systems",
+    filterTags: ["MLOps", "Applied ML", "ML Systems"],
+    stack: ["Python", "Scikit-learn", "Optuna", "SHAP", "Typer", "Pandas"],
+    blurb:
+      "Modular AutoML library for tabular data with preprocessing search, Bayesian optimization, ASHA pruning, ensembling, explainability, and run artifacts.",
+    outcome: "200+ tests, CLI, sklearn-compatible",
+    proofTags: ["tests", "CI", "architecture", "reproducible"],
+    proofDescription:
+      "200+ unit tests, sklearn-compatible API, Typer CLI, benchmark dashboard, Optuna/TPE search, ASHA pruning, warm-starts, top-k ensembling, SHAP and permutation explanations.",
+    resumeBullet:
+      "Built a modular AutoML framework with Optuna/TPE search, ASHA pruning, warm-start meta-learning, top-k ensembling, explainability, and reproducible run artifacts.",
+    github: "https://github.com/9shrey/automl-pipeline-framework",
+    codeStatus: "public",
+    problem:
+      "Tabular ML workflows repeat the same steps: preprocessing, model choice, HPO, ensembling, explainability, and artifact recording.",
+    system:
+      "Search space -> Optuna TPE sampler -> ASHA pruner -> warm-start store -> candidate pipelines -> top-k ensemble -> explanations -> Typer CLI -> artifact store.",
+    technicalInterest:
+      "A compact ML systems project focused on API design, reproducibility, automated search, explainability, and reviewer-visible benchmark outputs.",
   },
   {
     slug: "rl-statistical-arbitrage",
     title: "RL Statistical Arbitrage Engine",
     category: "Quant / RL",
-    filterTags: ["Quant", "GenAI", "Applied ML"],
+    filterTags: ["Quant", "Applied ML"],
     stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
     blurb:
-      "Walk-forward pairs-trading research framework with cointegration-based pair selection, no-lookahead features, transaction-cost-adjusted backtests, and optional PPO evaluation.",
+      "Walk-forward pairs-trading research framework with cointegration selection, trailing-only features, transaction costs, baselines, and optional PPO evaluation.",
     outcome: "No-lookahead, cost-adjusted backtests",
     proofTags: ["tests", "evals", "reproducible"],
     proofDescription:
-      "Transaction-cost metrics, MLflow logging, no-lookahead tests, PIT universe fixtures",
+      "Engle-Granger/Johansen pair selection, trailing-window features, transaction-cost metrics, leaderboard artifacts, fixture-backed point-in-time universe snapshots, and optional MLflow logging.",
     resumeBullet:
       "Built a walk-forward RL/stat-arb framework using cointegration tests, trailing-only features, transaction-cost-adjusted backtests, baseline policies, and PPO evaluation.",
     github: "https://github.com/9shrey/rl-statistical-arbitrage",
+    codeStatus: "public",
     problem:
-      "Statistical arbitrage strategies suffer from lookahead bias and ignore transaction costs — making backtests unreliable.",
+      "Quant backtests can look strong while hiding lookahead bias, stale universe assumptions, and transaction-cost blind spots.",
     system:
-      "Cointegration pair selector → trailing-only feature builder → PPO agent (Stable-Baselines3) → Gymnasium trading env → transaction-cost model → MLflow tracking.",
+      "Bars and optional universe snapshots -> pair selection -> trailing feature builder -> trading environment -> baseline/PPO policy layer -> walk-forward backtest -> leaderboard.",
     technicalInterest:
-      "No-lookahead feature engineering, transaction-cost-adjusted reward shaping, cointegration-based pair selection with PIT universe fixtures, PPO evaluation against baselines.",
-  },
-  {
-    slug: "ai-waiter",
-    title: "AI Waiter",
-    category: "Agentic AI / Product",
-    filterTags: ["GenAI", "Agents", "Applied ML"],
-    stack: ["Next.js", "TypeScript", "FastAPI", "Gemini", "Tailwind", "Docker"],
-    blurb:
-      "Conversational restaurant ordering agent that recommends dishes, remembers preferences, updates carts, and hands off orders through WhatsApp.",
-    outcome: "Function calling, replay script, Docker",
-    proofTags: ["Docker", "architecture", "reproducible"],
-    proofDescription:
-      "Gemini function calling, visitor memory, structured menu schema, Docker Compose, replay script",
-    resumeBullet:
-      "Built an AI restaurant ordering assistant with Gemini function calling, FastAPI tool endpoints, structured menu schemas, allergy-aware recommendations, live cart updates, and WhatsApp checkout.",
-    github: "https://github.com/9shrey/ai_waiter",
-    problem:
-      "Restaurant ordering is repetitive and impersonal — an AI agent can personalize recommendations and streamline the ordering flow.",
-    system:
-      "Next.js chat UI → Gemini function calling → FastAPI tool endpoints → structured menu schema → preference memory store → cart state machine → WhatsApp checkout integration.",
-    technicalInterest:
-      "Gemini function calling with typed tool schemas, stateful conversation memory, structured menu schema with allergy awareness, Docker Compose for full-stack local dev.",
-  },
-  {
-    slug: "lifeos",
-    title: "LIFEOS",
-    category: "Product Systems",
-    filterTags: ["GenAI", "Backend", "Systems"],
-    stack: ["Next.js", "TypeScript", "AI Agents", "PostgreSQL", "Product Engineering"],
-    blurb:
-      "Personal operating-system concept for organizing goals, workflows, and AI-assisted productivity into one product surface.",
-    outcome: "Product systems, agents, planning UX",
-    proofTags: ["architecture", "reproducible"],
-    proofDescription:
-      "Product-first AI workflow with structured planning surfaces, agent-ready architecture, and recruiter-readable system design.",
-    resumeBullet:
-      "Built LIFEOS as a product-style AI workspace for goals, workflows, and planning, emphasizing clean UX, structured data, and agent-ready product architecture.",
-    github: "https://github.com/9shrey",
-    problem:
-      "Personal productivity tools often split goals, tasks, and context across separate apps, making AI assistance hard to ground.",
-    system:
-      "Next.js product shell -> structured planning data -> AI workflow layer -> persistent state -> clean glass UI for daily review and execution.",
-    technicalInterest:
-      "Product engineering around AI-assisted planning, structured context, responsive interaction design, and extensible agent surfaces.",
+      "The project is positioned as research tooling, not live trading, with inspectable no-lookahead tests, cost modeling, and baseline comparisons.",
   },
   {
     slug: "api-gateway",
     title: "High-Performance API Gateway",
     category: "Backend / Systems",
     filterTags: ["Backend", "Systems"],
-    stack: ["Go", "Redis", "Docker", "Prometheus"],
+    stack: ["Go", "Redis", "Docker", "Prometheus", "JWT"],
     blurb:
-      "Config-driven Go API gateway with reverse proxying, round-robin load balancing, Redis rate limiting, JWT auth, circuit breakers, retries, and metrics.",
-    outcome: "Sub-ms routing, Redis rate limiting",
+      "Config-driven Go API gateway with reverse proxying, load balancing, Redis rate limiting, JWT auth, circuit breakers, retries, and metrics.",
+    outcome: "Redis rate limiting, health checks, metrics",
     proofTags: ["tests", "Docker", "observability"],
     proofDescription:
-      "Standard-library HTTP server, Redis Lua token bucket, Prometheus metrics, Docker Compose",
+      "Standard-library HTTP server, YAML config, reverse proxy, round-robin load balancing, Redis Lua token bucket, JWT auth, active health checks, circuit breaker, retries, and Prometheus metrics.",
     resumeBullet:
-      "Built a config-driven Go API gateway with reverse proxying, round-robin load balancing, Redis rate limiting, JWT auth, circuit breakers, and Prometheus metrics.",
+      "Built a production-grade API Gateway in Go with reverse proxying, round-robin load balancing, Redis token-bucket rate limiting, JWT middleware, request logging, and latency tracking.",
     github: "https://github.com/9shrey/api-gateway",
+    codeStatus: "public",
     problem:
-      "Microservices need a unified entry point with authentication, rate limiting, and observability — without heavyweight frameworks.",
+      "Backend systems need a single entry point for routing, auth, rate limiting, resilience, and observability without hiding the fundamentals behind a managed service.",
     system:
-      "YAML config parser → reverse proxy router → round-robin LB → Redis Lua rate limiter → JWT middleware → circuit breaker → retry handler → Prometheus metrics exporter.",
+      "YAML config -> HTTP router -> middleware chain -> rate limiter/auth/logging -> reverse proxy -> load balancer -> health checks -> metrics endpoint.",
     technicalInterest:
-      "Go standard-library HTTP server, Redis Lua scripting for atomic token-bucket rate limiting, circuit breaker pattern with half-open state, composable middleware chain.",
+      "A systems project built close to the Go standard library to demonstrate gateway internals, Redis Lua atomicity, and composable middleware design.",
   },
   {
     slug: "autobrowser-agent",
     title: "AutoBrowserAgent",
     category: "Agents / Browser Automation",
-    filterTags: ["Agents", "GenAI"],
-    stack: ["TypeScript", "Playwright", "Next.js", "DeepSeek/OpenAI/Claude"],
+    filterTags: ["Agents", "GenAI", "Backend"],
+    stack: ["TypeScript", "Playwright", "Next.js", "DeepSeek", "OpenAI", "Claude"],
     blurb:
-      "Autonomous browser agent with perceive-plan-act loop, Playwright execution, session recording, replay dashboard, artifacts export, and human intervention.",
-    outcome: "Replay dashboard, session recordings",
+      "Autonomous browser agent with perceive-plan-act execution, Playwright automation, session recording, replay dashboard, exports, and human intervention.",
+    outcome: "Replay dashboard, action logs, fixtures",
     proofTags: ["tests", "evals", "reproducible"],
     proofDescription:
-      "Offline replay fixtures, dashboard, action logs, CSV/JSON export",
+      "Offline replay fixtures, action logs, CSV/JSON export, session recording, replay dashboard, and multiple LLM backend support.",
     resumeBullet:
       "Built an autonomous browser agent with perceive-plan-act loop, Playwright execution, session recording, replay dashboard, and human intervention hooks.",
     github: "https://github.com/9shrey/AutoBrowserAgent",
+    codeStatus: "public",
     problem:
-      "Repetitive browser tasks (form filling, data extraction) should be automated by an agent that can perceive, plan, and act — with human oversight.",
+      "Browser tasks are repetitive but risky unless automation can record actions, replay sessions, and keep human intervention points visible.",
     system:
-      "Perceive (screenshot + DOM) → Plan (LLM reasoning) → Act (Playwright) → Record (session capture) → Replay dashboard → CSV/JSON artifact export.",
+      "Perceive screenshot and DOM -> plan with LLM backend -> act through Playwright -> record session -> replay dashboard -> export artifacts.",
     technicalInterest:
-      "Perceive-plan-act loop with multiple LLM backends, offline replay from fixture files, human intervention hook points, session recording and export.",
+      "Agent execution traceability: replayable browser actions, fixture-based tests, exportable artifacts, and intervention hooks around autonomous steps.",
   },
   {
     slug: "dl-volatility-surface-forecaster",
@@ -252,42 +282,44 @@ export const projects: Project[] = [
     filterTags: ["Quant", "Applied ML"],
     stack: ["Python", "PyTorch", "GARCH", "LSTM", "SABR", "Heston"],
     blurb:
-      "Hybrid LSTM + GARCH volatility-surface forecaster benchmarked against SABR and Heston baselines with no-arbitrage constraints.",
+      "Hybrid LSTM and GARCH volatility-surface forecaster benchmarked against SABR and Heston baselines with no-arbitrage constraints.",
     outcome: "Walk-forward eval, no-arbitrage constraints",
     proofTags: ["tests", "evals", "reproducible"],
     proofDescription:
-      "Walk-forward evaluation, no-arbitrage projection, deterministic smoke tests",
+      "Walk-forward evaluation, no-arbitrage projection, deterministic smoke tests, and stochastic-volatility baseline comparison.",
     resumeBullet:
       "Built a hybrid LSTM + GARCH volatility-surface forecaster with no-arbitrage projection constraints, benchmarked against SABR and Heston stochastic volatility baselines.",
     github: "https://github.com/9shrey/dl-volatility-surface-forecaster",
+    codeStatus: "public",
     problem:
-      "Volatility surface forecasting is dominated by parametric models (SABR, Heston) — can deep learning capture the dynamics better while respecting no-arbitrage?",
+      "Volatility surface models need forecasting power without violating financial shape constraints.",
     system:
-      "GARCH volatility estimator → LSTM forecaster → no-arbitrage projection layer → benchmark suite (SABR, Heston) → walk-forward evaluation → deterministic smoke tests.",
+      "GARCH estimator -> LSTM forecaster -> no-arbitrage projection layer -> SABR/Heston benchmark suite -> walk-forward evaluation.",
     technicalInterest:
-      "Hybrid statistical + deep learning architecture, no-arbitrage constraints enforced in the projection layer, rigorous walk-forward evaluation against stochastic volatility baselines.",
+      "Combines statistical volatility estimation, deep sequence modeling, constraint projection, and baseline benchmarking.",
   },
   {
     slug: "volatility-lens-web",
     title: "Volatility Lens Web",
     category: "Quant / Web Product",
-    filterTags: ["Quant", "Backend"],
+    filterTags: ["Quant", "Backend", "Product"],
     stack: ["Python", "Next.js", "TypeScript", "HMM", "SVI", "Vercel"],
     blurb:
       "Interactive implied-volatility analytics product backed by a deterministic Python research pipeline and signed JSON artifact bundles.",
-    outcome: "HMAC-signed artifacts, schema sharing",
+    outcome: "HMAC artifacts, schema sharing",
     proofTags: ["tests", "architecture", "reproducible"],
     proofDescription:
-      "Artifact validation, HMAC-signed bundles, schema sharing between Python and TypeScript",
+      "Artifact validation, HMAC-signed JSON bundles, deterministic Python pipeline, shared TypeScript/Python schemas, and interactive volatility UI.",
     resumeBullet:
       "Built an interactive volatility analytics product with a deterministic Python research pipeline, HMAC-signed JSON artifacts, and shared TypeScript/Python schemas.",
     github: "https://github.com/9shrey/volatility-lens-web",
+    codeStatus: "public",
     problem:
-      "Quant research artifacts need to be shared with web UIs in a verifiable, tamper-proof way — with schema guarantees across language boundaries.",
+      "Quant research artifacts are hard to expose safely in web UIs without schema guarantees and tamper checks.",
     system:
-      "Python research pipeline (HMM, SVI) → deterministic JSON artifact generation → HMAC signing → Next.js web UI → schema validation → interactive volatility charts.",
+      "Python research pipeline -> deterministic JSON artifacts -> HMAC signing -> schema validation -> Next.js analytics UI -> interactive SVI visualizations.",
     technicalInterest:
-      "Deterministic artifact generation for reproducibility, HMAC signing for tamper-proof bundles, shared schema definitions between Python and TypeScript, interactive SVI visualizations.",
+      "A bridge between research code and product UI, emphasizing reproducible artifact generation and cross-language schema discipline.",
   },
   {
     slug: "metermind",
@@ -297,19 +329,20 @@ export const projects: Project[] = [
     stack: ["Python", "Streamlit", "Pandas", "Scikit-learn", "Plotly"],
     blurb:
       "Smart-meter anomaly detection prototype for ranking non-technical loss risk with behavioral features and plain-language explanations.",
-    outcome: "Synthetic data, IsolationForest, risk scoring",
-    proofTags: ["tests", "evals"],
+    outcome: "500+ meters, IsolationForest, risk scoring",
+    proofTags: ["tests", "evals", "product"],
     proofDescription:
-      "Synthetic BESCOM-style data, IsolationForest, rule-based flags, risk scoring",
+      "Synthetic BESCOM-style data for 500+ meters across 90 days, behavioral features, IsolationForest, rule flags, KPI cards, risk distribution, ranking table, and investigation views.",
     resumeBullet:
       "Built a smart-meter anomaly detection prototype with synthetic BESCOM-style data, IsolationForest models, behavioral feature engineering, and plain-language risk explanations.",
     github: "https://github.com/9shrey/metermind",
+    codeStatus: "public",
     problem:
-      "Utility companies lose revenue to non-technical losses (theft, meter tampering) — anomaly detection can flag high-risk meters for inspection.",
+      "Utilities need a practical way to prioritize suspicious smart meters before sending inspection teams.",
     system:
-      "Synthetic data generator (BESCOM-style) → behavioral feature engineer → IsolationForest detector → rule-based flag overlay → risk scorer → Streamlit dashboard.",
+      "Synthetic meter data -> peer-group and behavior features -> IsolationForest -> rule-based flags -> 0-100 risk score -> Streamlit investigation dashboard.",
     technicalInterest:
-      "Synthetic data generation matching real-world utility patterns, IsolationForest for unsupervised anomaly detection, rule-based flag overlay for interpretability, plain-language risk explanations.",
+      "Applied ML product thinking: unsupervised anomaly detection, explainable risk flags, synthetic domain data, and dispatcher-friendly UI.",
   },
   {
     slug: "rustgrep",
@@ -322,16 +355,17 @@ export const projects: Project[] = [
     outcome: "18 tests, parallel mode, highlighting",
     proofTags: ["tests"],
     proofDescription:
-      "9 unit tests, 9 integration tests, rayon parallel mode",
+      "9 unit tests, 9 integration tests, recursive directory search, binary/unreadable-file handling, ANSI highlighting, and Rayon parallel mode.",
     resumeBullet:
       "Built a grep-like CLI tool in Rust with recursive search, case-insensitive matching, line numbers, colored highlighting, and parallel file search via Rayon.",
     github: "https://github.com/9shrey/rustgrep",
+    codeStatus: "public",
     problem:
-      "Learning systems programming by building a real tool — grep is the perfect project to understand file I/O, pattern matching, and concurrency in Rust.",
+      "A focused systems project for learning Rust through real file I/O, CLI parsing, pattern matching, and concurrency.",
     system:
-      "Clap CLI arg parser → recursive directory walker → regex pattern matcher → line number tracker → colored output formatter → Rayon parallel file processor.",
+      "Clap CLI parser -> recursive walker -> matcher -> line-number formatter -> optional ANSI highlighter -> Rayon parallel file processor.",
     technicalInterest:
-      "Rust ownership and borrowing in practice, parallel file processing with Rayon, Clap derive API for CLI design, comprehensive unit + integration test suite.",
+      "Rust ownership, error handling, test structure, and parallel file processing expressed through a familiar developer tool.",
   },
 ];
 
@@ -345,14 +379,16 @@ export const filterCategories = [
   "Backend",
   "Systems",
   "Applied ML",
+  "Product",
 ];
 
 export const selectedProjectSlugs = [
-  "ai-waiter",
-  "rl-statistical-arbitrage",
-  "rag-knowledge-assistant",
+  "rag-proj",
   "agentic-workflow-assistant",
-  "lifeos",
+  "rag-knowledge-assistant",
+  "ai-waiter",
+  "fairmeet",
+  "cicd-retraining-pipeline",
 ];
 
 export function getProjectBySlug(slug: string): Project | undefined {
@@ -368,4 +404,10 @@ export function getSelectedProjects(): Project[] {
 export function filterProjects(category: string): Project[] {
   if (category === "All") return projects;
   return projects.filter((p) => p.filterTags.includes(category));
+}
+
+export function getCodeStatusLabel(status: CodeStatus): string {
+  if (status === "public") return "Public code";
+  if (status === "private") return "Private / resume-only";
+  return "Profile link";
 }
