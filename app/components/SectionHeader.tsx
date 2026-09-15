@@ -1,40 +1,33 @@
 import Reveal from "./Reveal";
 
 export default function SectionHeader({
-  eyebrow,
+  numeral,
   kicker,
   title,
   text,
-  numeral,
-  lede,
   className = "",
 }: {
-  eyebrow?: string;
+  numeral?: string;
   kicker?: string;
   title: React.ReactNode;
   text?: string;
-  numeral?: string;
-  lede?: string;
   className?: string;
 }) {
-  const label = eyebrow ?? numeral ?? "";
-  const body = text ?? lede;
-
   return (
     <Reveal>
-      <div className={`mb-10 md:mb-14 ${className}`}>
-        <div className="mb-6 flex items-center gap-3">
-          {label ? <span className="micro">{label}</span> : null}
+      <div className={`mb-12 md:mb-16 ${className}`}>
+        <div className="mb-8 flex items-center gap-4">
+          {numeral ? <span className="micro">{numeral}</span> : null}
           <span className="h-px flex-1 bg-[var(--rule-soft)]" />
-          {kicker ? <span className="micro text-[var(--fg-mute)]">{kicker}</span> : null}
+          {kicker ? <span className="micro">{kicker}</span> : null}
         </div>
-        <h2 className="display max-w-4xl text-balance text-4xl sm:text-5xl md:text-7xl">
+
+        <h2 className="display max-w-[20ch] text-balance text-[clamp(2.4rem,6vw,4.25rem)]">
           {title}
         </h2>
-        {body ? (
-          <p className="mt-5 max-w-2xl text-base leading-8 text-[var(--fg-dim)] md:text-lg">
-            {body}
-          </p>
+
+        {text ? (
+          <p className="prose-dim mt-6 max-w-[58ch] text-[15px]">{text}</p>
         ) : null}
       </div>
     </Reveal>

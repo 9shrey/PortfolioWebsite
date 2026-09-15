@@ -1,14 +1,11 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import GlassNav from "./components/GlassNav";
+import Nav from "./components/Nav";
 import Hero from "./components/Hero";
-import VoiceIntro from "./components/VoiceIntro";
-import RecruiterModeSection from "./components/RecruiterModeSection";
-import SelectedWork from "./components/SelectedWork";
-import ProjectIndex from "./components/ProjectIndex";
+import Work from "./components/Work";
 import Experience from "./components/Experience";
-import TechnicalShelf from "./components/TechnicalShelf";
+import Stack from "./components/Stack";
 import ContactSection from "./components/ContactSection";
 import Footer from "./components/Footer";
 import ScrollProgress from "./components/ScrollProgress";
@@ -29,15 +26,12 @@ export default function Home() {
   return (
     <>
       <ScrollProgress />
-      <GlassNav />
+      <Nav />
       <main>
         <Hero />
-        <VoiceIntro />
-        <RecruiterModeSection />
-        <SelectedWork onOpenProject={openProject} />
-        <ProjectIndex onOpenProject={openProject} />
+        <Work onOpenProject={openProject} />
         <Experience />
-        <TechnicalShelf />
+        <Stack />
         <ContactSection />
       </main>
       <Footer />

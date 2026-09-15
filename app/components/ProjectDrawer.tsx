@@ -30,83 +30,88 @@ export default function ProjectDrawer({
 
   if (!project) return null;
 
+  const sections = [
+    ["Problem", project.problem],
+    ["System", project.system],
+    ["Technical interest", project.technicalInterest],
+    ["Evidence", project.proofDescription],
+  ] as const;
+
   return (
     <>
-      <div className="fixed inset-0 z-[70] bg-slate-950/22 backdrop-blur-md" onClick={onClose} aria-hidden />
+      <div
+        className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
       <aside
-        className="fixed inset-y-3 right-3 z-[80] w-[calc(100%-1.5rem)] overflow-y-auto rounded-[32px] border border-white/70 bg-white/82 shadow-[0_28px_90px_rgba(15,23,42,0.24)] backdrop-blur-2xl sm:w-[580px] md:right-5 md:inset-y-5"
+        className="fixed inset-y-0 right-0 z-[80] w-full overflow-y-auto border-l border-[var(--rule)] bg-[var(--bg-2)] sm:w-[600px]"
         role="dialog"
         aria-modal="true"
         aria-label={`Project details: ${project.title}`}
       >
-        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/65 bg-white/72 px-5 py-4 backdrop-blur-2xl">
-          <div className="flex flex-wrap gap-2">
-            <span className="chip text-[var(--accent)]">{project.category}</span>
-            <span className="chip">{getCodeStatusLabel(project.codeStatus)}</span>
-          </div>
+        <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[var(--rule-soft)] bg-[var(--bg-2)]/95 px-6 py-4 backdrop-blur-md">
+          <span className="micro">{project.category}</span>
           <button
             type="button"
             onClick={onClose}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-white/70 bg-white/60 text-[var(--fg)] hover:bg-white"
+            className="flex h-9 w-9 items-center justify-center rounded-full border border-[var(--rule)] text-[var(--fg-dim)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
             aria-label="Close project details"
           >
-            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
-              <path d="m4.5 4.5 9 9M13.5 4.5l-9 9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+            <svg width="16" height="16" viewBox="0 0 18 18" fill="none" aria-hidden>
+              <path
+                d="m4.5 4.5 9 9M13.5 4.5l-9 9"
+                stroke="currentColor"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
         </div>
 
-        <div className="space-y-7 px-5 py-7 md:px-7">
-          <div>
-            <h2 className="text-3xl font-semibold leading-tight text-[var(--fg)] md:text-4xl">
-              {project.title}
-            </h2>
-            <p className="mt-3 text-base font-semibold text-[var(--accent)]">{project.outcome}</p>
+        <div className="px-6 py-8 md:px-8">
+          <h2 className="display text-[clamp(1.9rem,5vw,2.6rem)]">
+            {project.title}
+          </h2>
+          <p className="mt-3 text-sm text-[var(--accent)]">{project.outcome}</p>
+
+          <div className="mt-8">
+            <ProjectVisual project={project} />
           </div>
 
-          <ProjectVisual project={project} />
+          <div className="mt-2 border-b border-[var(--rule-soft)]">
+            {sections.map(([title, text]) => (
+              <div
+                key={title}
+                className="grid gap-x-6 gap-y-2 border-t border-[var(--rule-soft)] py-5 md:grid-cols-[7rem_1fr]"
+              >
+                <h3 className="micro pt-1">{title}</h3>
+                <p className="prose-dim text-sm">{text}</p>
+              </div>
+            ))}
 
-          {[
-            ["Problem", project.problem],
-            ["System", project.system],
-            ["Technical interest", project.technicalInterest],
-          ].map(([title, text]) => (
-            <section key={title} className="rounded-[var(--radius-md)] border border-white/70 bg-white/46 p-5">
-              <h3 className="micro mb-3">{title}</h3>
-              <p className="text-sm leading-7 text-[var(--fg-dim)]">{text}</p>
-            </section>
-          ))}
-
-          <section>
-            <h3 className="micro mb-3">Stack</h3>
-            <div className="flex flex-wrap gap-2">
-              {project.stack.map((item) => (
-                <span key={item} className="chip">
-                  {item}
-                </span>
-              ))}
+            <div className="grid gap-x-6 gap-y-2 border-t border-[var(--rule-soft)] py-5 md:grid-cols-[7rem_1fr]">
+              <h3 className="micro pt-1">Stack</h3>
+              <p className="text-sm leading-relaxed text-[var(--fg-dim)]">
+                {project.stack.join(", ")}
+              </p>
             </div>
-          </section>
+          </div>
 
-          <section className="rounded-[var(--radius-md)] border border-white/70 bg-white/46 p-5">
-            <h3 className="micro mb-3">Evidence</h3>
-            <p className="text-sm leading-7 text-[var(--fg-dim)]">{project.proofDescription}</p>
-          </section>
-
-          <section className="rounded-[var(--radius-md)] border border-white/70 bg-white/46 p-5">
-            <h3 className="micro mb-3">Resume bullet</h3>
-            <p className="text-sm leading-7 text-[var(--fg-dim)]">{project.resumeBullet}</p>
-          </section>
-
-          {project.github && project.codeStatus === "public" ? (
-            <a href={project.github} target="_blank" rel="noreferrer" className="button-primary w-full sm:w-auto">
-              View on GitHub
-            </a>
-          ) : (
-            <div className="rounded-[var(--radius-md)] border border-white/70 bg-white/46 p-5 text-sm font-semibold text-[var(--fg-dim)]">
-              Code status: {getCodeStatusLabel(project.codeStatus)}
-            </div>
-          )}
+          <div className="mt-8">
+            {project.github && project.codeStatus === "public" ? (
+              <a
+                href={project.github}
+                target="_blank"
+                rel="noreferrer"
+                className="btn btn-primary"
+              >
+                View on GitHub
+              </a>
+            ) : (
+              <p className="micro">{getCodeStatusLabel(project.codeStatus)}</p>
+            )}
+          </div>
         </div>
       </aside>
     </>

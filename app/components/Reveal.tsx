@@ -2,6 +2,10 @@
 
 import { useEffect, useRef } from "react";
 
+/** Safety net: if the observer never fires (deep link, restored scroll,
+ *  reduced-motion quirks), reveal anyway rather than stranding content. */
+const FAILSAFE_MS = 1500;
+
 export default function Reveal({
   children,
   delay = 0,
@@ -18,19 +22,33 @@ export default function Reveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
+
+    const show = () => el.classList.add("in");
+
+    if (typeof IntersectionObserver === "undefined") {
+      show();
+      return;
+    }
+
+    const failsafe = window.setTimeout(show, FAILSAFE_MS);
+
     const io = new IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            setTimeout(() => el.classList.add("in"), delay);
-            io.unobserve(el);
-          }
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          window.setTimeout(show, delay);
+          io.unobserve(entry.target);
         });
       },
-      { threshold: 0.1 }
+      { threshold: 0, rootMargin: "0px 0px -8% 0px" }
     );
+
     io.observe(el);
-    return () => io.disconnect();
+
+    return () => {
+      window.clearTimeout(failsafe);
+      io.disconnect();
+    };
   }, [delay]);
 
   return (

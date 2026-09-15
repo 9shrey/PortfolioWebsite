@@ -1,10 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, JetBrains_Mono } from "next/font/google";
+import { Geist, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const sans = Geist({
   variable: "--font-sans-custom",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const serif = Instrument_Serif({
+  variable: "--font-serif-custom",
+  subsets: ["latin"],
+  weight: "400",
+  style: ["normal", "italic"],
   display: "swap",
 });
 
@@ -61,8 +69,16 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${sans.variable} ${serif.variable} ${mono.variable} h-full antialiased`}
+    >
       <body className="min-h-full bg-[var(--bg)] text-[var(--fg)]">
+        {/* Scroll reveals start at opacity 0. Without JS nothing un-hides them,
+            so keep the page readable instead of blank. */}
+        <noscript>
+          <style>{`.reveal { opacity: 1 !important; transform: none !important; }`}</style>
+        </noscript>
         {children}
       </body>
     </html>
