@@ -23,14 +23,19 @@ export default function About() {
             <p className="micro mb-5">PROFILE</p>
             <div className="space-y-5 text-[color:var(--fg-dim)] leading-relaxed text-[15px] md:text-[17px]">
               <p>
-                I&apos;m Shrey — a final-year B.Tech CSE (AI/ML) student at{" "}
+                I&apos;m Shrey — a Machine Learning Ops Engineer at{" "}
+                <span className="text-[color:var(--fg)]">Agneyas Labs</span>,
+                Bengaluru, where I&apos;m building an internal AutoML tool
+                and a physics-informed digital twin for battery life-cycle
+                and SOC observability. I&apos;m a B.Tech CSE (AI/ML) graduate
+                from{" "}
                 <span className="text-[color:var(--fg)]">
                   Manipal Institute of Technology
                 </span>
-                . Most recently I spent six months as an ML intern at{" "}
-                <span className="text-[color:var(--fg)]">NetApp</span>,
-                Bengaluru — building revenue forecasting and commission
-                regression systems used by sales and finance teams.
+                , and before this I spent close to a year as an ML intern at{" "}
+                <span className="text-[color:var(--fg)]">NetApp</span> —
+                building revenue forecasting and commission regression
+                systems used by sales and finance teams.
               </p>
               <p>
                 I work across ML and systems. Time-series and regression on
@@ -65,10 +70,10 @@ export default function About() {
             <p className="micro mb-4">FACTS</p>
             <dl className="divide-y divide-[color:var(--rule)] border-y border-[color:var(--rule)]">
               {[
-                ["Role", "Ex-ML Intern · NetApp"],
+                ["Role", "MLOps Engineer · Agneyas Labs"],
                 ["Study", "B.Tech CSE (AI/ML) · MIT, 2026"],
                 ["Based", "Bengaluru, IN"],
-                ["Status", "Open to full-time · 2026"],
+                ["Status", "Building — open to interesting problems"],
               ].map(([k, v]) => (
                 <div
                   key={k}

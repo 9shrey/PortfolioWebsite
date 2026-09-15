@@ -17,7 +17,7 @@ export default function SelectedWork({
       <div className="container-shell">
         <SectionHeader
           eyebrow="Selected Work"
-          kicker="Six systems"
+          kicker="Seven systems"
           title="AI systems with evidence, workflows, and product edges."
           text="A focused set of RAG evaluation, agentic automation, AI product, fairness planning, and MLOps systems. Public code is linked where verified; private resume work is marked honestly."
         />

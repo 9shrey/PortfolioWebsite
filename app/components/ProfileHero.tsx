@@ -35,7 +35,7 @@ export default function ProfileHero() {
             </Reveal>
             <Reveal delay={180}>
               <p className="mt-5 max-w-xl text-base leading-8 text-[var(--fg-dim)] md:text-lg">
-                Final-year CSE (AI/ML) student and ex-NetApp ML intern focused on production-oriented ML workflows, LangGraph agents, RAG evaluation, and scalable APIs.
+                MLOps Engineer at Agneyas Labs, ex-NetApp ML intern, focused on production-oriented ML workflows, LangGraph agents, RAG evaluation, and scalable APIs.
               </p>
             </Reveal>
 

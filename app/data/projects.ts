@@ -12,7 +12,8 @@ export type ProjectCategory =
   | "Quant / Deep Learning"
   | "Quant / Web Product"
   | "Applied ML"
-  | "Systems / Rust";
+  | "Systems / Rust"
+  | "Real-Time ML / Risk";
 
 export type CodeStatus = "public" | "private" | "profile-only";
 
@@ -46,6 +47,29 @@ export interface Project {
 }
 
 export const projects: Project[] = [
+  {
+    slug: "argus-fraud-detection",
+    title: "Argus: Real-Time Fraud Detection Engine",
+    category: "Real-Time ML / Risk",
+    filterTags: ["Applied ML", "Backend", "Product"],
+    stack: ["Python", "FastAPI", "XGBoost", "Isolation Forest", "SHAP", "SQLAlchemy", "Next.js", "WebSocket", "Docker", "GitHub Actions"],
+    blurb:
+      "Live transaction-scoring engine that ensembles XGBoost and Isolation Forest, explains every flagged transaction with SHAP, and streams results to a real-time dashboard over WebSocket.",
+    outcome: "52 tests, ROC-AUC ~0.99, live SHAP breakdowns",
+    proofTags: ["tests", "Docker", "CI", "architecture", "product"],
+    proofDescription:
+      "52 backend tests covering feature engineering, fraud scenarios, and the scorer's separation guarantee; chronological (non-leaky) holdout evaluation; GitHub Actions CI running lint, typecheck, train, and test on every push; Docker Compose for backend + Postgres.",
+    resumeBullet:
+      "Built a real-time fraud detection engine with a hybrid XGBoost + Isolation Forest ensemble, per-transaction SHAP explainability, and a live Next.js dashboard streamed over WebSocket.",
+    github: "https://github.com/9shrey/argus-fraud-detection",
+    codeStatus: "public",
+    problem:
+      "Fraud models are easy to fake offline and hard to trust live — random-split evaluation leaks future information, and a bare classifier score gives an analyst no reason to trust a flag.",
+    system:
+      "Async simulation engine generates five synthetic fraud scenarios -> causal feature engineering shared identically between training and online scoring -> XGBoost + Isolation Forest ensemble -> 0-100 risk score with SHAP breakdown -> Postgres/SQLite persistence -> WebSocket broadcast to a Next.js dashboard with per-transaction drill-down and ROC/PR metrics.",
+    technicalInterest:
+      "Train/serve parity through one shared feature function, a chronological holdout instead of a random split to avoid leakage, and explainability wired into the product UI rather than left in a notebook.",
+  },
   {
     slug: "rag-proj",
     title: "RAG / Agent Evaluation Lab",
@@ -383,6 +407,7 @@ export const filterCategories = [
 ];
 
 export const selectedProjectSlugs = [
+  "argus-fraud-detection",
   "rag-proj",
   "agentic-workflow-assistant",
   "rag-knowledge-assistant",

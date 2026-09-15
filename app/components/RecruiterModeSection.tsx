@@ -36,7 +36,7 @@ export default function RecruiterModeSection() {
           eyebrow="Recruiter Mode"
           kicker="Scan fast"
           title="The resume signal stays visible in one scan."
-          text="A static-readable snapshot of target roles, internship impact, systems focus, and stack depth."
+          text="A static-readable snapshot of target roles, prior impact, systems focus, and stack depth."
         />
 
         <div className="grid gap-4 md:grid-cols-2">
