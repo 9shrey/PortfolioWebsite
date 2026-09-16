@@ -1,19 +1,8 @@
 export type ProjectCategory =
-  | "RAG / Evaluation"
-  | "Agents / Automation"
-  | "RAG / GenAI"
-  | "Agentic AI / Product"
-  | "Fairness / Planning"
-  | "MLOps"
-  | "ML Systems"
+  | "Real-Time ML / Risk"
   | "Quant / RL"
-  | "Backend / Systems"
-  | "Agents / Browser Automation"
-  | "Quant / Deep Learning"
-  | "Quant / Web Product"
-  | "Applied ML"
-  | "Systems / Rust"
-  | "Real-Time ML / Risk";
+  | "LLM Evaluation"
+  | "Systems / GPU Kernels";
 
 export type CodeStatus = "public" | "private" | "profile-only";
 
@@ -52,183 +41,23 @@ export const projects: Project[] = [
     title: "Argus: Real-Time Fraud Detection Engine",
     category: "Real-Time ML / Risk",
     filterTags: ["Applied ML", "Backend", "Product"],
-    stack: ["Python", "FastAPI", "XGBoost", "Isolation Forest", "SHAP", "SQLAlchemy", "Next.js", "WebSocket", "Docker", "GitHub Actions"],
+    stack: ["Python", "XGBoost", "Scikit-learn", "SHAP", "FastAPI", "Next.js", "Docker"],
     blurb:
-      "Live transaction-scoring engine that ensembles XGBoost and Isolation Forest, explains every flagged transaction with SHAP, and streams results to a real-time dashboard over WebSocket.",
+      "Real-time fraud scoring engine combining supervised XGBoost with an unsupervised Isolation Forest into one risk score, with per-transaction SHAP attributions live in the analyst UI.",
     outcome: "52 tests, ROC-AUC ~0.99, live SHAP breakdowns",
     proofTags: ["tests", "Docker", "CI", "architecture", "product"],
     proofDescription:
-      "52 backend tests covering feature engineering, fraud scenarios, and the scorer's separation guarantee; chronological (non-leaky) holdout evaluation; GitHub Actions CI running lint, typecheck, train, and test on every push; Docker Compose for backend + Postgres.",
+      "52 backend tests covering feature engineering, fraud scenarios, and the scorer's separation guarantee; one causal feature function shared identically between training and serving; chronological (non-leaky) holdout evaluation; scores streamed to a Next.js dashboard over WebSocket; GitHub Actions CI on every push.",
     resumeBullet:
-      "Built a real-time fraud detection engine with a hybrid XGBoost + Isolation Forest ensemble, per-transaction SHAP explainability, and a live Next.js dashboard streamed over WebSocket.",
+      "Built a real-time fraud scoring engine combining supervised XGBoost with an unsupervised Isolation Forest into one risk score, with per-transaction SHAP attributions in the analyst UI. Shared one causal feature function between training and serving, evaluated on a chronological holdout to prevent leakage, and streamed scores to a Next.js dashboard over WebSocket.",
     github: "https://github.com/9shrey/argus-fraud-detection",
     codeStatus: "public",
     problem:
       "Fraud models are easy to fake offline and hard to trust live — random-split evaluation leaks future information, and a bare classifier score gives an analyst no reason to trust a flag.",
     system:
-      "Async simulation engine generates five synthetic fraud scenarios -> causal feature engineering shared identically between training and online scoring -> XGBoost + Isolation Forest ensemble -> 0-100 risk score with SHAP breakdown -> Postgres/SQLite persistence -> WebSocket broadcast to a Next.js dashboard with per-transaction drill-down and ROC/PR metrics.",
+      "Async simulation engine generates synthetic fraud scenarios -> causal feature engineering shared identically between training and online scoring -> XGBoost + Isolation Forest ensemble -> 0-100 risk score with SHAP breakdown -> WebSocket broadcast to a Next.js dashboard with per-transaction drill-down.",
     technicalInterest:
       "Train/serve parity through one shared feature function, a chronological holdout instead of a random split to avoid leakage, and explainability wired into the product UI rather than left in a notebook.",
-  },
-  {
-    slug: "rag-proj",
-    title: "RAG / Agent Evaluation Lab",
-    category: "RAG / Evaluation",
-    filterTags: ["GenAI", "RAG", "MLOps", "Applied ML"],
-    stack: ["Python", "LangGraph", "pgvector", "JSONL", "CI", "pytest", "HTML Reports"],
-    blurb:
-      "Customer-intelligence RAG evaluation lab with a deterministic 100-question benchmark, citation checks, LangGraph tool calls, and CI quality gates.",
-    outcome: "Recall@5 0.960, MRR 0.840, CI gate",
-    proofTags: ["tests", "CI", "evals", "observability", "reproducible"],
-    proofDescription:
-      "100-question benchmark, Recall@5 0.960, MRR 0.840, citation coverage 0.971, hallucination rate 0.030, static report artifacts, and threshold-enforced CI.",
-    resumeBullet:
-      "Built a production-style RAG and agent evaluation lab with deterministic fixtures, retrieval metrics, citation-grounding checks, LangGraph tool workflows, and CI thresholds that fail on quality regressions.",
-    github: "https://github.com/9shrey/rag-proj",
-    codeStatus: "public",
-    problem:
-      "RAG portfolios often claim quality without measurable proof. Recruiters and reviewers need a deterministic benchmark that shows retrieval, citation, latency, and hallucination behavior.",
-    system:
-      "Synthetic customer-intelligence corpus -> heading-aware chunker -> deterministic embeddings -> pgvector-compatible store -> retriever -> cited answer baseline plus LangGraph tool workflow -> eval runner -> CI threshold gate -> static report.",
-    technicalInterest:
-      "Evaluation-first RAG design with recall, MRR, citation coverage, faithfulness, hallucination, p95 latency, and estimated cost tracked as reproducible artifacts.",
-  },
-  {
-    slug: "agentic-workflow-assistant",
-    title: "Agentic Workflow Automation Assistant",
-    category: "Agents / Automation",
-    filterTags: ["GenAI", "Agents", "Backend"],
-    stack: ["Python", "FastAPI", "LangGraph", "Gmail API", "Google Calendar API", "SQLite", "Pydantic"],
-    blurb:
-      "LangGraph workflow agent that searches email threads, summarizes invoice context, drafts reminders, and schedules follow-ups with approval checkpoints.",
-    outcome: "Typed state, 75+ tests, audit logs",
-    proofTags: ["tests", "architecture", "observability", "reproducible"],
-    proofDescription:
-      "FastAPI workflow endpoints, typed LangGraph state, Pydantic tool schemas, OAuth-based Google API access, retry/fallback handling, SQLite audit logs, and deterministic routing.",
-    resumeBullet:
-      "Built a LangGraph-based automation agent integrating Gmail and Google Calendar APIs to search email threads, summarize invoice context, draft reminder emails, and schedule follow-ups with human approval checkpoints.",
-    github: "https://github.com/9shrey/agentic-workflow-assistant",
-    codeStatus: "public",
-    problem:
-      "Routine email and calendar workflows require context gathering, tool use, and approval boundaries that plain chatbots do not enforce.",
-    system:
-      "FastAPI workflow layer -> LangGraph planner -> Gmail search -> invoice/context summarizer -> draft generator -> human approval checkpoint -> Calendar scheduler -> SQLite audit trail.",
-    technicalInterest:
-      "The project emphasizes typed multi-step agent state, explicit approval gates, tool schema validation, and inspectable state transitions instead of opaque one-shot LLM calls.",
-  },
-  {
-    slug: "rag-knowledge-assistant",
-    title: "Production RAG Knowledge Assistant",
-    category: "RAG / GenAI",
-    filterTags: ["GenAI", "RAG", "Backend"],
-    stack: ["Python", "FastAPI", "LangChain", "PostgreSQL", "pgvector", "Next.js", "Docker"],
-    blurb:
-      "Production-grade RAG app for uploading PDFs, indexing documents, and asking citation-grounded questions through hybrid retrieval.",
-    outcome: "65 backend tests, eval dashboard, citations",
-    proofTags: ["tests", "Docker", "evals", "observability", "reproducible"],
-    proofDescription:
-      "65 backend tests, six frontend pages, Docker-ready FastAPI and Next.js stack, citation highlighting, eval framework, hallucination checks, and query-level observability.",
-    resumeBullet:
-      "Built a production RAG assistant with PDF ingestion, semantic chunking, pgvector-based hybrid retrieval, citation-grounded answer generation, and FastAPI inference endpoints.",
-    github: "https://github.com/9shrey/rag-knowledge-assistant",
-    codeStatus: "public",
-    problem:
-      "Teams need document Q&A that points back to source material instead of returning ungrounded LLM answers.",
-    system:
-      "PDF upload -> text extraction -> semantic chunking -> vector and keyword retrieval -> LangChain answer generation -> citation highlighting -> eval and debug pages.",
-    technicalInterest:
-      "Hybrid retrieval, grounded answer generation, Dockerized service boundaries, evaluation workflow, latency/token-cost logging, and citation coverage scoring.",
-  },
-  {
-    slug: "ai-waiter",
-    title: "AI Waiter",
-    category: "Agentic AI / Product",
-    filterTags: ["GenAI", "Agents", "Applied ML", "Product"],
-    stack: ["Next.js", "TypeScript", "FastAPI", "Gemini", "Tailwind", "Docker"],
-    blurb:
-      "Conversational restaurant ordering MVP that recommends dishes, remembers preferences, updates carts, and hands off orders through WhatsApp.",
-    outcome: "Function calling, menu cards, WhatsApp handoff",
-    proofTags: ["Docker", "architecture", "reproducible", "product"],
-    proofDescription:
-      "Gemini function calling, FastAPI tool endpoints, structured menu schemas, rich menu-card UI, visitor memory, live cart state, upsell flow, and Docker Compose.",
-    resumeBullet:
-      "Built an AI restaurant ordering agent with Gemini function calling, FastAPI tool endpoints, structured menu schemas, allergy-aware recommendations, cart updates, repeat-customer personalization, and WhatsApp checkout handoff.",
-    github: "https://github.com/9shrey/ai_waiter",
-    codeStatus: "public",
-    problem:
-      "Static restaurant menus do not adapt to preferences, allergies, budgets, or repeat customers.",
-    system:
-      "Next.js chat UI -> Gemini function calling -> FastAPI menu/cart tools -> preference memory -> menu-card recommendations -> cart state machine -> WhatsApp checkout.",
-    technicalInterest:
-      "A practical product surface for agentic commerce: typed tool calls, personalization, structured menu data, allergy-aware recommendations, and owner-demo-ready UX.",
-  },
-  {
-    slug: "fairmeet",
-    title: "FairMeet: Fairness-Aware Group Activity Planner",
-    category: "Fairness / Planning",
-    filterTags: ["Agents", "Applied ML", "Product", "Backend"],
-    stack: ["Python", "LangGraph", "Flask", "SQLite", "Pydantic", "Jinja"],
-    blurb:
-      "Group planning engine that recommends fair meetups across location, interests, budget, energy level, and long-term compromise history.",
-    outcome: "Fairness ledger, approval loops, dashboard",
-    proofTags: ["tests", "architecture", "product"],
-    proofDescription:
-      "Typed planning state, conditional routing, revision loops, persistent memory, fairness ledger, Flask/Jinja dashboard, CLI simulation flow, and local test coverage.",
-    resumeBullet:
-      "Built a LangGraph-based group planning engine with typed graph state, conditional routing, revision loops, persistent memory, and human approval checkpoints.",
-    codeStatus: "private",
-    problem:
-      "Friend groups often default to whoever is closest, loudest, or easiest to satisfy, causing the same people to compromise repeatedly.",
-    system:
-      "Group state -> constraints -> meeting zone -> activity candidates -> multi-factor scoring -> fairness evaluation -> explanation -> approval or revision -> fairness ledger update.",
-    technicalInterest:
-      "The planner combines deterministic fairness scoring with memory concepts such as preference debt, compromise score, priority credit, and approval checkpoints.",
-  },
-  {
-    slug: "cicd-retraining-pipeline",
-    title: "Automated CI/CD Model Retraining Pipeline",
-    category: "MLOps",
-    filterTags: ["MLOps", "Backend"],
-    stack: ["Python", "GitHub Actions", "MLflow", "DVC", "FastAPI", "Prometheus", "Grafana", "Docker"],
-    blurb:
-      "Production-style MLOps reference for drift detection, automated retraining, evaluation gates, and shadow/canary/blue-green deployment.",
-    outcome: "Drift checks, eval gates, rollback demo",
-    proofTags: ["tests", "Docker", "CI", "evals", "observability"],
-    proofDescription:
-      "GitHub Actions CI and drift-check workflows, MLflow/MinIO/Prometheus/Grafana stack, champion-challenger promotion, canary rollout, rollback demo, and reproducible make targets.",
-    resumeBullet:
-      "Built an automated MLOps retraining pipeline with drift detection, evaluation gates, champion-challenger promotion, canary rollout, rollback handling, and GitHub Actions orchestration.",
-    github: "https://github.com/9shrey/cicd-retraining-pipeline",
-    codeStatus: "public",
-    problem:
-      "Models degrade silently after deployment unless data drift, retraining, promotion, and rollback are automated.",
-    system:
-      "Drift runner -> retraining trigger -> MLflow experiment -> evaluation gate -> champion/challenger promotion -> shadow/canary/blue-green deployment -> monitoring and rollback.",
-    technicalInterest:
-      "End-to-end operational ML workflow design with measurable gates, local observability, controlled rollout stages, and CI-driven automation.",
-  },
-  {
-    slug: "automl-pipeline-framework",
-    title: "AutoML Pipeline Framework",
-    category: "ML Systems",
-    filterTags: ["MLOps", "Applied ML", "ML Systems"],
-    stack: ["Python", "Scikit-learn", "Optuna", "SHAP", "Typer", "Pandas"],
-    blurb:
-      "Modular AutoML library for tabular data with preprocessing search, Bayesian optimization, ASHA pruning, ensembling, explainability, and run artifacts.",
-    outcome: "200+ tests, CLI, sklearn-compatible",
-    proofTags: ["tests", "CI", "architecture", "reproducible"],
-    proofDescription:
-      "200+ unit tests, sklearn-compatible API, Typer CLI, benchmark dashboard, Optuna/TPE search, ASHA pruning, warm-starts, top-k ensembling, SHAP and permutation explanations.",
-    resumeBullet:
-      "Built a modular AutoML framework with Optuna/TPE search, ASHA pruning, warm-start meta-learning, top-k ensembling, explainability, and reproducible run artifacts.",
-    github: "https://github.com/9shrey/automl-pipeline-framework",
-    codeStatus: "public",
-    problem:
-      "Tabular ML workflows repeat the same steps: preprocessing, model choice, HPO, ensembling, explainability, and artifact recording.",
-    system:
-      "Search space -> Optuna TPE sampler -> ASHA pruner -> warm-start store -> candidate pipelines -> top-k ensemble -> explanations -> Typer CLI -> artifact store.",
-    technicalInterest:
-      "A compact ML systems project focused on API design, reproducibility, automated search, explainability, and reviewer-visible benchmark outputs.",
   },
   {
     slug: "rl-statistical-arbitrage",
@@ -237,193 +66,72 @@ export const projects: Project[] = [
     filterTags: ["Quant", "Applied ML"],
     stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
     blurb:
-      "Walk-forward pairs-trading research framework with cointegration selection, trailing-only features, transaction costs, baselines, and optional PPO evaluation.",
-    outcome: "No-lookahead, cost-adjusted backtests",
+      "Regime-aware RL agents for cointegrated equity pairs — PPO over discrete entry/exit/flat actions and SAC over continuous position sizing, retrained per walk-forward fold under realistic transaction costs.",
+    outcome: "94 tests, seed-determinism checks, no-lookahead",
     proofTags: ["tests", "evals", "reproducible"],
     proofDescription:
-      "Engle-Granger/Johansen pair selection, trailing-window features, transaction-cost metrics, leaderboard artifacts, fixture-backed point-in-time universe snapshots, and optional MLflow logging.",
+      "Engle-Granger/Johansen cointegration tests for pair selection, HMM regime features, point-in-time universe filtering, MLflow-tracked runs, and 94 tests including seed-determinism checks.",
     resumeBullet:
-      "Built a walk-forward RL/stat-arb framework using cointegration tests, trailing-only features, transaction-cost-adjusted backtests, baseline policies, and PPO evaluation.",
+      "Built regime-aware RL agents for cointegrated equity pairs: PPO over discrete entry/exit/flat actions and SAC over continuous position sizing, retrained per walk-forward fold under realistic transaction costs. Engineered a bias-controlled pipeline with Engle-Granger/Johansen tests, HMM regime features, point-in-time universe filtering, and MLflow-tracked runs; 94 tests including seed-determinism checks.",
     github: "https://github.com/9shrey/rl-statistical-arbitrage",
     codeStatus: "public",
     problem:
-      "Quant backtests can look strong while hiding lookahead bias, stale universe assumptions, and transaction-cost blind spots.",
+      "Quant backtests can look strong while hiding lookahead bias, stale universe assumptions, and regime blindness — a policy trained once rarely holds up walk-forward.",
     system:
-      "Bars and optional universe snapshots -> pair selection -> trailing feature builder -> trading environment -> baseline/PPO policy layer -> walk-forward backtest -> leaderboard.",
+      "Bars + point-in-time universe filtering -> Engle-Granger/Johansen pair selection -> HMM regime features -> trading environment -> PPO (discrete) and SAC (continuous) agents retrained per walk-forward fold -> transaction-cost-adjusted backtest -> MLflow-tracked leaderboard.",
     technicalInterest:
-      "The project is positioned as research tooling, not live trading, with inspectable no-lookahead tests, cost modeling, and baseline comparisons.",
+      "Regime-aware RL policy design across discrete and continuous action spaces, strict walk-forward retraining instead of train-once, and seed-determinism tests that catch nondeterminism a single run would miss.",
   },
   {
-    slug: "api-gateway",
-    title: "High-Performance API Gateway",
-    category: "Backend / Systems",
-    filterTags: ["Backend", "Systems"],
-    stack: ["Go", "Redis", "Docker", "Prometheus", "JWT"],
+    slug: "schemabench",
+    title: "SchemaBench: LLM Structured-Output Contract Benchmark",
+    category: "LLM Evaluation",
+    filterTags: ["GenAI", "Backend"],
+    stack: ["Python", "JSON Schema", "Pydantic", "httpx", "OpenRouter"],
     blurb:
-      "Config-driven Go API gateway with reverse proxying, load balancing, Redis rate limiting, JWT auth, circuit breakers, retries, and metrics.",
-    outcome: "Redis rate limiting, health checks, metrics",
-    proofTags: ["tests", "Docker", "observability"],
-    proofDescription:
-      "Standard-library HTTP server, YAML config, reverse proxy, round-robin load balancing, Redis Lua token bucket, JWT auth, active health checks, circuit breaker, retries, and Prometheus metrics.",
-    resumeBullet:
-      "Built a production-grade API Gateway in Go with reverse proxying, round-robin load balancing, Redis token-bucket rate limiting, JWT middleware, request logging, and latency tracking.",
-    github: "https://github.com/9shrey/api-gateway",
-    codeStatus: "public",
-    problem:
-      "Backend systems need a single entry point for routing, auth, rate limiting, resilience, and observability without hiding the fundamentals behind a managed service.",
-    system:
-      "YAML config -> HTTP router -> middleware chain -> rate limiter/auth/logging -> reverse proxy -> load balancer -> health checks -> metrics endpoint.",
-    technicalInterest:
-      "A systems project built close to the Go standard library to demonstrate gateway internals, Redis Lua atomicity, and composable middleware design.",
-  },
-  {
-    slug: "autobrowser-agent",
-    title: "AutoBrowserAgent",
-    category: "Agents / Browser Automation",
-    filterTags: ["Agents", "GenAI", "Backend"],
-    stack: ["TypeScript", "Playwright", "Next.js", "DeepSeek", "OpenAI", "Claude"],
-    blurb:
-      "Autonomous browser agent with perceive-plan-act execution, Playwright automation, session recording, replay dashboard, exports, and human intervention.",
-    outcome: "Replay dashboard, action logs, fixtures",
+      "Benchmark measuring whether LLMs actually honor JSON Schema contracts across prompt-only, tool-call, and strict response_format modes — graded mechanically against the schema, not by an LLM judge.",
+    outcome: "8 models probed, 175 tests, exact McNemar",
     proofTags: ["tests", "evals", "reproducible"],
     proofDescription:
-      "Offline replay fixtures, action logs, CSV/JSON export, session recording, replay dashboard, and multiple LLM backend support.",
+      "175 tests, mechanical JSON Schema validation of every response, and paired statistical comparison (exact McNemar) across modes and models — surfacing capability catalogues that were wrong in both directions: one model advertising tool support returned HTTP 200 with an empty body, another advertising none honored it anyway.",
     resumeBullet:
-      "Built an autonomous browser agent with perceive-plan-act loop, Playwright execution, session recording, replay dashboard, and human intervention hooks.",
-    github: "https://github.com/9shrey/AutoBrowserAgent",
-    codeStatus: "public",
+      "Built a benchmark measuring JSON Schema contract adherence across prompt-only, tool-call, and strict response_format modes, graded mechanically against the schema rather than by an LLM judge. Probed 8 models and found capability catalogues wrong in both directions; paired contrasts via exact McNemar, 175 tests.",
+    codeStatus: "private",
     problem:
-      "Browser tasks are repetitive but risky unless automation can record actions, replay sessions, and keep human intervention points visible.",
+      "Providers self-report structured-output capability (tool calling, JSON mode), and that self-report is often wrong — most benchmarks compound the problem by grading with another LLM instead of checking contract adherence directly.",
     system:
-      "Perceive screenshot and DOM -> plan with LLM backend -> act through Playwright -> record session -> replay dashboard -> export artifacts.",
+      "Prompt-only / tool-call / strict response_format request modes -> 8 models via OpenRouter -> mechanical JSON Schema validation of each response -> paired significance testing (exact McNemar) across modes and models -> reproducible report.",
     technicalInterest:
-      "Agent execution traceability: replayable browser actions, fixture-based tests, exportable artifacts, and intervention hooks around autonomous steps.",
+      "Mechanical grading instead of an LLM judge, paired significance testing instead of raw pass-rate comparison, and empirical falsification of vendor capability claims in both directions.",
   },
   {
-    slug: "dl-volatility-surface-forecaster",
-    title: "Deep Learning Volatility Surface Forecaster",
-    category: "Quant / Deep Learning",
-    filterTags: ["Quant", "Applied ML"],
-    stack: ["Python", "PyTorch", "GARCH", "LSTM", "SABR", "Heston"],
+    slug: "inferbench",
+    title: "Inferbench: Triton Kernel for Batched LLM Decode",
+    category: "Systems / GPU Kernels",
+    filterTags: ["Systems", "Applied ML"],
+    stack: ["Python", "Triton", "CUDA", "PyTorch", "Transformers"],
     blurb:
-      "Hybrid LSTM and GARCH volatility-surface forecaster benchmarked against SABR and Heston baselines with no-arbitrage constraints.",
-    outcome: "Walk-forward eval, no-arbitrage constraints",
-    proofTags: ["tests", "evals", "reproducible"],
+      "Triton split-K kernel that fixes a batched-decode slowdown on a tensor-core-less GPU, raising end-to-end throughput 5.2x with token-identical correctness checks.",
+    outcome: "8.9x kernel speedup, 5.2x end-to-end, 182 tests",
+    proofTags: ["tests", "evals", "reproducible", "architecture"],
     proofDescription:
-      "Walk-forward evaluation, no-arbitrage projection, deterministic smoke tests, and stochastic-volatility baseline comparison.",
+      "182 tests including token-identical greedy-output correctness checks and negative controls at batch 32 and prefill (where the kernel must do nothing); 8.9x speedup on the projection matmul at 52% of measured memory bandwidth; 5.2x end-to-end decode throughput on Qwen2.5-0.5B (87 -> 451 tok/s at batch 16).",
     resumeBullet:
-      "Built a hybrid LSTM + GARCH volatility-surface forecaster with no-arbitrage projection constraints, benchmarked against SABR and Heston stochastic volatility baselines.",
-    github: "https://github.com/9shrey/dl-volatility-surface-forecaster",
-    codeStatus: "public",
+      "Diagnosed why batched fp16 decode ran slower than single-sequence on a tensor-core-less GPU — cuBLAS dispatches to a tensor-core GEMM at batch >= 2 — and fixed it with a Triton split-K kernel reaching 8.9x on the projection and 52% of measured memory bandwidth. Raised end-to-end decode throughput 5.2x on Qwen2.5-0.5B (87->451 tok/s at batch 16), gated on token-identical greedy output with negative controls at batch 32 and prefill; 182 tests.",
+    codeStatus: "private",
     problem:
-      "Volatility surface models need forecasting power without violating financial shape constraints.",
+      "Batched fp16 decode ran slower than single-sequence decode on a tensor-core-less GPU — a regression invisible unless you specifically benchmark batch >= 2.",
     system:
-      "GARCH estimator -> LSTM forecaster -> no-arbitrage projection layer -> SABR/Heston benchmark suite -> walk-forward evaluation.",
+      "Root-caused to cuBLAS dispatching to a tensor-core GEMM at batch >= 2 on hardware without tensor cores -> wrote a Triton split-K kernel for the projection -> validated against token-identical greedy decoding -> negative controls at batch 32 and prefill -> throughput benchmarks on Qwen2.5-0.5B.",
     technicalInterest:
-      "Combines statistical volatility estimation, deep sequence modeling, constraint projection, and baseline benchmarking.",
-  },
-  {
-    slug: "volatility-lens-web",
-    title: "Volatility Lens Web",
-    category: "Quant / Web Product",
-    filterTags: ["Quant", "Backend", "Product"],
-    stack: ["Python", "Next.js", "TypeScript", "HMM", "SVI", "Vercel"],
-    blurb:
-      "Interactive implied-volatility analytics product backed by a deterministic Python research pipeline and signed JSON artifact bundles.",
-    outcome: "HMAC artifacts, schema sharing",
-    proofTags: ["tests", "architecture", "reproducible"],
-    proofDescription:
-      "Artifact validation, HMAC-signed JSON bundles, deterministic Python pipeline, shared TypeScript/Python schemas, and interactive volatility UI.",
-    resumeBullet:
-      "Built an interactive volatility analytics product with a deterministic Python research pipeline, HMAC-signed JSON artifacts, and shared TypeScript/Python schemas.",
-    github: "https://github.com/9shrey/volatility-lens-web",
-    codeStatus: "public",
-    problem:
-      "Quant research artifacts are hard to expose safely in web UIs without schema guarantees and tamper checks.",
-    system:
-      "Python research pipeline -> deterministic JSON artifacts -> HMAC signing -> schema validation -> Next.js analytics UI -> interactive SVI visualizations.",
-    technicalInterest:
-      "A bridge between research code and product UI, emphasizing reproducible artifact generation and cross-language schema discipline.",
-  },
-  {
-    slug: "metermind",
-    title: "MeterMind",
-    category: "Applied ML",
-    filterTags: ["Applied ML"],
-    stack: ["Python", "Streamlit", "Pandas", "Scikit-learn", "Plotly"],
-    blurb:
-      "Smart-meter anomaly detection prototype for ranking non-technical loss risk with behavioral features and plain-language explanations.",
-    outcome: "500+ meters, IsolationForest, risk scoring",
-    proofTags: ["tests", "evals", "product"],
-    proofDescription:
-      "Synthetic BESCOM-style data for 500+ meters across 90 days, behavioral features, IsolationForest, rule flags, KPI cards, risk distribution, ranking table, and investigation views.",
-    resumeBullet:
-      "Built a smart-meter anomaly detection prototype with synthetic BESCOM-style data, IsolationForest models, behavioral feature engineering, and plain-language risk explanations.",
-    github: "https://github.com/9shrey/metermind",
-    codeStatus: "public",
-    problem:
-      "Utilities need a practical way to prioritize suspicious smart meters before sending inspection teams.",
-    system:
-      "Synthetic meter data -> peer-group and behavior features -> IsolationForest -> rule-based flags -> 0-100 risk score -> Streamlit investigation dashboard.",
-    technicalInterest:
-      "Applied ML product thinking: unsupervised anomaly detection, explainable risk flags, synthetic domain data, and dispatcher-friendly UI.",
-  },
-  {
-    slug: "rustgrep",
-    title: "rustgrep",
-    category: "Systems / Rust",
-    filterTags: ["Systems"],
-    stack: ["Rust", "Clap", "Rayon"],
-    blurb:
-      "Grep-like Rust CLI for recursive text search with case-insensitive matching, line numbers, highlighting, and parallel search.",
-    outcome: "18 tests, parallel mode, highlighting",
-    proofTags: ["tests"],
-    proofDescription:
-      "9 unit tests, 9 integration tests, recursive directory search, binary/unreadable-file handling, ANSI highlighting, and Rayon parallel mode.",
-    resumeBullet:
-      "Built a grep-like CLI tool in Rust with recursive search, case-insensitive matching, line numbers, colored highlighting, and parallel file search via Rayon.",
-    github: "https://github.com/9shrey/rustgrep",
-    codeStatus: "public",
-    problem:
-      "A focused systems project for learning Rust through real file I/O, CLI parsing, pattern matching, and concurrency.",
-    system:
-      "Clap CLI parser -> recursive walker -> matcher -> line-number formatter -> optional ANSI highlighter -> Rayon parallel file processor.",
-    technicalInterest:
-      "Rust ownership, error handling, test structure, and parallel file processing expressed through a familiar developer tool.",
+      "Root-causing a GPU performance regression to a specific cuBLAS dispatch decision, fixing it with a hand-written Triton kernel, and proving correctness with token-identical output checks rather than just measuring speed.",
   },
 ];
 
-export const filterCategories = [
-  "All",
-  "GenAI",
-  "Agents",
-  "RAG",
-  "MLOps",
-  "Quant",
-  "Backend",
-  "Systems",
-  "Applied ML",
-  "Product",
-];
-
-export const selectedProjectSlugs = [
-  "argus-fraud-detection",
-  "rag-proj",
-  "agentic-workflow-assistant",
-  "rag-knowledge-assistant",
-  "ai-waiter",
-  "fairmeet",
-  "cicd-retraining-pipeline",
-];
+export const filterCategories = ["All", "GenAI", "Quant", "Applied ML", "Backend", "Systems", "Product"];
 
 export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);
-}
-
-export function getSelectedProjects(): Project[] {
-  return selectedProjectSlugs
-    .map((slug) => getProjectBySlug(slug))
-    .filter((p): p is Project => p !== undefined);
 }
 
 export function filterProjects(category: string): Project[] {

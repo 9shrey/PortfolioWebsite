@@ -8,10 +8,10 @@ const roles = [
     company: "Agneyas Labs",
     location: "Bengaluru",
     points: [
-      "Building an internal AutoML tool that standardises preprocessing, model search, and evaluation across pipelines.",
-      "Developing a physics-informed neural network digital twin for battery life-cycle degradation and state-of-charge observability.",
+      "Built and deployed an internal AutoML platform (Angular, Flask) that trains and benchmarks multiple algorithms per dataset, surfaces the strongest performer, and lets users run predictions and persist both models and results — in use by an internal team of 10–12.",
+      "Developing a hybrid battery digital twin on proprietary EV cycling data: an equivalent-circuit model constrains known physics (terminal voltage, internal resistance, capacity fade) while a learned residual network absorbs nonlinear aging, cell-to-cell variance, and thermal effects.",
     ],
-    stack: ["Python", "PyTorch", "PINNs", "MLOps"],
+    stack: ["Angular", "Flask", "Python"],
   },
   {
     period: ["2025", "2026"],

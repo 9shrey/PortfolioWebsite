@@ -25,20 +25,21 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Shrey Singh - AI/ML Engineer",
   description:
-    "Shrey Singh is an AI/ML and software engineer building forecasting systems, agentic workflows, RAG evaluation labs, recommendation products, and backend infrastructure. Based in Bengaluru, India.",
+    "Shrey Singh is an AI/ML engineer building fraud detection, quant RL, LLM evaluation, and GPU kernel systems, with production experience in revenue forecasting and internal ML platforms. Based in Bengaluru, India.",
   keywords: [
     "AI engineer",
     "ML engineer",
     "machine learning",
     "MLOps",
-    "GenAI",
-    "RAG",
-    "LangGraph",
+    "fraud detection",
     "XGBoost",
     "FastAPI",
-    "agentic AI",
-    "forecasting infrastructure",
+    "Triton",
+    "CUDA",
+    "GPU kernels",
+    "reinforcement learning",
     "quantitative ML",
+    "LLM evaluation",
     "backend engineer",
     "Shrey Singh",
     "portfolio",
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Shrey Singh - AI/ML Engineer",
     description:
-      "Building forecasting systems, agentic workflows, RAG evaluation labs, recommendation products, and backend infrastructure.",
+      "Building fraud detection, quant RL, LLM evaluation, and GPU kernel systems.",
     url: "https://9shrey.vercel.app",
     siteName: "Shrey Singh",
     type: "website",
@@ -57,7 +58,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Shrey Singh - AI/ML Engineer",
     description:
-      "Building forecasting systems, agentic workflows, RAG evaluation labs, recommendation products, and backend infrastructure.",
+      "Building fraud detection, quant RL, LLM evaluation, and GPU kernel systems.",
   },
   robots: {
     index: true,

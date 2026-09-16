@@ -4,23 +4,19 @@ import SectionHeader from "./SectionHeader";
 const groups = [
   {
     label: "Languages",
-    items: ["Python", "SQL", "Go", "TypeScript", "Java", "C++", "Rust"],
+    items: ["Python", "SQL", "C", "C++", "Java", "Go", "JavaScript", "TypeScript", "HTML", "CSS"],
   },
   {
     label: "ML / AI",
-    items: ["PyTorch", "TensorFlow", "scikit-learn", "XGBoost", "LightGBM", "pandas", "NumPy"],
+    items: ["PyTorch", "Triton", "CUDA", "Scikit-learn", "XGBoost", "Stable-Baselines3", "SHAP", "FastAPI"],
   },
   {
-    label: "GenAI / Agents",
-    items: ["LangGraph", "LangChain", "RAG", "pgvector", "Gemini API", "OpenAI API", "Pydantic"],
+    label: "Data Science",
+    items: ["Pandas", "NumPy", "Feature Engineering", "Time-Series Forecasting", "Reinforcement Learning"],
   },
   {
-    label: "Backend / Data",
-    items: ["FastAPI", "Next.js", "React", "PostgreSQL", "Redis", "SQLite"],
-  },
-  {
-    label: "Infra / MLOps",
-    items: ["Docker", "GitHub Actions", "MLflow", "DVC", "Prometheus", "Grafana", "Vercel"],
+    label: "Tools / Platforms",
+    items: ["Docker", "Git", "Linux", "MLflow", "CI/CD", "GitHub", "Vercel"],
   },
 ];
 

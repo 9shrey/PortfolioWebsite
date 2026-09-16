@@ -28,8 +28,8 @@ export default function Hero() {
           <span className="display display-italic text-[var(--accent)]">
             actually run
           </span>{" "}
-          — forecasting pipelines, agentic workflows, and the infrastructure
-          underneath them.
+          — from GPU kernel optimisation and PyTorch training through to
+          FastAPI services and deployed tooling.
         </p>
 
         <p
@@ -37,10 +37,9 @@ export default function Hero() {
           style={{ animationDelay: "240ms" }}
         >
           Currently MLOps Engineer at <strong>Agneyas Labs</strong>, building an
-          internal AutoML tool and a physics-informed digital twin for battery
-          life-cycle observability. Previously ML intern at{" "}
-          <strong>NetApp</strong>, on revenue forecasting for $150M+ quarterly
-          planning.
+          internal AutoML platform and a hybrid battery digital twin. Previously
+          ML intern at <strong>NetApp</strong>, on revenue forecasting for
+          $150M+ quarterly planning.
         </p>
 
         <div

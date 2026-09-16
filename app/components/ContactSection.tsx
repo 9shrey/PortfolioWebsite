@@ -14,7 +14,7 @@ export default function ContactSection() {
               <span className="display-italic text-[var(--accent)]">building</span>?
             </>
           }
-          text="Currently building at Agneyas Labs. Always happy to talk ML systems, agentic products, and backend infrastructure — especially the parts that have to survive production."
+          text="Currently building at Agneyas Labs. Always happy to talk ML systems, quant research, GPU kernels, and backend infrastructure — especially the parts that have to survive production."
         />
 
         <Reveal delay={80}>
