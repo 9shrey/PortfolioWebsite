@@ -1,20 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 600 380" fill="none">
+<svg width="600" height="380" viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F8FBFF"/><stop offset=".48" stop-color="#EAF2FF"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient>
-    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#334155"/><stop offset="1" stop-color="#0EA5E9"/></linearGradient>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#1B2B48" flood-opacity=".14"/></filter>
-    <marker id="arrow" markerWidth="8" markerHeight="8" refX="5" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0 0 L6 3 L0 6 Z" fill="rgba(15,23,42,.3)"/></marker>
-    <style>
-      .title{font:700 32px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#111827;letter-spacing:-.02em}.kicker{font:600 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#64748B}.body{font:700 14px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#334155}.chip{font:700 11px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#475569;text-transform:uppercase;letter-spacing:.08em}.node{font:700 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#243044}.white{font:700 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:white}.mono{font:600 15px 'SF Mono',Consolas,monospace;fill:#1F2937}.monoAccent{font:700 15px 'SF Mono',Consolas,monospace;fill:#334155}.emoji{font:400 30px 'Segoe UI Emoji','Apple Color Emoji',sans-serif;fill:white}
-    </style>
+    <radialGradient id="rl-wash" cx="70%" cy="0%" r="80%">
+      <stop offset="0%" stop-color="#16a34a" stop-opacity="0.14"/>
+      <stop offset="70%" stop-color="#16a34a" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect width="600" height="380" rx="34" fill="url(#bg)"/>
-  <circle cx="92" cy="76" r="118" fill="#334155" opacity=".16"/>
-  <circle cx="502" cy="80" r="130" fill="#0EA5E9" opacity=".15"/>
-  <path d="M-20 306 C92 242 182 332 286 274 S492 214 640 282 V420 H-20 Z" fill="rgba(255,255,255,.42)"/>
-  <text x="48" y="62" class="title">Stat-Arb Engine</text>
-  <text x="50" y="88" class="kicker">Pairs trading research</text>
-  <rect x="448" y="48" width="124" height="32" rx="16" fill="rgba(255,255,255,.68)" stroke="rgba(255,255,255,.78)"/><text x="462" y="69" class="chip">No lookahead</text>
-  <rect x="44" y="132" width="520" height="228" rx="24" fill="rgba(255,255,255,0.62)" stroke="rgba(255,255,255,.78)"/><path d="M52 330 C96 270, 122 348, 164 296 S238 230, 286 278 S362 354, 420 246 S494 258, 548 190" fill="none" stroke="#334155" stroke-width="8" stroke-linecap="round"/><path d="M52 330 C96 270, 122 348, 164 296 S238 230, 286 278 S362 354, 420 246 S494 258, 548 190" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2" stroke-linecap="round"/><path d="M60 250 C110 208, 146 296, 194 250 S290 204, 342 250 S430 304, 544 218" fill="none" stroke="#0EA5E9" stroke-width="4" stroke-dasharray="9 9" stroke-linecap="round"/><text x="76" y="176" class="body">spread z-score</text><rect x="384" y="302" width="132" height="32" rx="16" fill="rgba(255,255,255,.68)" stroke="rgba(255,255,255,.78)"/><text x="398" y="323" class="chip">cost adjusted</text>
-  <rect x="1" y="1" width="598" height="378" rx="33" stroke="rgba(255,255,255,.9)"/>
+
+  <rect width="600" height="380" fill="#101012"/>
+  <rect width="600" height="380" fill="url(#rl-wash)"/>
+
+  <rect x="32" y="40" width="178" height="42" opacity="0.5" fill="rgba(236,232,225,0.03)"/>
+  <rect x="210" y="40" width="178" height="42" opacity="0.5" fill="rgba(22,163,74,0.05)"/>
+  <rect x="388" y="40" width="180" height="42" opacity="0.5" fill="rgba(236,232,225,0.03)"/>
+  <text x="121" y="56" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" letter-spacing="1" fill="#605b55">R0</text>
+  <text x="299" y="56" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" letter-spacing="1" fill="#605b55">R1</text>
+  <text x="478" y="56" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" letter-spacing="1" fill="#605b55">R2</text>
+
+  <text x="32" y="30" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.5" fill="#605b55">COINTEGRATED PAIR · SPREAD</text>
+
+  <polyline points="32,150 90,130 148,165 210,120 268,158 326,110 388,148 446,100 504,140 568,118"
+    fill="none" stroke="#ece8e1" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>
+  <polyline points="32,170 90,178 148,160 210,190 268,168 326,198 388,172 446,204 504,176 568,196"
+    fill="none" stroke="#605b55" stroke-width="1.2" stroke-linejoin="round" stroke-linecap="round"/>
+
+  <line x1="32" y1="200" x2="568" y2="200" stroke="rgba(236,232,225,0.1)" stroke-width="1" stroke-dasharray="2 4"/>
+
+  <g stroke="#16a34a" stroke-width="1.5" stroke-linecap="round">
+    <path d="M148 165 L148 195 M144 191 L148 195 L152 191"/>
+    <path d="M326 110 L326 80 M322 84 L326 80 L330 84"/>
+    <path d="M446 100 L446 70 M442 74 L446 70 L450 74"/>
+  </g>
+  <text x="148" y="212" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" fill="#16a34a">ENTRY</text>
+  <text x="446" y="60" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="9" fill="#16a34a">EXIT</text>
+
+  <line x1="32" y1="248" x2="568" y2="248" stroke="rgba(236,232,225,0.08)" stroke-width="1"/>
+
+  <text x="32" y="282" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.5" fill="#605b55">POLICIES</text>
+  <text x="32" y="312" font-family="Georgia, serif" font-style="italic" font-size="26" fill="#ece8e1">PPO <tspan fill="#605b55" font-style="normal" font-family="ui-monospace, monospace" font-size="14">discrete</tspan></text>
+  <text x="32" y="340" font-family="Georgia, serif" font-style="italic" font-size="26" fill="#ece8e1">SAC <tspan fill="#605b55" font-style="normal" font-family="ui-monospace, monospace" font-size="14">continuous</tspan></text>
+
+  <text x="568" y="282" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1" fill="#9a948b">94 TESTS</text>
+  <text x="568" y="300" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1" fill="#9a948b">SEED-DETERMINISTIC</text>
+  <text x="568" y="318" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1" fill="#9a948b">WALK-FORWARD 7/10</text>
 </svg>

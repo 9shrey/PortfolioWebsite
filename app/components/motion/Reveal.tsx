@@ -3,9 +3,14 @@
 import { useEffect, useRef } from "react";
 
 /** Safety net: if the observer never fires (deep link, restored scroll,
- *  reduced-motion quirks), reveal anyway rather than stranding content. */
+ *  reduced-motion quirks, a browser that mis-reports intersection on a
+ *  transformed ancestor), reveal anyway rather than stranding content. */
 const FAILSAFE_MS = 1500;
 
+/** The site's Level-2 section entrance. Deliberately CSS-class based rather
+ *  than Framer Motion: `whileInView` re-runs its enter animation on every
+ *  route remount and can get stuck at its initial state under Next's router
+ *  transition, and a stuck section here means invisible content. */
 export default function Reveal({
   children,
   delay = 0,
@@ -31,12 +36,13 @@ export default function Reveal({
     }
 
     const failsafe = window.setTimeout(show, FAILSAFE_MS);
+    let delayTimer = 0;
 
     const io = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (!entry.isIntersecting) return;
-          window.setTimeout(show, delay);
+          delayTimer = window.setTimeout(show, delay);
           io.unobserve(entry.target);
         });
       },
@@ -47,6 +53,7 @@ export default function Reveal({
 
     return () => {
       window.clearTimeout(failsafe);
+      window.clearTimeout(delayTimer);
       io.disconnect();
     };
   }, [delay]);

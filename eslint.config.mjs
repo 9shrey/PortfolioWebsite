@@ -12,6 +12,12 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Non-source trees. These were passed as --ignore-pattern flags on the
+    // lint script, where an unquoted `node_modules/**` got glob-expanded by
+    // the shell before ESLint ever saw it and broke the run.
+    "node_modules/**",
+    "public/**",
+    ".planning/**",
   ]),
 ]);
 

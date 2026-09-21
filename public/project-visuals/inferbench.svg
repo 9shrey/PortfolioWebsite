@@ -1,42 +1,50 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="760" viewBox="0 0 600 380" fill="none">
+<svg width="600" height="380" viewBox="0 0 600 380" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#F9F7FF"/><stop offset=".48" stop-color="#F1ECFF"/><stop offset="1" stop-color="#FFFFFF"/></linearGradient>
-    <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7C3AED"/><stop offset="1" stop-color="#1E1B2E"/></linearGradient>
-    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#1B2B48" flood-opacity=".14"/></filter>
-    <style>
-      .title{font:700 32px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#111827;letter-spacing:-.02em}.kicker{font:600 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#64748B}.chip{font:700 11px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#475569;text-transform:uppercase;letter-spacing:.08em}.node{font:700 13px -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;fill:#243044}.mono{font:600 14px 'SF Mono',Consolas,monospace;fill:#1F2937}.monoAccent{font:700 22px 'SF Mono',Consolas,monospace;fill:#7C3AED}
-    </style>
+    <radialGradient id="ib-wash" cx="80%" cy="10%" r="80%">
+      <stop offset="0%" stop-color="#16a34a" stop-opacity="0.16"/>
+      <stop offset="70%" stop-color="#16a34a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="ib-bar" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#16a34a"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
   </defs>
-  <rect width="600" height="380" rx="34" fill="url(#bg)"/>
-  <circle cx="92" cy="76" r="118" fill="#7C3AED" opacity=".14"/>
-  <circle cx="502" cy="80" r="130" fill="#1E1B2E" opacity=".12"/>
-  <path d="M-20 306 C92 242 182 332 286 274 S492 214 640 282 V420 H-20 Z" fill="rgba(255,255,255,.42)"/>
-  <text x="48" y="62" class="title">Inferbench</text>
-  <text x="50" y="88" class="kicker">Triton kernel, batched decode</text>
-  <rect x="432" y="48" width="108" height="32" rx="16" fill="rgba(255,255,255,.68)" stroke="rgba(255,255,255,.78)"/><text x="446" y="69" class="chip">182 tests</text>
 
-  <rect x="48" y="138" width="230" height="190" rx="24" fill="rgba(255,255,255,0.62)" stroke="rgba(255,255,255,.78)"/>
-  <text x="72" y="168" class="chip">Decode throughput</text>
-  <text x="72" y="200" class="mono">Qwen2.5-0.5B, batch 16</text>
-  <rect x="72" y="222" width="60" height="14" rx="4" fill="rgba(15,23,42,.18)"/><text x="140" y="233" class="mono">87 tok/s</text>
-  <rect x="72" y="248" width="180" height="14" rx="4" fill="url(#accentGrad)"/><text x="260" y="259" class="mono">451</text>
-  <text x="72" y="300" class="monoAccent">5.2x</text>
-  <text x="150" y="300" class="node">end-to-end</text>
+  <rect width="600" height="380" fill="#101012"/>
+  <rect width="600" height="380" fill="url(#ib-wash)"/>
 
-  <g filter="url(#softShadow)">
-    <rect x="302" y="156" width="120" height="54" rx="20" fill="rgba(255,255,255,.78)" stroke="rgba(255,255,255,.85)"/>
-    <circle cx="328" cy="183" r="7" fill="#7C3AED"/>
-    <text x="346" y="189" class="node">split-K kernel</text>
-  </g>
-  <g filter="url(#softShadow)">
-    <rect x="458" y="156" width="118" height="54" rx="20" fill="rgba(255,255,255,.78)" stroke="rgba(255,255,255,.85)"/>
-    <circle cx="484" cy="183" r="7" fill="#7C3AED"/>
-    <text x="502" y="189" class="node">8.9x proj.</text>
+  <!-- faint tensor grid -->
+  <g stroke="rgba(236,232,225,0.05)" stroke-width="1">
+    <line x1="380" y1="30" x2="380" y2="130"/><line x1="410" y1="30" x2="410" y2="130"/>
+    <line x1="440" y1="30" x2="440" y2="130"/><line x1="470" y1="30" x2="470" y2="130"/>
+    <line x1="500" y1="30" x2="500" y2="130"/><line x1="530" y1="30" x2="530" y2="130"/>
+    <line x1="560" y1="30" x2="560" y2="130"/>
+    <line x1="380" y1="30" x2="568" y2="30"/><line x1="380" y1="55" x2="568" y2="55"/>
+    <line x1="380" y1="80" x2="568" y2="80"/><line x1="380" y1="105" x2="568" y2="105"/>
+    <line x1="380" y1="130" x2="568" y2="130"/>
   </g>
 
-  <rect x="314" y="252" width="262" height="76" rx="24" fill="rgba(255,255,255,0.58)" stroke="rgba(255,255,255,.78)"/>
-  <text x="338" y="284" class="chip">Token-identical greedy output</text>
-  <text x="338" y="310" class="mono">negative controls: batch 32, prefill</text>
+  <text x="32" y="40" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.5" fill="#605b55">BATCHED DECODE THROUGHPUT</text>
 
-  <rect x="1" y="1" width="598" height="378" rx="33" stroke="rgba(255,255,255,.9)"/>
+  <text x="32" y="110" font-family="Georgia, serif" font-size="56" fill="#ece8e1">5.2<tspan font-family="Georgia, serif" font-style="italic" fill="#16a34a">×</tspan></text>
+  <text x="32" y="134" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1" fill="#9a948b">END-TO-END · QWEN2.5-0.5B</text>
+
+  <line x1="32" y1="160" x2="330" y2="160" stroke="rgba(236,232,225,0.08)" stroke-width="1"/>
+
+  <!-- before/after throughput bars -->
+  <g font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="10" fill="#9a948b">
+    <text x="32" y="182">87 tok/s</text>
+    <rect x="32" y="190" width="34" height="10" rx="2" fill="rgba(236,232,225,0.16)"/>
+    <text x="32" y="222">451 tok/s</text>
+    <rect x="32" y="230" width="176" height="10" rx="2" fill="url(#ib-bar)"/>
+  </g>
+  <text x="32" y="258" fill="#605b55">BATCH 16 · GREEDY TOKEN-IDENTICAL</text>
+
+  <line x1="32" y1="276" x2="568" y2="276" stroke="rgba(236,232,225,0.08)" stroke-width="1"/>
+
+  <text x="32" y="308" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1.5" fill="#605b55">TRITON SPLIT-K KERNEL</text>
+  <text x="32" y="336" font-family="Georgia, serif" font-size="26" fill="#ece8e1">8.9<tspan font-style="italic" fill="#16a34a">×</tspan> <tspan font-size="14" font-family="ui-monospace, monospace" fill="#9a948b">projection matmul</tspan></text>
+
+  <text x="568" y="308" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1" fill="#9a948b">182 TESTS</text>
+  <text x="568" y="326" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="11" letter-spacing="1" fill="#9a948b">52% MEM BANDWIDTH</text>
 </svg>

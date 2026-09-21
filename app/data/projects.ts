@@ -19,11 +19,13 @@ export type ProofTag =
 export interface Project {
   slug: string;
   title: string;
+  shortTitle: string;
   category: ProjectCategory;
   filterTags: string[];
   stack: string[];
   blurb: string;
   outcome: string;
+  testCount: number;
   proofTags: ProofTag[];
   proofDescription: string;
   resumeBullet: string;
@@ -32,6 +34,8 @@ export interface Project {
   problem: string;
   system: string;
   technicalInterest: string;
+  challenges: string;
+  retrospect: string;
   demoImage?: string;
 }
 
@@ -39,6 +43,8 @@ export const projects: Project[] = [
   {
     slug: "argus-fraud-detection",
     title: "Argus: Real-Time Fraud Detection Engine",
+    shortTitle: "Argus",
+    testCount: 52,
     category: "Real-Time ML / Risk",
     filterTags: ["Applied ML", "Backend", "Product"],
     stack: ["Python", "XGBoost", "Scikit-learn", "SHAP", "FastAPI", "Next.js", "Docker"],
@@ -58,10 +64,16 @@ export const projects: Project[] = [
       "Async simulation engine generates synthetic fraud scenarios -> causal feature engineering shared identically between training and online scoring -> XGBoost + Isolation Forest ensemble -> 0-100 risk score with SHAP breakdown -> WebSocket broadcast to a Next.js dashboard with per-transaction drill-down.",
     technicalInterest:
       "Train/serve parity through one shared feature function, a chronological holdout instead of a random split to avoid leakage, and explainability wired into the product UI rather than left in a notebook.",
+    challenges:
+      "The unsupervised Isolation Forest and supervised XGBoost score on different scales, so combining them into one 0-100 number without either component drowning the other took a few iterations. The bigger cost was the chronological holdout itself — it's more expensive to set up than a random split and it makes the offline metrics look worse, which is a hard sell if you don't already believe leakage is the more important thing to fix.",
+    retrospect:
+      "The SHAP breakdown is computed synchronously per request right now; it's fast enough at current volume but I'd move it to a background worker with a cache before pushing transaction throughput much higher. I'd also add a slow-drift monitor comparing live feature distributions against the training window, since the chronological holdout only proves the model wasn't leaked — it doesn't prove it stays valid as the transaction mix shifts.",
   },
   {
     slug: "rl-statistical-arbitrage",
     title: "RL Statistical Arbitrage Engine",
+    shortTitle: "RL Arbitrage",
+    testCount: 94,
     category: "Quant / RL",
     filterTags: ["Quant", "Applied ML"],
     stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
@@ -81,10 +93,16 @@ export const projects: Project[] = [
       "Bars + point-in-time universe filtering -> Engle-Granger/Johansen pair selection -> HMM regime features -> trading environment -> PPO (discrete) and SAC (continuous) agents retrained per walk-forward fold -> transaction-cost-adjusted backtest -> MLflow-tracked leaderboard.",
     technicalInterest:
       "Regime-aware RL policy design across discrete and continuous action spaces, strict walk-forward retraining instead of train-once, and seed-determinism tests that catch nondeterminism a single run would miss.",
+    challenges:
+      "Walk-forward retraining means training N policies instead of one, which multiplies both compute cost and the surface area for a subtle lookahead bug — a single mistimed feature that leaks one bar of future information is invisible in the backtest and only shows up as inexplicably good performance. Getting the point-in-time universe filtering exactly right (no pair enters the tradable set before its cointegration test would have actually cleared) took more care than the RL policies themselves.",
+    retrospect:
+      "The regime features come from an HMM fit once per walk-forward fold; a version that adapts regime boundaries online rather than per-fold would react faster to genuine regime breaks instead of waiting for the next retrain. I'd also want live paper-trading validation before trusting the walk-forward backtest fully — transaction cost models are still an approximation of real slippage, and that's the assumption most likely to be wrong in a way backtesting can't reveal.",
   },
   {
     slug: "schemabench",
     title: "SchemaBench: LLM Structured-Output Contract Benchmark",
+    shortTitle: "SchemaBench",
+    testCount: 175,
     category: "LLM Evaluation",
     filterTags: ["GenAI", "Backend"],
     stack: ["Python", "JSON Schema", "Pydantic", "httpx", "OpenRouter"],
@@ -103,10 +121,16 @@ export const projects: Project[] = [
       "Prompt-only / tool-call / strict response_format request modes -> 8 models via OpenRouter -> mechanical JSON Schema validation of each response -> paired significance testing (exact McNemar) across modes and models -> reproducible report.",
     technicalInterest:
       "Mechanical grading instead of an LLM judge, paired significance testing instead of raw pass-rate comparison, and empirical falsification of vendor capability claims in both directions.",
+    challenges:
+      "Every provider's tool-call and response_format APIs are shaped slightly differently, so the request-building layer needed real normalization rather than a thin wrapper — the alternative was silently mismeasuring one provider's actual capability because the request wasn't idiomatic for its API. Deciding what counts as a 'pass' for tool-call mode was its own design question: a model returning valid JSON that also included prose outside the tool call is arguably compliant and arguably not, and the benchmark has to pick a rule and be consistent about it.",
+    retrospect:
+      "The benchmark currently checks schema validity, not semantic correctness — a response can validate against the schema while still getting the actual field values wrong. Layering a second, narrower correctness check on top for a handful of schemas with unambiguous right answers would separate 'can follow the contract' from 'produces the right contract-following answer,' which right now this benchmark can't distinguish.",
   },
   {
     slug: "inferbench",
     title: "Inferbench: Triton Kernel for Batched LLM Decode",
+    shortTitle: "Inferbench",
+    testCount: 182,
     category: "Systems / GPU Kernels",
     filterTags: ["Systems", "Applied ML"],
     stack: ["Python", "Triton", "CUDA", "PyTorch", "Transformers"],
@@ -125,6 +149,10 @@ export const projects: Project[] = [
       "Root-caused to cuBLAS dispatching to a tensor-core GEMM at batch >= 2 on hardware without tensor cores -> wrote a Triton split-K kernel for the projection -> validated against token-identical greedy decoding -> negative controls at batch 32 and prefill -> throughput benchmarks on Qwen2.5-0.5B.",
     technicalInterest:
       "Root-causing a GPU performance regression to a specific cuBLAS dispatch decision, fixing it with a hand-written Triton kernel, and proving correctness with token-identical output checks rather than just measuring speed.",
+    challenges:
+      "The hardest part wasn't writing the split-K kernel, it was proving the regression was actually a dispatch decision and not something else — memory bandwidth contention, batching overhead, Python-side latency all looked plausible first. Nsight traces settled it, but only after ruling out the cheaper explanations first. Getting the split-K reduction to actually beat the tensor-core-emulation path required tuning tile sizes for the exact shapes decode produces; a kernel tuned for generic matmul shapes gave a much smaller win.",
+    retrospect:
+      "This kernel is hand-tuned for one model's projection shape on one GPU; it doesn't generalize to other architectures without re-tuning, which is the real cost of hand-written kernels versus a heuristic dispatcher that's merely wrong sometimes. A follow-up worth doing is a lightweight shape-based override table that falls back to this kernel only for the specific batch ranges where cuBLAS's heuristic is known to mispick, rather than replacing the dispatcher's decision entirely.",
   },
 ];
 
