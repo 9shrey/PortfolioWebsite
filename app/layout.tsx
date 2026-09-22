@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Instrument_Serif, JetBrains_Mono } from "next/font/google";
+import { Schibsted_Grotesk, Space_Mono, Syne } from "next/font/google";
 import "./globals.css";
 
 import Nav from "./components/layout/Nav";
@@ -11,27 +11,30 @@ import Terminal from "./components/layout/Terminal";
 import SmoothScroll from "./components/motion/SmoothScroll";
 
 /** Three voices, each with a job:
- *  - Instrument Serif carries the editorial display type.
- *  - Inter is the quiet UI voice (and has proper tabular figures, which
- *    matters on a site that is mostly numbers).
- *  - JetBrains Mono labels the data. */
-const sans = Inter({
+ *  - Syne carries the display type. Wide, geometric and deliberately odd —
+ *    it was drawn for an art centre, and it is the whole reason the page
+ *    doesn't read as a template. Note: Syne ships no italic, so emphasis in
+ *    display type is set with weight and colour instead (see .display em).
+ *  - Schibsted Grotesk is the quiet UI voice (and has proper tabular
+ *    figures, which matters on a site that is mostly numbers).
+ *  - Space Mono labels the data. */
+const sans = Schibsted_Grotesk({
   variable: "--font-sans-custom",
   subsets: ["latin"],
   display: "swap",
 });
 
-const display = Instrument_Serif({
+const display = Syne({
   variable: "--font-display-custom",
   subsets: ["latin"],
-  weight: "400",
-  style: ["normal", "italic"],
+  weight: ["400", "600", "700", "800"],
   display: "swap",
 });
 
-const mono = JetBrains_Mono({
+const mono = Space_Mono({
   variable: "--font-mono-custom",
   subsets: ["latin"],
+  weight: ["400", "700"],
   display: "swap",
 });
 

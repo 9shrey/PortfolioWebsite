@@ -42,15 +42,14 @@ export default function ContactView() {
 
       <TextReveal
         as="h1"
-        lines={["Let's build something", "that has to work."]}
+        lines={["Get in touch"]}
         className="display mt-12 max-w-[15ch] text-[clamp(2.3rem,7vw,5.2rem)]"
       />
 
       <Reveal delay={240}>
         <p className="prose-dim mt-9 max-w-[54ch] text-[1.0625rem]">
-          Currently building at Agneyas Labs. Always happy to talk ML systems,
-          quant research, GPU kernels, and backend infrastructure — especially
-          the parts that have to survive production.
+          I'm currently at Agneyas Labs. Happy to talk about ML systems, quant
+          research, GPU kernels, or backend infrastructure — drop me a line.
         </p>
       </Reveal>
 

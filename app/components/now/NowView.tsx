@@ -9,7 +9,7 @@ export default function NowView() {
         kicker="Now"
         meta={`Updated ${updated}`}
         lines={["What I'm doing", "right now."]}
-        lead="A /now page, not a résumé — this is what's actually on my plate this month, updated when it changes rather than when I remember to."
+        lead="What's actually on my plate this month. I update this when things change, so it should be current."
       />
 
       <div className="mt-20 border-b border-[var(--rule-soft)]">

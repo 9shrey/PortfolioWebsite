@@ -63,7 +63,7 @@ export default function HoverPreview({ slug }: { slug: string | null }) {
               className="overflow-hidden rounded-lg border border-[var(--rule)] shadow-2xl shadow-black/50"
             >
               <Image
-                src={`/project-visuals/${slug}.svg`}
+                src={`/project-visuals/${slug}.png`}
                 alt=""
                 width={600}
                 height={380}

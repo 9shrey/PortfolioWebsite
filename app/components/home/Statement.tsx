@@ -9,7 +9,7 @@ import Reveal from "../motion/Reveal";
  *  because it's the one worth slowing a reader down for; applied everywhere
  *  the effect stops being expressive and turns into an obstacle. */
 const STATEMENT =
-  "Train and serve from one shared feature function. A chronological holdout instead of a random split. Token-identical output before any speed claim is made. The model is rarely the hard part — the evidence around it is.";
+  "Train and serve from one shared feature function. A chronological holdout instead of a random split. Token-identical output before any speed claim is made. Most of the time goes into checking the work.";
 
 export default function Statement() {
   return (

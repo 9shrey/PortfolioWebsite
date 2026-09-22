@@ -16,8 +16,8 @@ export default function WritingIndexView() {
       <PageHeader
         kicker="Writing"
         meta={posts.length ? `${posts.length} notes` : "Nothing published yet"}
-        lines={["Notes from", "the systems."]}
-        lead="Short technical write-ups on specific decisions from the projects — the kind of detail that doesn't fit in a project card but is the actual reason something worked."
+        lines={["Notes"]}
+        lead="Short write-ups on specific decisions from the projects. Mostly the details that don't fit on a project page but ended up mattering."
       />
 
       {posts.length === 0 ? (

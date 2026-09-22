@@ -17,8 +17,8 @@ export default function AboutView() {
       <PageHeader
         kicker="About"
         meta="Bengaluru, IN"
-        lines={["The person behind", "the systems."]}
-        lead="AI/ML engineer working across the whole span of a model's life — GPU kernels and feature pipelines at one end, FastAPI services and dashboards at the other. Currently MLOps Engineer at Agneyas Labs, building an internal AutoML platform and a hybrid battery digital twin; previously ML intern at NetApp on revenue forecasting for $150M+ quarterly planning."
+        lines={["About me"]}
+        lead="I'm an AI/ML engineer, and I work across the whole span of a model's life — GPU kernels and feature pipelines at one end, FastAPI services and dashboards at the other. Right now I'm an MLOps Engineer at Agneyas Labs, building an internal AutoML platform and a hybrid battery digital twin. Before that I was an ML intern at NetApp, working on revenue forecasting for $150M+ quarterly planning."
       />
 
       {/* Capabilities as a focused list rather than a wall of badges: one
@@ -26,7 +26,7 @@ export default function AboutView() {
       <section className="mt-24">
         <Reveal>
           <div className="flex items-baseline justify-between gap-6 border-b border-[var(--rule-soft)] pb-5">
-            <h2 className="display t-title">Capabilities</h2>
+            <h2 className="display t-title">What I work with</h2>
             <span className="micro shrink-0">
               {skillGroups.length} groups
             </span>

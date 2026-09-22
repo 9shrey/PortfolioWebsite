@@ -22,7 +22,7 @@ export default function Outro() {
         <Reveal>
           <TextReveal
             as="h2"
-            lines={["Let's build something", "that has to work."]}
+            lines={["Get in touch"]}
             className="display t-display max-w-[16ch]"
           />
         </Reveal>

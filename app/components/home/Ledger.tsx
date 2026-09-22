@@ -43,7 +43,7 @@ export default function Ledger() {
         <Reveal>
           <div className="flex items-baseline justify-between gap-6 border-b border-[var(--rule-soft)] pb-6">
             <h2 className="display t-title">
-              Tested, not <em className="text-[var(--signal)]">demoed</em>.
+              By the <em>numbers</em>
             </h2>
             <span className="micro hidden shrink-0 sm:block">Evidence</span>
           </div>

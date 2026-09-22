@@ -34,8 +34,8 @@ export default function WorkIndex() {
         <PageHeader
           kicker="Work"
           meta={`${projects.length} systems`}
-          lines={["Systems, not filler."]}
-          lead="Four builds, each with the evidence that it works: test counts, leak-proof evaluation, and correctness gates rather than screenshots. Open any one for the problem, the system design, and what I'd do differently."
+          lines={["Things I've built"]}
+          lead="Four projects. Each one has tests, an evaluation setup that doesn't leak, and correctness checks you can actually go and read. Open any of them for the problem, how it's put together, and what I'd do differently next time."
         />
 
         <Reveal delay={260}>
@@ -89,8 +89,11 @@ export default function WorkIndex() {
                       {String(i + 1).padStart(2, "0")}
                     </span>
 
-                    <div>
-                      <h2 className="row-title display text-[clamp(1.6rem,3.4vw,2.4rem)]">
+                    {/* min-w-0: a grid item defaults to min-width:auto and so
+                        refuses to shrink below its longest title, pushing the
+                        row past the viewport. */}
+                    <div className="min-w-0">
+                      <h2 className="row-title display text-balance text-[clamp(1.6rem,3.4vw,2.4rem)]">
                         {project.title}
                       </h2>
                       <p className="prose-dim mt-2.5 max-w-[58ch] text-sm">

@@ -78,7 +78,7 @@ export default function ProjectPanel({
           aria-hidden
         >
           <Image
-            src={`/project-visuals/${project.slug}.svg`}
+            src={`/project-visuals/${project.slug}.png`}
             alt=""
             width={600}
             height={380}

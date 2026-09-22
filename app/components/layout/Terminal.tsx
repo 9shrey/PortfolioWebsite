@@ -89,7 +89,7 @@ export default function Terminal() {
         break;
       case "whoami":
         print(
-          "Shrey Singh — AI/ML engineer, Bengaluru. Building ML systems that have to actually run."
+          "Shrey Singh — AI/ML engineer, Bengaluru. I build and ship ML systems."
         );
         break;
       case "ls":

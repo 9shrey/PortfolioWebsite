@@ -2,18 +2,17 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import MatrixRain from "./MatrixRain";
 
-/** Route change = one quiet panel lifting off the new page, plus a short
- *  settle on the content itself.
+/** Route change = a red code-rain sweep over the viewport, then a short
+ *  settle on the new content underneath.
  *
- *  Both halves are plain CSS rather than Framer Motion, deliberately. Motion's
+ *  The rain is plain canvas rather than Framer Motion, deliberately. Motion's
  *  initial/animate mount detection can stall at its initial (invisible) state
  *  under Next's router transition — App Router navigations run inside React's
- *  startTransition, which throws off its mount timing — and when it stalls the
- *  entire page sits at opacity 0 forever. The wipe is a keyed CSS keyframe the
- *  browser always runs to completion, and the content fade is driven by a
- *  timeout flipping a state value, so revealing the page never depends on
- *  animation-frame timing at all. */
+ *  startTransition, which throws off its mount timing. The canvas loop runs
+ *  on its own rAF clock and calls back when done, so revealing the page never
+ *  depends on animation-frame timing tied to React at all. */
 export default function PageTransition({
   children,
 }: {
@@ -22,14 +21,16 @@ export default function PageTransition({
   const pathname = usePathname();
   const [shownPath, setShownPath] = useState(pathname);
   const [ready, setReady] = useState(true);
+  const [rainDone, setRainDone] = useState(true);
   // False until the first client-side navigation, so a cold load is never
-  // hidden behind the panel.
+  // hidden behind the rain.
   const [navigated, setNavigated] = useState(false);
 
   if (shownPath !== pathname) {
     setShownPath(pathname);
     setNavigated(true);
     setReady(false);
+    setRainDone(false);
   }
 
   useEffect(() => {
@@ -40,7 +41,11 @@ export default function PageTransition({
 
   return (
     <>
-      {navigated ? <div key={pathname} className="wipe" aria-hidden /> : null}
+      {navigated && !rainDone ? (
+        <div key={pathname} className="wipe" aria-hidden>
+          <MatrixRain onDone={() => setRainDone(true)} />
+        </div>
+      ) : null}
       <div
         style={{
           opacity: ready ? 1 : 0,

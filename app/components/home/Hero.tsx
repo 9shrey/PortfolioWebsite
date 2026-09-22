@@ -24,9 +24,13 @@ export default function Hero() {
     offset: ["start start", "end start"],
   });
 
-  // Gentle departure: the type drifts up and dims slightly faster than the
-  // page scrolls, so the hero feels like it's being left behind rather than
-  // simply scrolling off.
+  // Gentle departure: the hero lags the scroll and dims, so it feels left
+  // behind rather than simply scrolling off.
+  //
+  // This drift is applied to the hero as a single unit, NOT to the type block
+  // alone. Translating only the upper block moves it down into the readout
+  // strip below it, and on any viewport short enough that the hero has no
+  // vertical slack the two overlap from the first scroll tick.
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "22%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.75], [1, 0]);
 
@@ -35,11 +39,15 @@ export default function Hero() {
   return (
     <section
       ref={ref}
-      className="relative flex min-h-[100svh] flex-col justify-between overflow-hidden pt-[var(--nav-h)]"
+      className="relative flex min-h-[100svh] flex-col overflow-hidden pt-[var(--nav-h)]"
     >
       <Field />
 
-      <motion.div className="shell relative z-10 flex flex-1 flex-col justify-center py-12" style={style}>
+      <motion.div
+        className="relative z-10 flex flex-1 flex-col justify-between"
+        style={style}
+      >
+        <div className="shell flex flex-1 flex-col justify-center py-12">
         {/* Top meta rail */}
         <motion.div
           className="flex items-center justify-between gap-4 border-b border-[var(--rule-soft)] pb-5"
@@ -73,17 +81,16 @@ export default function Hero() {
           transition={{ duration: 0.6, ease: EASE, delay: 0.55 }}
         >
           <p className="lead max-w-[34ch] text-[var(--fg)] md:max-w-[38ch]">
-            I build ML systems that have to{" "}
-            <span className="display italic text-[var(--signal)]">
-              actually run
-            </span>{" "}
-            — from GPU kernel optimisation and PyTorch training through to
-            FastAPI services and deployed tooling.
+            I build and{" "}
+            <span className="italic-accent text-[var(--signal)]">ship</span>{" "}
+            ML systems — GPU kernel optimisation and PyTorch training at one
+            end, FastAPI services and deployed tooling at the other.
           </p>
         </motion.div>
-      </motion.div>
+        </div>
 
-      {/* Readout strip — the fold line of the page */}
+      {/* Readout strip — the fold line of the page. Sits inside the drifting
+          wrapper so it can never be overrun by the type block above it. */}
       <motion.div
         className="relative z-10"
         initial={{ opacity: 0 }}
@@ -115,6 +122,7 @@ export default function Hero() {
             </a>
           </div>
         </div>
+      </motion.div>
       </motion.div>
     </section>
   );

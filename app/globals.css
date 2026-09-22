@@ -3,10 +3,10 @@
 /* ==========================================================================
    "Evidence, rendered."
 
-   Editorial-technical. Cream on near-black. Green is demoted from decoration
-   to *signal* — it only appears where something is measured, active, or
-   selected. Typography and whitespace carry the page; motion is spent in
-   three places, not forty.
+   Editorial-technical. Cream on near-black. Carmine is demoted from
+   decoration to *signal* — it only appears where something is measured,
+   active, or selected. Typography and whitespace carry the page; motion is
+   spent in three places, not forty.
    ========================================================================== */
 
 :root {
@@ -27,11 +27,12 @@
 
   /* --- Signal -------------------------------------------------------- */
   /* --accent fills and floods. --signal is the lighter tint used for small
-     text and hairlines, where #16a34a on near-black gets tight at 11px. */
-  --accent: #16a34a;
-  --signal: #6ee7a7;
-  --signal-dim: rgba(110, 231, 167, 0.5);
-  --signal-wash: rgba(22, 163, 74, 0.1);
+     text and hairlines, where the deep carmine goes muddy at 11px on
+     near-black. */
+  --accent: #a4133c;
+  --signal: #ff4d6d;
+  --signal-dim: rgba(255, 77, 109, 0.5);
+  --signal-wash: rgba(164, 19, 60, 0.12);
 
   /* --- Motion -------------------------------------------------------- */
   /* Three durations = the three levels of the motion system. Nothing on this
@@ -92,9 +93,11 @@ body {
 
 body {
   overflow-x: hidden;
-  /* Tabular figures everywhere: this site is mostly numbers, and proportional
-     digits make counters jitter as they tick. */
-  font-variant-numeric: tabular-nums;
+  /* Tabular figures are NOT set globally. Schibsted Grotesk's `tnum` feature
+     also re-widths the comma and full stop — so decimal separators line up in
+     a numeric column — which in running prose leaves a visible gap before
+     every one of them ("at one end ,"). The counters that actually need
+     tabular digits ask for them on .numeral instead. */
 }
 
 ::selection {
@@ -199,21 +202,42 @@ html.lenis body {
    -------------------------------------------------------------------------- */
 
 .display {
-  font-family: var(--font-display-custom), ui-serif, Georgia, serif;
-  font-weight: 400;
-  letter-spacing: -0.015em;
-  line-height: 0.92;
+  font-family: var(--font-display-custom), ui-sans-serif, system-ui, sans-serif;
+  /* Syne's character lives in its heavier weights; at 400 it reads as a
+     generic geometric sans. */
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
 }
 
+/* Syne has no italic cut, so display emphasis is carried by weight + colour
+   instead of a synthesised oblique.
+   Weight stays at 700, not 800: Syne's ExtraBold crossbars sit at a common
+   height and, pulled together by the display tracking, merge into one
+   continuous bar — short words like "ship" render looking struck through.
+   The positive tracking here keeps the letters apart. */
 .display em,
 .italic-accent {
-  font-style: italic;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.005em;
+  color: var(--signal);
+}
+
+/* Inline emphasis inside body copy sets in the body face, not Syne. A wide
+   display cut at paragraph size reads as a pasted-in graphic. */
+.italic-accent {
+  font-family: var(--font-sans-custom), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0;
 }
 
 .hero-type {
   font-size: var(--t-hero);
-  line-height: 0.84;
-  letter-spacing: -0.035em;
+  line-height: 0.88;
+  /* Syne sets much wider than the serif this replaced; the extra negative
+     tracking keeps the two hero lines from sprawling past the shell. */
+  letter-spacing: -0.045em;
 }
 
 .t-display {
@@ -282,10 +306,12 @@ html.lenis body {
   text-wrap: balance;
 }
 
-/* Numerals set in the display face, optically aligned for readouts. */
+/* Numerals set in the display face, optically aligned for readouts. This is
+   the one place that genuinely needs tabular figures — without them the
+   animated counters jitter as the digits tick. */
 .numeral {
-  font-family: var(--font-display-custom), ui-serif, Georgia, serif;
-  font-weight: 400;
+  font-family: var(--font-display-custom), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
   font-variant-numeric: tabular-nums lining-nums;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -693,28 +719,13 @@ html.has-cursor * {
   inset: 0;
   z-index: 350;
   pointer-events: none;
-  background: var(--bg-sink);
-  transform-origin: top;
-  animation: wipe var(--d-3) var(--ease-io) both;
+  background: #000;
 }
 
-.wipe::after {
-  content: "";
+.matrix-rain {
   position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  height: 1px;
-  background: var(--signal);
-  opacity: 0.55;
-}
-
-@keyframes wipe {
-  0% {
-    transform: scaleY(1);
-  }
-  100% {
-    transform: scaleY(0);
-  }
+  inset: 0;
+  display: block;
 }
 
 /* --------------------------------------------------------------------------

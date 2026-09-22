@@ -27,7 +27,7 @@ export default function ExperienceView() {
       <PageHeader
         kicker="Experience"
         meta="Agneyas Labs · NetApp"
-        lines={["Where the work", "has shipped."]}
+        lines={["Where I've worked"]}
       />
 
       <div ref={trackRef} className="relative mt-20">

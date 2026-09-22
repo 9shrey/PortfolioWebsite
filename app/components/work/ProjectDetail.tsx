@@ -74,7 +74,7 @@ export default function ProjectDetail({ project }: { project: Project }) {
       <div ref={figureRef} className="mt-14 overflow-hidden rounded-xl border border-[var(--rule)]">
         <motion.div style={reduced ? undefined : { scale }}>
           <Image
-            src={project.demoImage ?? `/project-visuals/${project.slug}.svg`}
+            src={project.demoImage ?? `/project-visuals/${project.slug}.png`}
             alt={`Diagram of the ${project.shortTitle} system`}
             width={600}
             height={380}
