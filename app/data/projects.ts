@@ -142,7 +142,8 @@ export const projects: Project[] = [
       "175 tests, mechanical JSON Schema validation of every response, and paired statistical comparison (exact McNemar) across modes and models — surfacing capability catalogues that were wrong in both directions: one model advertising tool support returned HTTP 200 with an empty body, another advertising none honored it anyway.",
     resumeBullet:
       "Built a benchmark measuring JSON Schema contract adherence across prompt-only, tool-call, and strict response_format modes, graded mechanically against the schema rather than by an LLM judge. Probed 8 models and found capability catalogues wrong in both directions; paired contrasts via exact McNemar, 175 tests.",
-    codeStatus: "private",
+    github: "https://github.com/9shrey/schemabench",
+    codeStatus: "public",
     problem:
       "Providers self-report structured-output capability (tool calling, JSON mode), and that self-report is often wrong — most benchmarks compound the problem by grading with another LLM instead of checking contract adherence directly.",
     system:
@@ -170,7 +171,8 @@ export const projects: Project[] = [
       "182 tests including token-identical greedy-output correctness checks and negative controls at batch 32 and prefill (where the kernel must do nothing); 8.9x speedup on the projection matmul at 52% of measured memory bandwidth; 5.2x end-to-end decode throughput on Qwen2.5-0.5B (87 -> 451 tok/s at batch 16).",
     resumeBullet:
       "Diagnosed why batched fp16 decode ran slower than single-sequence on a tensor-core-less GPU — cuBLAS dispatches to a tensor-core GEMM at batch >= 2 — and fixed it with a Triton split-K kernel reaching 8.9x on the projection and 52% of measured memory bandwidth. Raised end-to-end decode throughput 5.2x on Qwen2.5-0.5B (87->451 tok/s at batch 16), gated on token-identical greedy output with negative controls at batch 32 and prefill; 182 tests.",
-    codeStatus: "private",
+    github: "https://github.com/9shrey/inferbench",
+    codeStatus: "public",
     problem:
       "Batched fp16 decode ran slower than single-sequence decode on a tensor-core-less GPU — a regression invisible unless you specifically benchmark batch >= 2.",
     system:
