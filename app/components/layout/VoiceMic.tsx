@@ -709,7 +709,7 @@ export default function VoiceMic() {
           : (note ?? "listening...");
 
   return (
-    <div className="fixed bottom-5 left-5 z-[130] hidden flex-col items-start gap-2 md:flex">
+    <div className="fixed bottom-5 left-5 z-[130] flex flex-col items-start gap-2">
       <AnimatePresence mode="wait" initial={false}>
         <motion.span
           key={open ? label : "closed"}
