@@ -41,6 +41,34 @@ export interface Project {
 
 export const projects: Project[] = [
   {
+    slug: "jev-voice-nav",
+    title: "Jev: Voice-Driven Site Navigation",
+    shortTitle: "Jev",
+    testCount: 0,
+    category: "LLM Evaluation",
+    filterTags: ["Applied ML", "Product"],
+    stack: ["Next.js", "Web Speech API", "TypeSafe AI"],
+    blurb:
+      "Say \"open work\" or \"how do I contact you\" and this site navigates itself — browser speech-to-text feeds a transcript to an LLM classifier that picks the matching page.",
+    outcome: "Voice-to-navigation in under a second, zero audio-transfer cost",
+    proofTags: ["product"],
+    proofDescription:
+      "Speech-to-text runs entirely client-side via the Web Speech API, so no audio ever leaves the browser. Only the resulting transcript is sent server-side to a TypeSafe AI Choice classifier, which returns a page along with a confidence score; below threshold, the site declines to navigate rather than guessing.",
+    resumeBullet:
+      "Built a voice command feature for a production site using the browser's native speech-to-text and an LLM-backed choice classifier to map open-ended spoken requests onto a fixed set of routes, with a confidence threshold to avoid false navigations.",
+    codeStatus: "public",
+    problem:
+      "Free-form voice input doesn't map cleanly onto a fixed set of pages — users say \"connect\", \"get in touch\", or \"how do I reach you\" for the same destination, and keyword matching breaks the moment phrasing drifts.",
+    system:
+      "Mic button -> Web Speech API transcribes speech client-side -> transcript POSTed to a Next.js API route -> route calls TypeSafe AI's Choice primitive with the site's page list as the option set -> highest-probability page (if above a confidence threshold) is returned -> client navigates with next/navigation's router.",
+    technicalInterest:
+      "Splitting the pipeline so free transcription stays client-side and only the classification step (the actual per-call cost) touches an external API; using confidence, not just top choice, to decide whether to act at all.",
+    challenges:
+      "Web Speech API support and accuracy vary across browsers, so the button degrades to hidden rather than broken on unsupported ones. Picking a confidence threshold that rejects genuinely unclear speech without being annoyingly trigger-shy on close-but-valid phrasing took some manual tuning against real transcripts.",
+    retrospect:
+      "Right now a low-confidence result just fails silently with a retry prompt; a nicer version would surface the next-best guesses so the user can confirm one instead of repeating themselves verbatim.",
+  },
+  {
     slug: "argus-fraud-detection",
     title: "Argus: Real-Time Fraud Detection Engine",
     shortTitle: "Argus",

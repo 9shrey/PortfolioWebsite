@@ -8,6 +8,7 @@ import Cursor from "./components/layout/Cursor";
 import PageTransition from "./components/layout/PageTransition";
 import ScrollProgress from "./components/layout/ScrollProgress";
 import Terminal from "./components/layout/Terminal";
+import VoiceMic from "./components/layout/VoiceMic";
 import SmoothScroll from "./components/motion/SmoothScroll";
 
 /** Three voices, each with a job:
@@ -116,6 +117,7 @@ export default function RootLayout({
 
         <Footer />
         <Terminal />
+        <VoiceMic />
 
         <div className="vignette" aria-hidden />
         <div className="grain" aria-hidden />

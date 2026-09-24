@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { projects } from "@/app/data/projects";
 import { posts } from "@/app/data/writing";
@@ -73,7 +73,7 @@ export default function Terminal() {
   const print = (text: string) =>
     setLines((prev) => [...prev, { type: "output", text }]);
 
-  const run = (raw: string) => {
+  const run = useCallback((raw: string) => {
     const cmd = raw.trim();
     setLines((prev) => [...prev, { type: "input", text: cmd }]);
     if (!cmd) return;
@@ -137,7 +137,29 @@ export default function Terminal() {
       default:
         print(`command not found: ${name}. type 'help'.`);
     }
-  };
+  }, [router]);
+
+  // Lets VoiceMic (Jev) "type" a command into the terminal by voice.
+  useEffect(() => {
+    const onVoiceCommand = (e: Event) => {
+      const detail = (e as CustomEvent<{ text: string }>).detail;
+      if (!detail?.text) return;
+      setOpen(true);
+      window.setTimeout(() => run(detail.text), 250);
+    };
+    window.addEventListener("jev:run-command", onVoiceCommand);
+    return () => window.removeEventListener("jev:run-command", onVoiceCommand);
+  }, [run]);
+
+  // Lets Jev open/close the terminal directly ("open the terminal").
+  useEffect(() => {
+    const onVoiceToggle = (e: Event) => {
+      const detail = (e as CustomEvent<{ open: boolean }>).detail;
+      if (typeof detail?.open === "boolean") setOpen(detail.open);
+    };
+    window.addEventListener("jev:toggle-terminal", onVoiceToggle);
+    return () => window.removeEventListener("jev:toggle-terminal", onVoiceToggle);
+  }, []);
 
   return (
     <>

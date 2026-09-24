@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import PageHeader from "../ui/PageHeader";
@@ -15,6 +15,20 @@ export default function WorkIndex() {
   const [hovered, setHovered] = useState<string | null>(null);
 
   const shown = useMemo(() => filterProjects(active), [active]);
+
+  // Lets VoiceMic (Jev) switch the filter by voice, e.g. "show me the GPU
+  // kernel projects" — dispatched as a plain DOM event so the two
+  // components stay decoupled.
+  useEffect(() => {
+    const onVoiceFilter = (e: Event) => {
+      const detail = (e as CustomEvent<{ category: string }>).detail;
+      if (detail?.category && filterCategories.includes(detail.category)) {
+        setActive(detail.category);
+      }
+    };
+    window.addEventListener("jev:filter-projects", onVoiceFilter);
+    return () => window.removeEventListener("jev:filter-projects", onVoiceFilter);
+  }, []);
 
   // Counts sit next to each filter so the list's shape is legible before you
   // click — and an empty filter can't be a surprise.
