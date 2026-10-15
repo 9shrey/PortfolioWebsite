@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import NowView from "../components/now/NowView";
+import { NowBody } from "../components/sections/Bodies";
 
 export const metadata: Metadata = {
   title: "Now",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function NowPage() {
-  return <NowView />;
+  return <NowBody />;
 }

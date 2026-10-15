@@ -42,3 +42,6 @@ next-env.d.ts
 
 # agent scratch planning files
 /.planning/
+
+# separate project checked out inside this folder
+/sales_agent_db/

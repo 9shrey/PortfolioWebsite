@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import WorkIndex from "../components/work/WorkIndex";
+import { WorkList } from "../components/sections/Bodies";
 
 export const metadata: Metadata = {
   title: "Work",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function WorkPage() {
-  return <WorkIndex />;
+  return <WorkList />;
 }

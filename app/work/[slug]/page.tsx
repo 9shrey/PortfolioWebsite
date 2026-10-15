@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import ProjectDetail from "@/app/components/work/ProjectDetail";
+import { ProjectBody } from "@/app/components/sections/Bodies";
 import { getProjectBySlug, projects } from "@/app/data/projects";
 
 export function generateStaticParams() {
@@ -30,5 +30,5 @@ export default async function ProjectPage({
   const project = getProjectBySlug(slug);
   if (!project) notFound();
 
-  return <ProjectDetail project={project} />;
+  return <ProjectBody project={project} />;
 }

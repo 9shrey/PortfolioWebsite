@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ExperienceView from "../components/experience/ExperienceView";
+import { ExperienceBody } from "../components/sections/Bodies";
 
 export const metadata: Metadata = {
   title: "Experience",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ExperiencePage() {
-  return <ExperienceView />;
+  return <ExperienceBody />;
 }

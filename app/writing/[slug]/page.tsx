@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import WritingPostView from "@/app/components/writing/WritingPostView";
+import { PostBody } from "@/app/components/sections/Bodies";
 import { getPostBySlug, posts } from "@/app/data/writing";
 
 export function generateStaticParams() {
@@ -30,5 +30,5 @@ export default async function WritingPostPage({
   const post = getPostBySlug(slug);
   if (!post) notFound();
 
-  return <WritingPostView post={post} />;
+  return <PostBody post={post} />;
 }

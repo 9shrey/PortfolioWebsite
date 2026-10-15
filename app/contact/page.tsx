@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ContactView from "../components/contact/ContactView";
+import { ContactBody } from "../components/sections/Bodies";
 
 export const metadata: Metadata = {
   title: "Contact",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
-  return <ContactView />;
+  return <ContactBody />;
 }

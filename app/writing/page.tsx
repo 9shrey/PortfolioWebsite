@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import WritingIndexView from "../components/writing/WritingIndexView";
+import { WritingBody } from "../components/sections/Bodies";
 
 export const metadata: Metadata = {
   title: "Writing",
@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function WritingPage() {
-  return <WritingIndexView />;
+  return <WritingBody />;
 }

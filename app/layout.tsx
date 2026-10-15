@@ -1,43 +1,46 @@
 import type { Metadata } from "next";
-import { Schibsted_Grotesk, Space_Mono, Syne } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-import Nav from "./components/layout/Nav";
-import Footer from "./components/layout/Footer";
-import Cursor from "./components/layout/Cursor";
-import PageTransition from "./components/layout/PageTransition";
-import ScrollProgress from "./components/layout/ScrollProgress";
 import Terminal from "./components/layout/Terminal";
 import VoiceMic from "./components/layout/VoiceMic";
-import SmoothScroll from "./components/motion/SmoothScroll";
+import Shell from "./components/ui/Shell";
+import { INTRO_KEY } from "./data/package";
 
-/** Three voices, each with a job:
- *  - Syne carries the display type. Wide, geometric and deliberately odd —
- *    it was drawn for an art centre, and it is the whole reason the page
- *    doesn't read as a template. Note: Syne ships no italic, so emphasis in
- *    display type is set with weight and colour instead (see .display em).
- *  - Schibsted Grotesk is the quiet UI voice (and has proper tabular
- *    figures, which matters on a site that is mostly numbers).
- *  - Space Mono labels the data. */
-const sans = Schibsted_Grotesk({
-  variable: "--font-sans-custom",
-  subsets: ["latin"],
+/** NIGHT SURVEY type: Big Shoulders Display for the condensed engineering
+ *  display face, Geist to read, Geist Mono for every label and value. All
+ *  three are OFL variable fonts vendored in app/fonts — no runtime fetch. */
+const display = localFont({
+  src: "./fonts/big-shoulders-display-latin-wght-normal.woff2",
+  variable: "--font-display",
+  weight: "100 900",
+  display: "swap",
+});
+const sans = localFont({
+  src: "./fonts/geist-latin-wght-normal.woff2",
+  variable: "--font-sans",
+  weight: "100 900",
+  display: "swap",
+});
+const mono = localFont({
+  src: "./fonts/geist-mono-latin-wght-normal.woff2",
+  variable: "--font-mono",
+  weight: "100 900",
   display: "swap",
 });
 
-const display = Syne({
-  variable: "--font-display-custom",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-  display: "swap",
-});
+/** Decides before first paint whether this visit opens on the sealed lid,
+ *  so the hero doesn't flash before the cold open. */
+const introScript = `try{if(location.pathname==="/"&&!sessionStorage.getItem("${INTRO_KEY}")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.dataset.intro="1"}catch(e){}`;
 
-const mono = Space_Mono({
-  variable: "--font-mono-custom",
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  display: "swap",
-});
+const personLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Shrey Singh",
+  jobTitle: "AI/ML Engineer",
+  address: { "@type": "PostalAddress", addressLocality: "Bengaluru", addressCountry: "IN" },
+  sameAs: ["https://linkedin.com/in/9shrey", "https://github.com/9shrey"],
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://9shrey.vercel.app"),
@@ -90,37 +93,20 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${display.variable} ${mono.variable} h-full antialiased`}
+      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="min-h-full bg-[var(--bg)] text-[var(--fg)]">
-        {/* Scroll reveals start at opacity 0. With no JS nothing un-hides
-            them, so keep the page readable rather than blank. */}
-        <noscript>
-          <style>{`.reveal { opacity: 1 !important; transform: none !important; }`}</style>
-        </noscript>
-
-        <a
-          href="#main"
-          className="micro sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[500] focus:rounded-full focus:border focus:border-[var(--signal)] focus:bg-[var(--bg)] focus:px-4 focus:py-2 focus:!text-[var(--signal)]"
-        >
+      <body>
+        <script dangerouslySetInnerHTML={{ __html: introScript }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }} />
+        <a href="#content" className="skip">
           Skip to content
         </a>
 
-        <SmoothScroll />
-        <Cursor />
-        <ScrollProgress />
-        <Nav />
+        <Shell>{children}</Shell>
 
-        <main id="main">
-          <PageTransition>{children}</PageTransition>
-        </main>
-
-        <Footer />
         <Terminal />
         <VoiceMic />
-
-        <div className="vignette" aria-hidden />
-        <div className="grain" aria-hidden />
       </body>
     </html>
   );

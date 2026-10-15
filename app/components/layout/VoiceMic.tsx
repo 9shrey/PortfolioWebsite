@@ -1,10 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import SiriOrb from "./SiriOrb";
+import VoiceMicTips from "./VoiceMicTips";
 import { projects } from "@/app/data/projects";
+
+const TIPS_SEEN_KEY = "jev-voice-tips-seen";
+
+// Mic + Web Audio support never changes after load, so there's nothing to
+// subscribe to; false on the server, real answer on the client.
+const noopSubscribe = () => () => {};
+const detectSupport = () =>
+  Boolean(navigator.mediaDevices?.getUserMedia) &&
+  Boolean(window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
 
 const SAMPLE_RATE = 16000;
 const CHUNK_SIZE = 4096;
@@ -272,12 +282,21 @@ function doScroll(dir: "up" | "down" | "top" | "bottom") {
 
 export default function VoiceMic() {
   const router = useRouter();
-  const [supported, setSupported] = useState(false);
+  const supported = useSyncExternalStore(noopSubscribe, detectSupport, () => false);
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("listening");
   const [note, setNote] = useState<string | null>(null);
   const [loadPct, setLoadPct] = useState<number | null>(null);
+  const [orbSize, setOrbSize] = useState(56);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [showTips, setShowTips] = useState(false);
 
+  // Tell the chip what Jev is doing (the plaza rings/beam react to it).
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("jev:phase", { detail: { phase: open ? phase : null } }));
+  }, [phase, open]);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const modelReadyRef = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -296,15 +315,73 @@ export default function VoiceMic() {
   const outputLevelRef = useRef(0);
 
   useEffect(() => {
-    setSupported(
-      typeof window !== "undefined" &&
-        Boolean(navigator.mediaDevices?.getUserMedia) &&
-        Boolean(window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext)
-    );
     return () => {
       workerRef.current?.terminate();
     };
   }, []);
+
+  // Shrink the orb slightly on small viewports rather than using the same
+  // fixed size everywhere.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const update = () => setOrbSize(mq.matches ? 44 : 56);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  // Step out of the way while the full-screen mobile nav overlay is open,
+  // instead of floating on top of it.
+  useEffect(() => {
+    const onMenu = (e: Event) => {
+      const detail = (e as CustomEvent<{ open: boolean }>).detail;
+      setMobileMenuOpen(Boolean(detail?.open));
+    };
+    window.addEventListener("jev:mobile-menu", onMenu);
+    return () => window.removeEventListener("jev:mobile-menu", onMenu);
+  }, []);
+
+  const dismissTips = useCallback(() => {
+    setShowTips(false);
+    try {
+      window.localStorage.setItem(TIPS_SEEN_KEY, "1");
+    } catch {
+      // private browsing / storage disabled — fine to just not persist
+    }
+  }, []);
+
+  // First-load-only "how to use this" callout.
+  useEffect(() => {
+    let seen = true;
+    try {
+      seen = Boolean(window.localStorage.getItem(TIPS_SEEN_KEY));
+    } catch {
+      seen = false;
+    }
+    if (seen) return;
+    const timer = window.setTimeout(() => setShowTips(true), 1400);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!showTips) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismissTips();
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        dismissTips();
+      }
+    };
+    const autoDismiss = window.setTimeout(dismissTips, 9000);
+    window.addEventListener("keydown", onKey);
+    window.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      window.clearTimeout(autoDismiss);
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [showTips, dismissTips]);
 
   const getWorker = useCallback(() => {
     if (!workerRef.current) {
@@ -683,8 +760,12 @@ export default function VoiceMic() {
   }, [classify, fail, getWorker, primeSpeech, startAudioGraph]);
 
   const toggle = () => {
-    if (open) stopSession();
-    else startSession();
+    if (open) {
+      stopSession();
+    } else {
+      if (showTips) dismissTips();
+      startSession();
+    }
   };
 
   useEffect(() => {
@@ -709,37 +790,48 @@ export default function VoiceMic() {
           : (note ?? "listening...");
 
   return (
-    <div className="fixed bottom-5 left-5 z-[130] flex flex-col items-start gap-2">
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.span
-          key={open ? label : "closed"}
-          initial={{ opacity: 0, y: 4 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -4 }}
-          transition={{ duration: 0.18 }}
-          className="micro pl-0.5 text-[var(--fg-dim)]"
-        >
-          {open ? label : "voice nav"}
-        </motion.span>
-      </AnimatePresence>
+    <div
+      ref={containerRef}
+      className={`fixed bottom-4 left-4 z-[130] transition-opacity duration-300 sm:bottom-5 sm:left-5 ${
+        mobileMenuOpen ? "pointer-events-none opacity-0" : "opacity-100"
+      }`}
+    >
+      <div className="relative">
+        <AnimatePresence>{showTips ? <VoiceMicTips onDismiss={dismissTips} /> : null}</AnimatePresence>
 
-      <motion.button
-        type="button"
-        onClick={toggle}
-        whileHover={{ scale: 1.06 }}
-        whileTap={{ scale: 0.96 }}
-        aria-label={open ? "Stop voice navigation" : "Start voice navigation"}
-        aria-pressed={open}
-        className="flex items-center justify-center rounded-full outline-none"
-      >
-        <SiriOrb
-          active={open}
-          phase={phase}
-          levelRef={levelRef}
-          outputLevelRef={outputLevelRef}
-          size={56}
-        />
-      </motion.button>
+        <div className="flex items-center gap-2 rounded-full border border-[var(--rule)] bg-[var(--bg-raise)]/90 py-1.5 pl-3 pr-1.5 shadow-lg backdrop-blur-md">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={open ? label : "closed"}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.18 }}
+              className="micro whitespace-nowrap text-[var(--fg-dim)]"
+            >
+              {open ? label : "voice nav"}
+            </motion.span>
+          </AnimatePresence>
+
+          <motion.button
+            type="button"
+            onClick={toggle}
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.96 }}
+            aria-label={open ? "Stop voice navigation" : "Start voice navigation"}
+            aria-pressed={open}
+            className="flex shrink-0 items-center justify-center rounded-full outline-none"
+          >
+            <SiriOrb
+              active={open}
+              phase={phase}
+              levelRef={levelRef}
+              outputLevelRef={outputLevelRef}
+              size={orbSize}
+            />
+          </motion.button>
+        </div>
+      </div>
     </div>
   );
 }
