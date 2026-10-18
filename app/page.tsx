@@ -1,5 +1,5 @@
-import { HomeHero } from "./components/sections/Home";
+import ProPage from "./components/pro/ProPage";
 
 export default function Home() {
-  return <HomeHero />;
+  return <ProPage />;
 }

@@ -1,112 +1,131 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
-import Terminal from "./components/layout/Terminal";
-import VoiceMic from "./components/layout/VoiceMic";
-import Shell from "./components/ui/Shell";
-import { INTRO_KEY } from "./data/package";
+import FieldRoot from "./components/field/FieldRoot";
+import FunRoot from "./components/os/FunRoot";
+import TopBar from "./components/pro/TopBar";
+import VisitBeacon from "./components/site/VisitBeacon";
+import { MODE_SCRIPT } from "./components/mode/script";
+import { site } from "./data/site";
+import { listPosts } from "./lib/posts";
 
-/** NIGHT SURVEY type: Big Shoulders Display for the condensed engineering
- *  display face, Geist to read, Geist Mono for every label and value. All
- *  three are OFL variable fonts vendored in app/fonts — no runtime fetch. */
+/** Newsreader (editorial serif) for the professional page's headings,
+ *  Familjen Grotesk to read, Martian Mono (width 75–112.5) for SHREY-OS and
+ *  numbers, Anybody for the pixel wall's lettering. All OFL, in app/fonts. */
+const serif = localFont({
+  src: [
+    { path: "./fonts/newsreader-var.woff2", style: "normal" },
+    { path: "./fonts/newsreader-italic-var.woff2", style: "italic" },
+  ],
+  variable: "--font-serif",
+  weight: "200 800",
+  display: "swap",
+});
 const display = localFont({
-  src: "./fonts/big-shoulders-display-latin-wght-normal.woff2",
+  src: "./fonts/anybody-var.woff2",
   variable: "--font-display",
   weight: "100 900",
   display: "swap",
+  declarations: [{ prop: "font-stretch", value: "50% 150%" }],
 });
 const sans = localFont({
-  src: "./fonts/geist-latin-wght-normal.woff2",
+  src: "./fonts/familjen-grotesk-var.woff2",
   variable: "--font-sans",
-  weight: "100 900",
+  weight: "400 700",
   display: "swap",
 });
 const mono = localFont({
-  src: "./fonts/geist-mono-latin-wght-normal.woff2",
+  src: "./fonts/martian-mono-var.woff2",
   variable: "--font-mono",
-  weight: "100 900",
+  weight: "100 800",
   display: "swap",
+  declarations: [{ prop: "font-stretch", value: "75% 112.5%" }],
 });
-
-/** Decides before first paint whether this visit opens on the sealed lid,
- *  so the hero doesn't flash before the cold open. */
-const introScript = `try{if(location.pathname==="/"&&!sessionStorage.getItem("${INTRO_KEY}")&&!matchMedia("(prefers-reduced-motion: reduce)").matches)document.documentElement.dataset.intro="1"}catch(e){}`;
 
 const personLd = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "Shrey Singh",
-  jobTitle: "AI/ML Engineer",
+  name: site.name,
+  jobTitle: site.title,
+  url: site.url,
+  email: `mailto:${site.email}`,
+  image: `${site.url}/field/portrait.png`,
   address: { "@type": "PostalAddress", addressLocality: "Bengaluru", addressCountry: "IN" },
-  sameAs: ["https://linkedin.com/in/9shrey", "https://github.com/9shrey"],
+  knowsAbout: site.knowsAbout,
+  sameAs: [site.links.linkedin, site.links.github],
 };
 
+const description = `${site.name} is an ${site.title.toLowerCase()} in ${site.location}. ${site.tagline} ${site.pitch}`;
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://9shrey.vercel.app"),
+  metadataBase: new URL(site.url),
   title: {
-    default: "Shrey Singh — AI/ML Engineer",
-    template: "%s — Shrey Singh",
+    default: `${site.name} · ${site.title}`,
+    template: `%s · ${site.name}`,
   },
-  description:
-    "Shrey Singh is an AI/ML engineer building fraud detection, quant RL, LLM evaluation, and GPU kernel systems, with production experience in revenue forecasting and internal ML platforms. Based in Bengaluru, India.",
-  keywords: [
-    "AI engineer",
-    "ML engineer",
-    "machine learning",
-    "MLOps",
-    "fraud detection",
-    "XGBoost",
-    "FastAPI",
-    "Triton",
-    "CUDA",
-    "GPU kernels",
-    "reinforcement learning",
-    "quantitative ML",
-    "LLM evaluation",
-    "backend engineer",
-    "Shrey Singh",
-    "portfolio",
-  ],
-  authors: [{ name: "Shrey Singh" }],
+  description,
+  authors: [{ name: site.name, url: site.url }],
+  alternates: { canonical: "/" },
   openGraph: {
-    title: "Shrey Singh — AI/ML Engineer",
-    description:
-      "Building fraud detection, quant RL, LLM evaluation, and GPU kernel systems.",
-    url: "https://9shrey.vercel.app",
-    siteName: "Shrey Singh",
+    title: `${site.name} · ${site.title}`,
+    description: `${site.tagline} ${site.pitch}`,
+    url: "/",
+    siteName: site.name,
     type: "website",
     locale: "en_IN",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Shrey Singh — AI/ML Engineer",
-    description:
-      "Building fraud detection, quant RL, LLM evaluation, and GPU kernel systems.",
+    title: `${site.name} · ${site.title}`,
+    description: site.tagline,
   },
   robots: { index: true, follow: true },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  colorScheme: "light",
+};
+
+export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+  // SHREY-OS's Writing app lists the same posts; it can't read the disk itself.
+  const posts = (await listPosts()).filter((p) => p.status !== "template");
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${display.variable} ${mono.variable}`}
+      data-mode="pro"
       suppressHydrationWarning
+      className={`${sans.variable} ${serif.variable} ${display.variable} ${mono.variable}`}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
+      </head>
       <body>
-        <script dangerouslySetInnerHTML={{ __html: introScript }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }} />
         <a href="#content" className="skip">
           Skip to content
         </a>
-
-        <Shell>{children}</Shell>
-
-        <Terminal />
-        <VoiceMic />
+        <div id="pro">
+          <TopBar />
+          <main id="content" tabIndex={-1}>
+            {children}
+          </main>
+          <footer className="ed-foot">
+            <span>© {new Date().getFullYear()} {site.name}</span>
+            <a href={`mailto:${site.email}`}>{site.email}</a>
+          </footer>
+        </div>
+        <div className="os-booting">
+          <span aria-hidden>SHREY-OS</span>
+          {/* Only appears if SHREY-OS fails to load; works without JS. */}
+          <a href="?mode=pro" className="os-booting-out">
+            Taking too long? Back to the professional site →
+          </a>
+        </div>
+        <FunRoot posts={posts} />
+        <FieldRoot />
+        <VisitBeacon />
       </body>
     </html>
   );

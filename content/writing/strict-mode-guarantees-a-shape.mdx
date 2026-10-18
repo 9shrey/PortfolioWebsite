@@ -1,0 +1,40 @@
+export const meta = {
+  title: "Strict mode guarantees a shape, not the truth",
+  excerpt: "When a schema demands a fact the document doesn't contain, a model must break the contract or invent the fact. Measuring which, without an LLM judge.",
+  date: "2026-10-27",
+  status: "draft",
+  tags: ["evals", "llm", "structured-output"],
+};
+
+{/* Outline: write over each bullet. Stick to github.com/9shrey/schemabench (README, findings.md, data/results/*). */}
+
+Ask a model to fill a schema field whose fact isn't in the document. If the schema forbids `null`, it has two options: break the contract, or invent the fact.
+
+<PlateFigure slug="schemabench" />
+
+## The trap split
+
+- Nullable traps: honesty is free. Forced traps: honesty is impossible.
+- Without nullable traps, "strict mode fabricates" is true by construction.
+
+## Same facts, four shapes, three delivery modes
+
+- Tiers T1–T4 generated from one field spec; a test asserts "same facts" for all 16 combinations.
+- prompt_only / tool_call / strict; the schema is in the prompt in all three (state the limitation).
+
+## Grading without a judge
+
+- schema_valid, the 11-class violation taxonomy, field accuracy, fabrication, availability.
+- Availability ≠ competence: 502s and length-truncated reasoning responses are excluded, not failed.
+
+## Engineering under a 50-request/day cap
+
+- Content-addressed cache as primary data; re-grade offline after any grader change.
+- Mock-first, so the first real call was the experiment.
+- The null-masking bug at T4 a failing test caught before any call was spent.
+
+## What the probe found
+
+- Mode support across 8 models (data/results/probe.json).
+- One model rejected response_format outright (HTTP 400).
+- Say plainly what's underpowered.
