@@ -83,26 +83,27 @@ export default async function ProjectPage({ params }: Params) {
       </header>
 
       <p className="ed-pitch">{p.blurb}</p>
-      <p className="ed-figs">
+      <p className="tl-metrics case-figs">
         {p.headline.map((m) => (
           <span key={m.label}>
-            <b>{m.value}</b> {m.label}
+            <b>{m.value}</b>
+            {m.label}
           </span>
         ))}
       </p>
-      <p className="ed-actions">
+      <p className="hero-cta case-cta">
         {p.github && (
-          <a href={p.github} target="_blank" rel="noopener">
-            Code on GitHub ↗
+          <a href={p.github} target="_blank" rel="noopener" className="b b-ink">
+            Code on GitHub <span aria-hidden>↗</span>
           </a>
         )}
-        <a href={site.resume} target="_blank" rel="noopener">
-          Resume PDF ↗
+        <a href={site.resume} target="_blank" rel="noopener" className="b">
+          Résumé PDF <span aria-hidden>↗</span>
         </a>
       </p>
 
       {plate && (
-        <figure className="ed-figure">
+        <figure className="ed-figure case-plate">
           <Plate slug={p.slug} title={plate.caption} />
           <figcaption>
             {plate.kind === "data" ? "Measured data · " : "Schematic · "}

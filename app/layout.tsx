@@ -1,10 +1,15 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import "./pro.css";
 
 import FieldRoot from "./components/field/FieldRoot";
 import FunRoot from "./components/os/FunRoot";
-import TopBar from "./components/pro/TopBar";
+import SiteNav from "./components/pro/SiteNav";
+import Motion from "./components/pro/Motion";
+import Palette from "./components/pro/Palette";
+import { projects } from "./data/projects";
+import { split } from "./components/pro/ProPage";
 import VisitBeacon from "./components/site/VisitBeacon";
 import { MODE_SCRIPT } from "./components/mode/script";
 import { site } from "./data/site";
@@ -84,7 +89,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#f7f6f2",
   colorScheme: "light",
 };
 
@@ -107,14 +112,43 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           Skip to content
         </a>
         <div id="pro">
-          <TopBar />
+          <SiteNav />
           <main id="content" tabIndex={-1}>
             {children}
           </main>
-          <footer className="ed-foot">
-            <span>© {new Date().getFullYear()} {site.name}</span>
-            <a href={`mailto:${site.email}`}>{site.email}</a>
+          <footer className="foot">
+            <div className="foot-in">
+              <p className="foot-sig">
+                <span className="nav-mono" aria-hidden>
+                  SS
+                </span>
+                <span>
+                  © {new Date().getFullYear()} {site.name}
+                  <small>Every figure on this site traces to a public repo.</small>
+                </span>
+              </p>
+              <p className="foot-links">
+                <a href={`mailto:${site.email}`}>{site.email}</a>
+                <a href={site.links.github} target="_blank" rel="noopener">
+                  GitHub
+                </a>
+                <a href={site.links.linkedin} target="_blank" rel="noopener">
+                  LinkedIn
+                </a>
+                <span className="foot-k">
+                  Press <kbd>/</kbd> to jump anywhere
+                </span>
+              </p>
+            </div>
           </footer>
+          <Motion />
+          <Palette
+            projects={projects.map((p) => ({ slug: p.slug, name: split(p.title)[0], area: p.area }))}
+            email={site.email}
+            resume={site.resume}
+            github={site.links.github}
+            linkedin={site.links.linkedin}
+          />
         </div>
         <div className="os-booting">
           <span aria-hidden>SHREY-OS</span>

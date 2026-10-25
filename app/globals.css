@@ -3,9 +3,10 @@
 /* ==========================================================================
    TWO MODES
 
-   html[data-mode="pro"]  The résumé. Editorial and minimal: one column,
-                          black on white, Newsreader for headings,
-                          Familjen Grotesk to read. No canvas, no motion.
+   html[data-mode="pro"]  The résumé, presented like a monograph: warm
+                          paper, Newsreader headings, Familjen Grotesk to
+                          read, Martian Mono labels, dark measured plates.
+                          Quiet, progressive motion (html[data-motion]).
    html[data-mode="fun"]  SHREY-OS. Martian Mono, phosphor green and amber
                           on black, faint scanlines, the light field as
                           wallpaper.
@@ -15,14 +16,18 @@
 
 :root {
   /* Professional (default). */
-  --bg: #ffffff;
-  --bg-2: #f5f5f3;
-  --ink: #111111;
-  --ink-2: #3d3d3d;
-  --ink-3: #6b6b6b;
-  --line: rgba(17, 17, 17, 0.12);
-  --line-2: rgba(17, 17, 17, 0.28);
+  --bg: #f7f6f2;
+  --bg-2: #efede6;
+  --card: #fffefb;
+  --ink: #121212;
+  --ink-2: #3a3a38;
+  --ink-3: #6c6a64;
+  --line: rgba(18, 18, 18, 0.1);
+  --line-2: rgba(18, 18, 18, 0.24);
+  --live: #1f9d55;
   --col: 680px;
+  --wide: 1200px;
+  --nav-h: 60px;
   --gutter: 20px;
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 

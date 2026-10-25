@@ -7,7 +7,7 @@ const deg = (dy: number, dx: number) => (Math.atan2(dy, dx) * 180) / Math.PI;
 
 /** Words for the chart, as HTML over the light field: crisp at any size, and
  *  the same positions as the SVG they replace. */
-function Labels() {
+export function RooflineLabels() {
   const before = HEADLINE.before;
   const after = HEADLINE.after;
   const bx = X(before.ai);
@@ -69,7 +69,7 @@ export default function Roofline({ id = "rf", figure = "roofline" as const }: { 
         <FieldAnchor figure={figure}>
           <RooflineSvg id={id} compact />
         </FieldAnchor>
-        <Labels />
+        <RooflineLabels />
       </div>
       <RooflineTable />
       <figcaption className="roof-cap mono">
