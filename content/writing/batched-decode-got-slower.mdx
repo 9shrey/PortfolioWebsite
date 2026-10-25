@@ -1,0 +1,46 @@
+export const meta = {
+  title: "Why batched decode got slower",
+  excerpt: "On a GPU without tensor cores, batch 2 decoded 4.7× slower than batch 1. How I found the cuBLAS dispatch behind it, and the Triton kernel that fixed it.",
+  date: "2026-10-20",
+  status: "draft",
+  tags: ["gpu", "triton", "inference"],
+};
+
+{/* Outline: write over each bullet. Every number is from github.com/9shrey/inferbench (README, findings.md, data/*.json). */}
+
+On a GTX 1650 Mobile, fp16 decode at batch 2 ran at **11.4 tok/s** against **53.9 at batch 1**: batching made it 4.7× worse, and stock PyTorch didn't recover single-sequence throughput until batch 16.
+
+<RooflineFigure caption="cuBLAS falls off the roof at batch 2; the split-K kernel climbs back to 52% of it." />
+
+## The symptom, and why nobody notices it
+
+- Table: stock tok/s by batch (1, 2, 4, 8, 16, 32). "Read the column downward."
+- Most benchmarks report batch 1 or a big batch; the cliff lives in between.
+
+## Ruling out the cheap explanations
+
+- Bandwidth contention, batching overhead, Python latency: what evidence killed each?
+- Nsight: cuBLAS dispatches a tensor-core GEMM at M ≥ 2. TU117 has none.
+- Prior art: vllm-sm75-throughput (with a T4 control), pytorch#121957. The diagnosis replicates; the fix is new.
+
+## Four kernels, each chosen by the last one's bottleneck
+
+- v1 `tl.dot` padded to 16: compute wasted on padding (18% of roof)
+- v2 explicit reduction: registers → occupancy collapse (29%). Saturated neither compute (49/386 GFLOP/s) nor bandwidth (24/104 GB/s); work that saturates neither is waiting. That chose split-K.
+- v3 split-K: still a 3D intermediate (39%)
+- v4 split-K + 2D intermediate: registers flat in M (52%)
+
+## The bug that was only wrong when benchmarked
+
+- v3 measured 6.6× faster with relative error 6×10².
+- `tl.atomic_add` isn't idempotent; the autotuner re-ran the kernel into the same buffer once per config.
+
+## 8.9× kernel, 5.2× end-to-end
+
+- 94.4% of the baseline step was linear layers; predicted 35.50 ms/tok, measured 35.50.
+- An infinitely fast GEMM caps this model at 18×.
+
+## Making the benchmark hard to fool
+
+- Interleaved arms, clock and temperature sampled per measurement.
+- Negative controls: batch 32 (0.99×), prefill (0.97–1.08×), batch 1 routed to cuBLAS (1.01×).

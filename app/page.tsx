@@ -1,5 +1,5 @@
-import HomeView from "./components/home/HomeView";
+import ProPage from "./components/pro/ProPage";
 
 export default function Home() {
-  return <HomeView />;
+  return <ProPage />;
 }

@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "node_modules/**",
     "public/**",
     ".planning/**",
+    // Separate project checked out inside this folder; has its own tooling.
+    "sales_agent_db/**",
   ]),
 ]);
 

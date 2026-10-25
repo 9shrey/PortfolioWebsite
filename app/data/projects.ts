@@ -1,204 +1,240 @@
-export type ProjectCategory =
-  | "Real-Time ML / Risk"
-  | "Quant / RL"
-  | "LLM Evaluation"
-  | "Systems / GPU Kernels";
+/* Every number in this file was checked against the project's own repo
+   (test counts by `pytest --co`, results from its committed data files).
+   Order is the order a hiring manager should read them in. */
 
-export type CodeStatus = "public" | "private" | "profile-only";
+export type CodeStatus = "public" | "private";
 
-export type ProofTag =
-  | "tests"
-  | "Docker"
-  | "CI"
-  | "evals"
-  | "architecture"
-  | "observability"
-  | "reproducible"
-  | "product";
+export interface Metric {
+  value: string;
+  label: string;
+}
 
 export interface Project {
   slug: string;
   title: string;
   shortTitle: string;
-  category: ProjectCategory;
-  filterTags: string[];
+  /** Kicker shown above the title. */
+  area: string;
+  year: string;
+  featured: boolean;
   stack: string[];
+  /** One sentence: what it is. */
   blurb: string;
-  outcome: string;
+  /** Up to three measured numbers, biggest first. */
+  headline: Metric[];
+  tldr: { problem: string; approach: string; result: string };
   testCount: number;
-  proofTags: ProofTag[];
-  proofDescription: string;
-  resumeBullet: string;
-  github?: string;
-  codeStatus: CodeStatus;
-  problem: string;
+  evidence: string;
   system: string;
   technicalInterest: string;
   challenges: string;
   retrospect: string;
-  demoImage?: string;
+  resumeBullet: string;
+  github?: string;
+  codeStatus: CodeStatus;
 }
 
 export const projects: Project[] = [
   {
-    slug: "jev-voice-nav",
-    title: "Jev: Voice-Driven Site Navigation",
-    shortTitle: "Jev",
-    testCount: 0,
-    category: "LLM Evaluation",
-    filterTags: ["Applied ML", "Product"],
-    stack: ["Next.js", "Web Speech API", "TypeSafe AI"],
+    slug: "inferbench",
+    title: "Inferbench: a Triton kernel for batched LLM decode",
+    shortTitle: "Inferbench",
+    area: "GPU kernels · LLM inference",
+    year: "2026",
+    featured: true,
+    testCount: 182,
+    stack: ["Triton", "CUDA", "PyTorch", "Transformers", "Python"],
     blurb:
-      "Say \"open work\" or \"how do I contact you\" and this site navigates itself — browser speech-to-text feeds a transcript to an LLM classifier that picks the matching page.",
-    outcome: "Voice-to-navigation in under a second, zero audio-transfer cost",
-    proofTags: ["product"],
-    proofDescription:
-      "Speech-to-text runs entirely client-side via the Web Speech API, so no audio ever leaves the browser. Only the resulting transcript is sent server-side to a TypeSafe AI Choice classifier, which returns a page along with a confidence score; below threshold, the site declines to navigate rather than guessing.",
-    resumeBullet:
-      "Built a voice command feature for a production site using the browser's native speech-to-text and an LLM-backed choice classifier to map open-ended spoken requests onto a fixed set of routes, with a confidence threshold to avoid false navigations.",
-    codeStatus: "public",
-    problem:
-      "Free-form voice input doesn't map cleanly onto a fixed set of pages — users say \"connect\", \"get in touch\", or \"how do I reach you\" for the same destination, and keyword matching breaks the moment phrasing drifts.",
+      "On a GPU without tensor cores, batching made LLM decode slower. I found out why and wrote the Triton kernel that fixes it.",
+    headline: [
+      { value: "5.2×", label: "end-to-end decode" },
+      { value: "8.9×", label: "projection kernel" },
+      { value: "182", label: "tests" },
+    ],
+    tldr: {
+      problem:
+        "On a GTX 1650 (TU117, no tensor cores), fp16 decode at batch 2 ran 4.7× slower than at batch 1. Batching, the first lever anyone pulls for throughput, was a pessimization until batch 16.",
+      approach:
+        "Traced it to cuBLAS dispatching a tensor-core GEMM at M ≥ 2 on hardware that has none. Wrote four versions of a Triton split-K kernel, each motivated by the previous one's measured bottleneck, and a dispatcher that only takes the M = 2–16 window where cuBLAS falls over.",
+      result:
+        "8.9× on the projection at 52% of measured memory bandwidth; 5.2× end-to-end on Qwen2.5-0.5B (87 → 451 tok/s at batch 16). Greedy output token-identical in every run; negative controls at batch 32 and prefill stay flat.",
+    },
+    evidence:
+      "182 tests. The correctness gate runs immediately before every timing, because v3 once measured 6.6× faster with a relative error of 6×10² (Triton's autotuner re-ran a non-idempotent atomic_add into the same buffer). The two arms are interleaved in random order with clock and temperature sampled per measurement, so the slower, hotter arm can't bias the faster one. The 8.9× → 5.2× gap closes exactly under Amdahl's law: 94.4% of the baseline step was linear layers.",
     system:
-      "Mic button -> Web Speech API transcribes speech client-side -> transcript POSTed to a Next.js API route -> route calls TypeSafe AI's Choice primitive with the site's page list as the option set -> highest-probability page (if above a confidence threshold) is returned -> client navigates with next/navigation's router.",
+      "Nsight traces → root cause (cuBLAS tensor-core GEMM dispatch at M ≥ 2) → v1 tl.dot with padding → v2 explicit reduction → v3 split-K → v4 split-K with a 2D intermediate so registers stop scaling with M → use_fast_path() dispatcher shared by the model patch and the tests → interleaved end-to-end benchmark on Qwen2.5-0.5B.",
     technicalInterest:
-      "Splitting the pipeline so free transcription stays client-side and only the classification step (the actual per-call cost) touches an external API; using confidence, not just top choice, to decide whether to act at all.",
+      "The result is the sequence, not the final number. v2 saturated neither compute (49 of 386 GFLOP/s) nor bandwidth (24 of 104 GB/s), and work that saturates neither is waiting; that diagnosis is what chose split-K. v4's flat register use across M was predicted before it was measured: 0.159 → 0.205 ms over M = 2..16, where v3 went 0.214 → 0.942 ms.",
     challenges:
-      "Web Speech API support and accuracy vary across browsers, so the button degrades to hidden rather than broken on unsupported ones. Picking a confidence threshold that rejects genuinely unclear speech without being annoyingly trigger-shy on close-but-valid phrasing took some manual tuning against real transcripts.",
+      "Proving the slowdown was a dispatch decision and not bandwidth contention, batching overhead or Python latency, all of which looked plausible first. And a benchmark that is correct when called once but wrong when autotuned is the worst failure shape there is; it is why correctness is re-checked before every timed run.",
     retrospect:
-      "Right now a low-confidence result just fails silently with a retry prompt; a nicer version would surface the next-best guesses so the user can confirm one instead of repeating themselves verbatim.",
-  },
-  {
-    slug: "argus-fraud-detection",
-    title: "Argus: Real-Time Fraud Detection Engine",
-    shortTitle: "Argus",
-    testCount: 52,
-    category: "Real-Time ML / Risk",
-    filterTags: ["Applied ML", "Backend", "Product"],
-    stack: ["Python", "XGBoost", "Scikit-learn", "SHAP", "FastAPI", "Next.js", "Docker"],
-    blurb:
-      "Real-time fraud scoring engine combining supervised XGBoost with an unsupervised Isolation Forest into one risk score, with per-transaction SHAP attributions live in the analyst UI.",
-    outcome: "52 tests, ROC-AUC ~0.99, live SHAP breakdowns",
-    proofTags: ["tests", "Docker", "CI", "architecture", "product"],
-    proofDescription:
-      "52 backend tests covering feature engineering, fraud scenarios, and the scorer's separation guarantee; one causal feature function shared identically between training and serving; chronological (non-leaky) holdout evaluation; scores streamed to a Next.js dashboard over WebSocket; GitHub Actions CI on every push.",
+      "The kernel is tuned for one model's shapes on one GPU; it doesn't generalise without re-tuning. Closing the remaining ~2× to the memory roof would lift end-to-end to roughly 8×, not 18×, because the other 5.6% of the step is untouched. The diagnosis replicates prior work (vllm-sm75-throughput, pytorch#121957); the fix is what's new.",
     resumeBullet:
-      "Built a real-time fraud scoring engine combining supervised XGBoost with an unsupervised Isolation Forest into one risk score, with per-transaction SHAP attributions in the analyst UI. Shared one causal feature function between training and serving, evaluated on a chronological holdout to prevent leakage, and streamed scores to a Next.js dashboard over WebSocket.",
-    github: "https://github.com/9shrey/argus-fraud-detection",
+      "Diagnosed why batched fp16 decode ran slower than single-sequence on a tensor-core-less GPU (cuBLAS dispatches a tensor-core GEMM at batch ≥ 2) and fixed it with a Triton split-K kernel: 8.9× on the projection at 52% of measured memory bandwidth, 5.2× end-to-end on Qwen2.5-0.5B (87 → 451 tok/s), token-identical output, 182 tests.",
+    github: "https://github.com/9shrey/inferbench",
     codeStatus: "public",
-    problem:
-      "Fraud models are easy to fake offline and hard to trust live — random-split evaluation leaks future information, and a bare classifier score gives an analyst no reason to trust a flag.",
-    system:
-      "Async simulation engine generates synthetic fraud scenarios -> causal feature engineering shared identically between training and online scoring -> XGBoost + Isolation Forest ensemble -> 0-100 risk score with SHAP breakdown -> WebSocket broadcast to a Next.js dashboard with per-transaction drill-down.",
-    technicalInterest:
-      "Train/serve parity through one shared feature function, a chronological holdout instead of a random split to avoid leakage, and explainability wired into the product UI rather than left in a notebook.",
-    challenges:
-      "The unsupervised Isolation Forest and supervised XGBoost score on different scales, so combining them into one 0-100 number without either component drowning the other took a few iterations. The bigger cost was the chronological holdout itself — it's more expensive to set up than a random split and it makes the offline metrics look worse, which is a hard sell if you don't already believe leakage is the more important thing to fix.",
-    retrospect:
-      "The SHAP breakdown is computed synchronously per request right now; it's fast enough at current volume but I'd move it to a background worker with a cache before pushing transaction throughput much higher. I'd also add a slow-drift monitor comparing live feature distributions against the training window, since the chronological holdout only proves the model wasn't leaked — it doesn't prove it stays valid as the transaction mix shifts.",
-  },
-  {
-    slug: "rl-statistical-arbitrage",
-    title: "RL Statistical Arbitrage Engine",
-    shortTitle: "RL Arbitrage",
-    testCount: 94,
-    category: "Quant / RL",
-    filterTags: ["Quant", "Applied ML"],
-    stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
-    blurb:
-      "Regime-aware RL agents for cointegrated equity pairs — PPO over discrete entry/exit/flat actions and SAC over continuous position sizing, retrained per walk-forward fold under realistic transaction costs.",
-    outcome: "94 tests, seed-determinism checks, no-lookahead",
-    proofTags: ["tests", "evals", "reproducible"],
-    proofDescription:
-      "Engle-Granger/Johansen cointegration tests for pair selection, HMM regime features, point-in-time universe filtering, MLflow-tracked runs, and 94 tests including seed-determinism checks.",
-    resumeBullet:
-      "Built regime-aware RL agents for cointegrated equity pairs: PPO over discrete entry/exit/flat actions and SAC over continuous position sizing, retrained per walk-forward fold under realistic transaction costs. Engineered a bias-controlled pipeline with Engle-Granger/Johansen tests, HMM regime features, point-in-time universe filtering, and MLflow-tracked runs; 94 tests including seed-determinism checks.",
-    github: "https://github.com/9shrey/rl-statistical-arbitrage",
-    codeStatus: "public",
-    problem:
-      "Quant backtests can look strong while hiding lookahead bias, stale universe assumptions, and regime blindness — a policy trained once rarely holds up walk-forward.",
-    system:
-      "Bars + point-in-time universe filtering -> Engle-Granger/Johansen pair selection -> HMM regime features -> trading environment -> PPO (discrete) and SAC (continuous) agents retrained per walk-forward fold -> transaction-cost-adjusted backtest -> MLflow-tracked leaderboard.",
-    technicalInterest:
-      "Regime-aware RL policy design across discrete and continuous action spaces, strict walk-forward retraining instead of train-once, and seed-determinism tests that catch nondeterminism a single run would miss.",
-    challenges:
-      "Walk-forward retraining means training N policies instead of one, which multiplies both compute cost and the surface area for a subtle lookahead bug — a single mistimed feature that leaks one bar of future information is invisible in the backtest and only shows up as inexplicably good performance. Getting the point-in-time universe filtering exactly right (no pair enters the tradable set before its cointegration test would have actually cleared) took more care than the RL policies themselves.",
-    retrospect:
-      "The regime features come from an HMM fit once per walk-forward fold; a version that adapts regime boundaries online rather than per-fold would react faster to genuine regime breaks instead of waiting for the next retrain. I'd also want live paper-trading validation before trusting the walk-forward backtest fully — transaction cost models are still an approximation of real slippage, and that's the assumption most likely to be wrong in a way backtesting can't reveal.",
   },
   {
     slug: "schemabench",
-    title: "SchemaBench: LLM Structured-Output Contract Benchmark",
+    title: "SchemaBench: what structured-output modes actually guarantee",
     shortTitle: "SchemaBench",
+    area: "LLM evaluation",
+    year: "2026",
+    featured: true,
     testCount: 175,
-    category: "LLM Evaluation",
-    filterTags: ["GenAI", "Backend"],
     stack: ["Python", "JSON Schema", "Pydantic", "httpx", "OpenRouter"],
     blurb:
-      "Benchmark measuring whether LLMs actually honor JSON Schema contracts across prompt-only, tool-call, and strict response_format modes — graded mechanically against the schema, not by an LLM judge.",
-    outcome: "8 models probed, 175 tests, exact McNemar",
-    proofTags: ["tests", "evals", "reproducible"],
-    proofDescription:
-      "175 tests, mechanical JSON Schema validation of every response, and paired statistical comparison (exact McNemar) across modes and models — surfacing capability catalogues that were wrong in both directions: one model advertising tool support returned HTTP 200 with an empty body, another advertising none honored it anyway.",
+      "A benchmark that asks what a model does when a JSON schema demands a fact the document doesn't contain, graded mechanically with no LLM judge.",
+    headline: [
+      { value: "8", label: "models probed" },
+      { value: "3", label: "delivery modes" },
+      { value: "175", label: "tests" },
+    ],
+    tldr: {
+      problem:
+        "Strict structured output guarantees a shape, not the truth. When a schema forbids null for a fact that isn't in the source, a model must either break the contract or invent the fact, and most evals grade that with another LLM.",
+      approach:
+        "Four authored documents with planted 'trap' fields (nullable and forced), four schema tiers extracting the same facts in different shapes, and three delivery modes: prompt-only, forced tool call, native response_format. Every metric is mechanical: jsonschema validation, an 11-class violation taxonomy, exact-match field accuracy, and fabrication defined as a substantive value for an absent fact.",
+      result:
+        "A cache-first harness that turned a 50-request/day API cap into a cumulative budget and re-grades everything offline. It measured mode support across 8 models, caught one rejecting response_format outright (HTTP 400), and reports paired mode contrasts with exact McNemar tests.",
+    },
+    evidence:
+      "175 tests pin the equality rules, the violation taxonomy, the trap verdicts and the budget behaviour, because every published number is whatever the grader says it is. A failing test caught a null-masking bug at the hostile tier before a single call was spent. Availability is kept separate from competence: 502s and length-truncated reasoning responses are excluded from schema denominators, not counted as failures.",
+    system:
+      "Field spec → four generated schema tiers (flat, constrained, nested, hostile) → three request modes → OpenRouter, content-addressed cache, local daily ledger → mechanical grading (validity, violation class, field accuracy, fabrication) → paired contrasts with exact McNemar and Wilson intervals → report.",
+    technicalInterest:
+      "The trap split. If abstaining were never valid, 'strict mode fabricates' would be true by construction. Nullable traps make honesty free, forced traps make it impossible, and only the contrast between them measures anything.",
+    challenges:
+      "Normalising three request shapes across providers without mismeasuring one because the request wasn't idiomatic for its API. Building the whole pipeline mock-first, against a mock that reproduces fenced JSON, prose preambles, tool-call channel swaps and truncation, so the first real call was the experiment rather than a debugging round.",
+    retrospect:
+      "The live grid is small, a direct cost of the request cap, so most contrasts are underpowered and are reported as such. The schema stays in the prompt in all three modes to isolate the mechanism; real deployments often omit it with strict mode, so this likely understates how much native modes help.",
     resumeBullet:
-      "Built a benchmark measuring JSON Schema contract adherence across prompt-only, tool-call, and strict response_format modes, graded mechanically against the schema rather than by an LLM judge. Probed 8 models and found capability catalogues wrong in both directions; paired contrasts via exact McNemar, 175 tests.",
+      "Built a benchmark measuring whether LLMs fabricate facts to satisfy JSON Schema contracts across prompt-only, tool-call and strict response_format modes, graded mechanically (no LLM judge) with exact McNemar paired contrasts; cache-first harness under a 50-request/day cap; 175 tests.",
     github: "https://github.com/9shrey/schemabench",
     codeStatus: "public",
-    problem:
-      "Providers self-report structured-output capability (tool calling, JSON mode), and that self-report is often wrong — most benchmarks compound the problem by grading with another LLM instead of checking contract adherence directly.",
-    system:
-      "Prompt-only / tool-call / strict response_format request modes -> 8 models via OpenRouter -> mechanical JSON Schema validation of each response -> paired significance testing (exact McNemar) across modes and models -> reproducible report.",
-    technicalInterest:
-      "Mechanical grading instead of an LLM judge, paired significance testing instead of raw pass-rate comparison, and empirical falsification of vendor capability claims in both directions.",
-    challenges:
-      "Every provider's tool-call and response_format APIs are shaped slightly differently, so the request-building layer needed real normalization rather than a thin wrapper — the alternative was silently mismeasuring one provider's actual capability because the request wasn't idiomatic for its API. Deciding what counts as a 'pass' for tool-call mode was its own design question: a model returning valid JSON that also included prose outside the tool call is arguably compliant and arguably not, and the benchmark has to pick a rule and be consistent about it.",
-    retrospect:
-      "The benchmark currently checks schema validity, not semantic correctness — a response can validate against the schema while still getting the actual field values wrong. Layering a second, narrower correctness check on top for a handful of schemas with unambiguous right answers would separate 'can follow the contract' from 'produces the right contract-following answer,' which right now this benchmark can't distinguish.",
   },
   {
-    slug: "inferbench",
-    title: "Inferbench: Triton Kernel for Batched LLM Decode",
-    shortTitle: "Inferbench",
-    testCount: 182,
-    category: "Systems / GPU Kernels",
-    filterTags: ["Systems", "Applied ML"],
-    stack: ["Python", "Triton", "CUDA", "PyTorch", "Transformers"],
+    slug: "argus-fraud-detection",
+    title: "Argus: real-time fraud scoring with explanations",
+    shortTitle: "Argus",
+    area: "Real-time ML",
+    year: "2026",
+    featured: true,
+    testCount: 52,
+    stack: ["Python", "XGBoost", "Scikit-learn", "SHAP", "FastAPI", "Next.js", "Docker"],
     blurb:
-      "Triton split-K kernel that fixes a batched-decode slowdown on a tensor-core-less GPU, raising end-to-end throughput 5.2x with token-identical correctness checks.",
-    outcome: "8.9x kernel speedup, 5.2x end-to-end, 182 tests",
-    proofTags: ["tests", "evals", "reproducible", "architecture"],
-    proofDescription:
-      "182 tests including token-identical greedy-output correctness checks and negative controls at batch 32 and prefill (where the kernel must do nothing); 8.9x speedup on the projection matmul at 52% of measured memory bandwidth; 5.2x end-to-end decode throughput on Qwen2.5-0.5B (87 -> 451 tok/s at batch 16).",
-    resumeBullet:
-      "Diagnosed why batched fp16 decode ran slower than single-sequence on a tensor-core-less GPU — cuBLAS dispatches to a tensor-core GEMM at batch >= 2 — and fixed it with a Triton split-K kernel reaching 8.9x on the projection and 52% of measured memory bandwidth. Raised end-to-end decode throughput 5.2x on Qwen2.5-0.5B (87->451 tok/s at batch 16), gated on token-identical greedy output with negative controls at batch 32 and prefill; 182 tests.",
-    github: "https://github.com/9shrey/inferbench",
-    codeStatus: "public",
-    problem:
-      "Batched fp16 decode ran slower than single-sequence decode on a tensor-core-less GPU — a regression invisible unless you specifically benchmark batch >= 2.",
+      "A streaming fraud scorer that combines XGBoost and Isolation Forest into one risk score and shows the analyst why, per transaction.",
+    headline: [
+      { value: "0.99", label: "ROC-AUC, synthetic chronological holdout" },
+      { value: "5", label: "simulated fraud scenarios" },
+      { value: "52", label: "tests" },
+    ],
+    tldr: {
+      problem:
+        "Fraud models are easy to fake offline and hard to trust live. Random-split evaluation leaks the future, and a bare score gives an analyst no reason to act on a flag.",
+      approach:
+        "One causal feature function shared identically by training and online scoring; a chronological holdout instead of a random split; a supervised + unsupervised ensemble calibrated onto one 0–100 score; SHAP attributions streamed over WebSocket into the analyst UI.",
+      result:
+        "ROC-AUC ≈0.99 on a chronological holdout of five synthetic fraud scenarios. That number says the pipeline is correct end to end, not that it would hold at a bank: synthetic fraud is more separable than real fraud, and the repo says so.",
+    },
+    evidence:
+      "52 backend tests covering feature engineering, each fraud scenario, and the scorer's separation guarantee. GitHub Actions CI on every push. The shared feature function is the train/serve-parity guarantee; the chronological split is the leakage guarantee.",
     system:
-      "Root-caused to cuBLAS dispatching to a tensor-core GEMM at batch >= 2 on hardware without tensor cores -> wrote a Triton split-K kernel for the projection -> validated against token-identical greedy decoding -> negative controls at batch 32 and prefill -> throughput benchmarks on Qwen2.5-0.5B.",
+      "Async simulation engine (account takeover, impossible travel, card-testing bursts, structuring, merchant-category anomaly) → causal feature engineering → XGBoost + Isolation Forest → 0–100 risk score with SHAP breakdown → WebSocket → Next.js dashboard with per-transaction drill-down.",
     technicalInterest:
-      "Root-causing a GPU performance regression to a specific cuBLAS dispatch decision, fixing it with a hand-written Triton kernel, and proving correctness with token-identical output checks rather than just measuring speed.",
+      "Train/serve parity by construction rather than by convention, and explainability wired into the product instead of left in a notebook.",
     challenges:
-      "The hardest part wasn't writing the split-K kernel, it was proving the regression was actually a dispatch decision and not something else — memory bandwidth contention, batching overhead, Python-side latency all looked plausible first. Nsight traces settled it, but only after ruling out the cheaper explanations first. Getting the split-K reduction to actually beat the tensor-core-emulation path required tuning tile sizes for the exact shapes decode produces; a kernel tuned for generic matmul shapes gave a much smaller win.",
+      "The two models score on different scales, so combining them without either drowning the other took several iterations. The chronological holdout costs more to set up and makes offline metrics look worse, which is exactly why it's the right default.",
     retrospect:
-      "This kernel is hand-tuned for one model's projection shape on one GPU; it doesn't generalize to other architectures without re-tuning, which is the real cost of hand-written kernels versus a heuristic dispatcher that's merely wrong sometimes. A follow-up worth doing is a lightweight shape-based override table that falls back to this kernel only for the specific batch ranges where cuBLAS's heuristic is known to mispick, rather than replacing the dispatcher's decision entirely.",
+      "SHAP runs synchronously per request; at higher throughput it belongs in a background worker with a cache. A drift monitor comparing live feature distributions to the training window is the missing piece: the holdout proves the model wasn't leaked, not that it stays valid.",
+    resumeBullet:
+      "Built a real-time fraud scoring engine (XGBoost + Isolation Forest) with per-transaction SHAP attributions in the analyst UI; one causal feature function shared between training and serving, chronological holdout evaluation, WebSocket streaming to a Next.js dashboard; 52 tests, CI.",
+    github: "https://github.com/9shrey/argus-fraud-detection",
+    codeStatus: "public",
+  },
+  {
+    slug: "rl-statistical-arbitrage",
+    title: "Walk-forward RL for statistical arbitrage",
+    shortTitle: "RL Arbitrage",
+    area: "Quant research",
+    year: "2026",
+    featured: false,
+    testCount: 94,
+    stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
+    blurb:
+      "A bias-controlled research framework for pairs trading, where PPO and SAC agents have to beat a z-score baseline walk-forward, after costs.",
+    headline: [
+      { value: "94", label: "tests" },
+      { value: "0", label: "lookahead, by construction" },
+    ],
+    tldr: {
+      problem:
+        "Quant backtests can look strong while hiding lookahead bias, stale universes and regime blindness. A policy trained once rarely survives walk-forward.",
+      approach:
+        "Point-in-time universe filtering, Engle-Granger/Johansen pair selection inside each training window only, HMM regime features fit on train folds, PPO (discrete) and SAC (continuous sizing) retrained per fold, transaction-cost-adjusted backtests, MLflow tracking.",
+      result:
+        "A framework where the RL agents are held to a simple z-score baseline, with the result reported either way. On the committed demo run the baseline edges out the RL policy, and the report says so instead of assuming outperformance.",
+    },
+    evidence:
+      "94 tests including seed-determinism checks, a written bias checklist, and a leaderboard of return, Sharpe, Sortino, Calmar, drawdown, turnover and cost for every policy.",
+    system:
+      "Bars + point-in-time universe → per-window cointegration pair selection → HMM regime features → Gymnasium environment → PPO / SAC retrained per walk-forward fold → cost-adjusted backtest → MLflow leaderboard.",
+    technicalInterest:
+      "Walk-forward retraining multiplies both compute and the surface for a one-bar leak, which only ever shows up as inexplicably good performance. Getting the universe filtering exactly point-in-time took more care than the policies.",
+    challenges:
+      "RL policies are unstable across seeds and overfit small windows; seed-determinism tests exist because a single run hides that.",
+    retrospect:
+      "Regimes are fit once per fold; an online regime model would react to breaks without waiting for the retrain. Transaction-cost models are still an approximation of slippage, and paper trading is the only honest next check.",
+    resumeBullet:
+      "Built a walk-forward pairs-trading research framework with per-window cointegration selection, HMM regime features, PPO/SAC agents held to a z-score baseline after costs, MLflow tracking and 94 tests including seed-determinism checks.",
+    github: "https://github.com/9shrey/rl-statistical-arbitrage",
+    codeStatus: "public",
+  },
+  {
+    slug: "jev-voice-nav",
+    title: "Jev: voice navigation for this site",
+    shortTitle: "Jev",
+    area: "Applied ML · product",
+    year: "2026",
+    featured: false,
+    testCount: 0,
+    stack: ["Next.js", "Web Speech API", "Whisper (transformers.js)", "Web Workers"],
+    blurb:
+      "Say \"open Inferbench\" or \"copy your email\" and this site does it. Local intent matching first, an LLM classifier only for what the rules can't place.",
+    headline: [
+      { value: "2", label: "speech engines" },
+      { value: "13", label: "command types resolved locally" },
+    ],
+    tldr: {
+      problem:
+        "Free-form speech doesn't map cleanly onto a fixed set of pages, and sending every utterance to an LLM is slow and costs per call.",
+      approach:
+        "The browser's own speech recognition where it exists; otherwise Whisper-tiny running on-device in a Web Worker, downloaded only after the visitor opts in. Transcripts go to a local rule matcher first; only unmatched requests reach a server-side choice classifier, which must clear a confidence threshold before the site navigates.",
+      result:
+        "Navigation, project lookups, scrolling and copy-email resolve locally with no network round-trip; the LLM call is the fallback, not the path.",
+    },
+    evidence:
+      "Live on this site: the orb in the corner on desktop. No test suite, which is why it sits last.",
+    system:
+      "Mic → Web Speech API, or on-device Whisper via transformers.js in a Worker → local command matcher (pages, projects, scroll, history, copy email, terminal) → else POST /api/voice-intent → choice classifier with confidence threshold → router.push.",
+    technicalInterest:
+      "Putting the cheap, deterministic path first and the model last, and letting a low-confidence classifier decline rather than guess.",
+    challenges:
+      "Speech APIs vary across browsers; the button hides where neither engine can run. Chrome's speechSynthesis drops the first utterance unless it is primed inside a user gesture.",
+    retrospect:
+      "A low-confidence result asks the visitor to repeat themselves; offering the top two guesses would be kinder.",
+    resumeBullet:
+      "Built voice navigation for a production site: browser speech recognition with an on-device Whisper fallback, a local intent matcher, and an LLM choice classifier with a confidence threshold for free-form requests.",
+    github: "https://github.com/9shrey/PortfolioWebsite",
+    codeStatus: "public",
   },
 ];
-
-export const filterCategories = ["All", "GenAI", "Quant", "Applied ML", "Backend", "Systems", "Product"];
 
 export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);
 }
 
-export function filterProjects(category: string): Project[] {
-  if (category === "All") return projects;
-  return projects.filter((p) => p.filterTags.includes(category));
-}
-
-export function getCodeStatusLabel(status: CodeStatus): string {
-  if (status === "public") return "Public code";
-  if (status === "private") return "Private / resume-only";
-  return "Profile link";
+export function adjacentProject(slug: string, dir: 1 | -1): Project {
+  const i = projects.findIndex((p) => p.slug === slug);
+  return projects[(i + dir + projects.length) % projects.length];
 }

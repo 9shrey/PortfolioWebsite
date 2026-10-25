@@ -1,34 +1,155 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import ProjectDetail from "@/app/components/work/ProjectDetail";
-import { getProjectBySlug, projects } from "@/app/data/projects";
+import Plate, { PLATE_KIND } from "@/app/components/art/Plate";
+import { split } from "@/app/components/pro/ProPage";
+import {
+  adjacentProject,
+  getProjectBySlug,
+  projects,
+} from "@/app/data/projects";
+import { site } from "@/app/data/site";
+
+type Params = { params: Promise<{ slug: string }> };
 
 export function generateStaticParams() {
-  return projects.map((project) => ({ slug: project.slug }));
+  return projects.map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}): Promise<Metadata> {
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
-  if (!project) return {};
+  const p = getProjectBySlug(slug);
+  if (!p) return {};
+  const url = `/work/${p.slug}`;
   return {
-    title: project.title,
-    description: project.blurb,
+    title: p.title,
+    description: p.blurb,
+    alternates: { canonical: url },
+    openGraph: {
+      title: p.title,
+      description: p.blurb,
+      url,
+      type: "article",
+      siteName: site.name,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: p.title,
+      description: p.blurb,
+    },
   };
 }
 
-export default async function ProjectPage({
-  params,
-}: {
-  params: Promise<{ slug: string }>;
-}) {
+export default async function ProjectPage({ params }: Params) {
   const { slug } = await params;
-  const project = getProjectBySlug(slug);
-  if (!project) notFound();
+  const p = getProjectBySlug(slug);
+  if (!p) notFound();
+  const prev = adjacentProject(p.slug, -1);
+  const next = adjacentProject(p.slug, 1);
+  const plate = PLATE_KIND[p.slug];
+  const [name, sub] = split(p.title);
 
-  return <ProjectDetail project={project} />;
+  const ld = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareSourceCode",
+    name: p.title,
+    description: p.blurb,
+    url: `${site.url}/work/${p.slug}`,
+    codeRepository: p.github,
+    programmingLanguage: p.stack,
+    author: { "@type": "Person", name: site.name, url: site.url },
+  };
+
+  const sections: [string, string][] = [
+    ["Evidence", p.evidence],
+    ["Why it's interesting", p.technicalInterest],
+    ["What was hard", p.challenges],
+    ["In retrospect", p.retrospect],
+  ];
+
+  return (
+    <article className="ed">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
+      <nav className="ed-crumb" aria-label="Breadcrumb">
+        <Link href="/#work">← All work</Link>
+      </nav>
+      <header className="ed-mast ed-mast-article">
+        <p className="ed-eyebrow">
+          {p.area} · {p.year}
+          {p.testCount > 0 && ` · ${p.testCount} tests`}
+        </p>
+        <h1 className="ed-title">{name}</h1>
+        {sub && <p className="ed-standfirst">{sub}</p>}
+      </header>
+
+      <p className="ed-pitch">{p.blurb}</p>
+      <p className="tl-metrics case-figs">
+        {p.headline.map((m) => (
+          <span key={m.label}>
+            <b>{m.value}</b>
+            {m.label}
+          </span>
+        ))}
+      </p>
+      <p className="hero-cta case-cta">
+        {p.github && (
+          <a href={p.github} target="_blank" rel="noopener" className="b b-ink">
+            Code on GitHub <span aria-hidden>↗</span>
+          </a>
+        )}
+        <a href={site.resume} target="_blank" rel="noopener" className="b">
+          Résumé PDF <span aria-hidden>↗</span>
+        </a>
+      </p>
+
+      {plate && (
+        <figure className="ed-figure case-plate">
+          <Plate slug={p.slug} title={plate.caption} />
+          <figcaption>
+            {plate.kind === "data" ? "Measured data · " : "Schematic · "}
+            {plate.caption}
+          </figcaption>
+        </figure>
+      )}
+
+      <dl className="ed-tldr">
+        <dt>Problem</dt>
+        <dd>{p.tldr.problem}</dd>
+        <dt>Approach</dt>
+        <dd>{p.tldr.approach}</dd>
+        <dt>Result</dt>
+        <dd>{p.tldr.result}</dd>
+      </dl>
+
+      <section className="ed-sec">
+        <h2 className="ed-h">The system</h2>
+        <ol className="ed-list ed-steps">
+          {p.system.split(" → ").map((step) => (
+            <li key={step}>{step}</li>
+          ))}
+        </ol>
+      </section>
+      {sections.map(([h, body]) => (
+        <section key={h} className="ed-sec">
+          <h2 className="ed-h">{h}</h2>
+          <p className="ed-body">{body}</p>
+        </section>
+      ))}
+      <section className="ed-sec">
+        <h2 className="ed-h">Stack</h2>
+        <p className="ed-body">{p.stack.join(" · ")}</p>
+      </section>
+
+      <nav className="ed-pn" aria-label="More projects">
+        <Link href={`/work/${prev.slug}`}>
+          <span>← Previous</span>
+          {prev.shortTitle}
+        </Link>
+        <Link href={`/work/${next.slug}`}>
+          <span>Next →</span>
+          {next.shortTitle}
+        </Link>
+      </nav>
+    </article>
+  );
 }

@@ -1,0 +1,71 @@
+export const meta = {
+  title: "Post template: copy me",
+  excerpt: "Everything a post can do, in one file. Duplicate it, rename the slug, change status to \"draft\" while you write and \"published\" when it's ready.",
+  date: "2026-10-15",
+  status: "template",
+  tags: ["template"],
+};
+
+{/*
+  HOW TO WRITE A POST
+  1. Copy this file to content/writing/<your-slug>.mdx. The slug is the URL.
+  2. Edit `meta` above. status: "draft" while writing (visible in `npm run dev`
+     only), "published" when it's ready (built, listed, in the sitemap, gets
+     its own share image).
+  3. Write in Markdown. The components below need no imports.
+  4. Every number you cite should be traceable to a repo or a data file.
+  This comment block is MDX's comment syntax and never renders.
+*/}
+
+Open with the result, not the backstory. One or two sentences a recruiter could repeat: **what broke, what you did, what it was worth.**
+
+<Stat value="5.2×" label="end-to-end decode" />
+<Stat value="87 → 451" label="tok/s at batch 16" />
+
+## The problem
+
+Plain paragraphs, `inline code`, [links](https://github.com/9shrey/inferbench), **bold** and _italics_ all work. Keep paragraphs short; this column is about 70 characters wide on purpose.
+
+<Callout label="Why it matters">
+Use a callout for the one sentence you want skimmers to leave with.
+</Callout>
+
+## What I measured
+
+Tables are GitHub-flavoured Markdown:
+
+| batch | stock tok/s | patched tok/s | speedup |
+| ---: | ---: | ---: | ---: |
+| 1 | 53.9 | 54.5 | 1.01× |
+| 2 | 11.4 | 55.2 | 4.86× |
+| 16 | 86.7 | 450.7 | 5.20× |
+
+Figures come from the same data as the rest of the site, so they can't drift from the numbers:
+
+<RooflineFigure caption="The measured roofline: cuBLAS at 6% of the memory roof, the split-K kernel at 52%." />
+
+<PlateFigure slug="schemabench" />
+
+## Code
+
+```python
+def use_fast_path(m: int) -> bool:
+    # cuBLAS falls off its GEMV/GEMM cliff for 2 <= M <= 16 on TU117
+    return 2 <= m <= 16
+```
+
+### A smaller heading
+
+1. Numbered lists
+2. for sequences
+
+- and bullets
+- for everything else
+
+> A pull quote, for the line you'd put on a slide.
+
+---
+
+## What I'd do next
+
+End with the honest limitation and the next experiment. That's the part senior engineers read twice.

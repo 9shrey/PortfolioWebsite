@@ -6,8 +6,8 @@ export interface Role {
   to: string;
   points: string[];
   stack: string[];
-  /** Pulled out for the timeline's readout column. Every figure below appears
-   *  verbatim in one of the bullet points — nothing new is asserted here. */
+  /** Pulled out as callouts. Every figure appears in one of the points
+   *  above it; nothing new is asserted here. */
   metrics?: { value: string; label: string }[];
 }
 
@@ -16,31 +16,40 @@ export const roles: Role[] = [
     company: "Agneyas Labs",
     title: "Machine Learning Ops Engineer",
     location: "Bengaluru",
-    from: "2026",
+    from: "Jul 2026",
     to: "Present",
     points: [
-      "Built and deployed an internal AutoML platform (Angular, Flask) that trains and benchmarks multiple algorithms per dataset, surfaces the strongest performer, and lets users run predictions and persist both models and results — in use by an internal team of 10–12.",
-      "Developing a hybrid battery digital twin on proprietary EV cycling data: an equivalent-circuit model constrains known physics (terminal voltage, internal resistance, capacity fade) while a learned residual network absorbs nonlinear aging, cell-to-cell variance, and thermal effects.",
+      "Built and deployed an internal AutoML platform (Angular, Flask) that trains and benchmarks multiple algorithms per dataset, surfaces the strongest, and persists models, predictions and results. In use by an internal team of 10–12.",
+      "Developing a hybrid battery digital twin on proprietary EV cycling data: an equivalent-circuit model constrains the known physics (terminal voltage, internal resistance, capacity fade) while a learned residual network absorbs nonlinear aging, cell-to-cell variance and thermal effects.",
     ],
-    stack: ["Angular", "Flask", "Python"],
-    metrics: [{ value: "10–12", label: "Daily internal users" }],
+    stack: ["Python", "Flask", "Angular", "PyTorch"],
+    metrics: [{ value: "10–12", label: "internal users" }],
   },
   {
     company: "NetApp",
     title: "Machine Learning Intern",
     location: "Bengaluru",
-    from: "2025",
-    to: "2026",
+    from: "Jun 2025",
+    to: "May 2026",
     points: [
-      "Built a one-click forecasting pipeline supporting $150M+ in quarterly revenue planning across 1.5M+ records.",
-      "Lifted commission forecast accuracy 15% for 4,900+ sales reps with XGBoost ensembles — MAPE down to 6–10% on 60+ engineered features.",
-      "Added cold-start logic, quantile forecasts, and scenario modelling while cutting the end-to-end run from 8 hours to 2.",
+      "Built and deployed a one-click forecasting pipeline for $150M+ in quarterly revenue planning over 1.5M+ records.",
+      "Improved sales-commission forecast accuracy by 15% with an XGBoost ensemble, bringing MAPE to 6–10% for GTM financial accruals across 4,900+ sales representatives.",
+      "Designed the preprocessing, training, validation and batch-inference workflow, cutting the end-to-end run from 6–8 hours to 2.",
     ],
-    stack: ["Python", "XGBoost", "Time series", "Batch ML"],
+    stack: ["Python", "XGBoost", "Time series", "Batch inference"],
     metrics: [
-      { value: "$150M+", label: "Quarterly planning supported" },
-      { value: "+15%", label: "Forecast accuracy" },
-      { value: "8h → 2h", label: "Pipeline runtime" },
+      { value: "$150M+", label: "quarterly planning" },
+      { value: "+15%", label: "forecast accuracy" },
+      { value: "6–8h → 2h", label: "pipeline runtime" },
     ],
   },
 ];
+
+export const education = {
+  school: "Manipal Institute of Technology",
+  degree: "B.Tech, Computer Science and Engineering (AI & ML)",
+  location: "Manipal",
+  from: "Sep 2022",
+  to: "Jul 2026",
+  grade: "CGPA 8.22",
+} as const;
