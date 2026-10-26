@@ -2,45 +2,128 @@ export const meta = {
   title: "Why batched decode got slower",
   excerpt: "On a GPU without tensor cores, batch 2 decoded 4.7× slower than batch 1. How I found the cuBLAS dispatch behind it, and the Triton kernel that fixed it.",
   date: "2026-10-20",
-  status: "draft",
+  status: "published",
   tags: ["gpu", "triton", "inference"],
 };
 
-{/* Outline: write over each bullet. Every number is from github.com/9shrey/inferbench (README, findings.md, data/*.json). */}
+{/* Every number here is from github.com/9shrey/inferbench (README, findings.md, data/*.json). */}
 
-On a GTX 1650 Mobile, fp16 decode at batch 2 ran at **11.4 tok/s** against **53.9 at batch 1**: batching made it 4.7× worse, and stock PyTorch didn't recover single-sequence throughput until batch 16.
+On a GTX 1650 Mobile, fp16 decode of Qwen2.5-0.5B ran at **53.9 tok/s** at batch 1 and **11.4 tok/s** at batch 2. Adding a second sequence made throughput 4.7× worse, and stock PyTorch didn't get back to single-sequence speed until batch 16.
 
-<RooflineFigure caption="cuBLAS falls off the roof at batch 2; the split-K kernel climbs back to 52% of it." />
+The cause turned out to be one kernel-selection decision inside cuBLAS. The fix is a Triton kernel that takes batched decode from 87 to 451 tok/s at batch 16, with the same tokens out.
+
+<Stat value="5.2×" label="end-to-end decode, batch 16" />
+<Stat value="8.9×" label="on the projection kernel" />
+<Stat value="52%" label="of the memory roof" />
+
+<RooflineFigure caption="The measured roofline. cuBLAS falls off at batch 2, to 6% of the memory roof; the split-K kernel climbs back to 52%." />
 
 ## The symptom, and why nobody notices it
 
-- Table: stock tok/s by batch (1, 2, 4, 8, 16, 32). "Read the column downward."
-- Most benchmarks report batch 1 or a big batch; the cliff lives in between.
+Read this column downward:
+
+| batch | stock tok/s |
+| ---: | ---: |
+| 1 | 53.9 |
+| 2 | 11.4 |
+| 4 | 22.8 |
+| 8 | 45.0 |
+| 16 | 86.7 |
+| 32 | 166.7 |
+
+Throughput is supposed to rise with batch size. Here it collapses at batch 2 and spends the next three doublings climbing back. Most benchmarks report batch 1 or a big batch, and the cliff lives in between, so it's easy to never see it.
+
+It gets worse in a specific way. The two most common pieces of inference advice are "run in fp16" and "batch your requests". On this card those two interact: batching moves the matrix's row count M from 1 to 2 or more, which is exactly where fp16 falls apart. Each piece of advice looks reasonable alone. Together they produce the worst configuration available.
 
 ## Ruling out the cheap explanations
 
-- Bandwidth contention, batching overhead, Python latency: what evidence killed each?
-- Nsight: cuBLAS dispatches a tensor-core GEMM at M ≥ 2. TU117 has none.
-- Prior art: vllm-sm75-throughput (with a T4 control), pytorch#121957. The diagnosis replicates; the fix is new.
+My first guess was clocks. The GPU idles at around 345 MHz, and the first roofline run showed a flat ~1.3 ms floor for fp16 at every M from 2 to 64: identical time for 32× the work. That looks like a card that hasn't woken up.
+
+It wasn't. The two hypotheses make opposite predictions, so I tested them against each other:
+
+| hypothesis | predicts | observed |
+| --- | --- | --- |
+| clock ramping | the floor disappears under sustained load | the floor persists |
+| kernel selection | fp32 has no floor, fp16 does | fp32 scales cleanly from 51.8 to 1594 GFLOP/s |
+
+The card ramps to 1425 MHz the moment work arrives. The 345 MHz reading I'd taken *before* the run described a state that never existed during the measurement. If I'd only sampled the clock at the start, I'd have published the wrong cause. Now every measurement records its own clock and temperature.
+
+The cliff sits exactly at M = 2. At M = 1, cuBLAS uses a GEMV kernel that runs at about 85% of achieved memory bandwidth, which is exactly what bandwidth-bound theory says it should. At M ≥ 2 it switches to a GEMM kernel that costs a fixed ~1.3 ms no matter what M is. `mm`, `matmul`, `F.linear` and `bmm` are all affected the same way, so this is cuBLAS dispatch, not a PyTorch quirk.
+
+<Callout label="credit where it's due">
+The diagnosis isn't mine. vllm-sm75-throughput reports the same cliff on the same GPU and model, and runs the control I can't (a Tesla T4: same sm_75, with tensor cores, and no collapse). pytorch#121957 reports the fp16 slowdown on a GTX 1660 SUPER. My measurements replicate theirs. The fix is what's new.
+</Callout>
+
+One more correction to my own reasoning: TU117 isn't "Turing minus tensor cores". It has dedicated fp16 units, and at M = 1 fp16 is 1.7× faster than fp32, as it should be. The silicon is fine. cuBLAS picks a GEMM kernel that assumes tensor cores exist. That's a software failure on capable hardware, which is what makes it fixable.
 
 ## Four kernels, each chosen by the last one's bottleneck
 
-- v1 `tl.dot` padded to 16: compute wasted on padding (18% of roof)
-- v2 explicit reduction: registers → occupancy collapse (29%). Saturated neither compute (49/386 GFLOP/s) nor bandwidth (24/104 GB/s); work that saturates neither is waiting. That chose split-K.
-- v3 split-K: still a 3D intermediate (39%)
-- v4 split-K + 2D intermediate: registers flat in M (52%)
+At M = 2 to 16 the projection is still bandwidth-bound, so a competent kernel should take roughly what M = 1 takes. On Qwen's gate_up projection (K = 896, N = 4864, fp16), that's about 14× of headroom sitting unclaimed.
+
+| version | speedup @ M=2 | % of memory roof | limited by |
+| --- | ---: | ---: | --- |
+| cuBLAS | 1.0× | 6% | a GEMM that assumes tensor cores |
+| v1, `tl.dot` padded to 16 | 3.1× | 18% | compute, on padding it throws away |
+| v2, explicit reduction | 5.5× | 29% | registers, then occupancy |
+| v3, split-K | 6.6× | 39% | registers, still a 3D intermediate |
+| **v4, split-K + 2D intermediate** | **8.9×** | **52%** | latency |
+
+**v1** used `tl.dot`, which has a 16×16 minimum tile. At M = 2 it computed 16 rows and threw away 14. It was compute-bound on arithmetic it didn't need: the padding wasn't a rounding detail, it was the runtime.
+
+**v2** replaced `tl.dot` with a broadcast multiply and a reduction, so M = 2 costs 2 rows. Better at small M, worse than v1 past M = 8, because its intermediate is three-dimensional and register pressure grows with M.
+
+The interesting step is what chose v3. At M = 2, v2 ran at 49 of 386 GFLOP/s *and* 24 of 104 GB/s. It saturated neither compute nor bandwidth. Work that saturates neither is waiting, and here it was waiting on memory latency it had too little parallelism to hide: only 38 to 76 programs across 16 SMs, each walking all of K in series. Not compute-bound, not bandwidth-bound, so occupancy-bound. That diagnosis is what picked **split-K** over more tile tuning.
+
+**v3** split K as well as N, which raised the program count about 8×. Better, but each program still built a 3D intermediate, so it still decayed with M.
+
+**v4** never forms that intermediate. It loops the M rows against a weight tile that's already resident, so register use stays flat in M. Across M = 2 to 16, v4 goes from 0.159 to 0.205 ms; v3 went from 0.214 to 0.942 ms. The register argument predicted that flat line before I measured it, which is the best evidence I have that I understood the mechanism instead of stumbling into it.
+
+At M = 1, cuBLAS's GEMV path is already at about 85% of bandwidth and none of my kernels beat it. So the dispatcher sends batch 1 to cuBLAS and only takes M = 2 to 16. The fix is safe to turn on everywhere only because it declines the fight it would lose.
 
 ## The bug that was only wrong when benchmarked
 
-- v3 measured 6.6× faster with relative error 6×10².
-- `tl.atomic_add` isn't idempotent; the autotuner re-ran the kernel into the same buffer once per config.
+v3's first measurement said **6.6× faster**, with a relative error of **6×10²**. Fast and completely wrong.
 
-## 8.9× kernel, 5.2× end-to-end
+`tl.atomic_add` makes the kernel non-idempotent, and Triton's autotuner re-runs the kernel against the *same* output buffer once per config to time it. Every trial summed into the answer. Resetting the buffer between trials (`reset_to_zero=["y_ptr"]`) fixed it, and the corrected kernel kept the 6.6× at a relative error of 2.1×10⁻⁴.
 
-- 94.4% of the baseline step was linear layers; predicted 35.50 ms/tok, measured 35.50.
-- An infinitely fast GEMM caps this model at 18×.
+The failure shape is the lesson. The kernel was correct when called once and wrong only when benchmarked. Any harness that re-runs an accumulating kernel (an autotuner, a warmup loop, a repeat loop) corrupts it silently. That's why the correctness check now runs immediately before every timing, not once at the end.
+
+## A flaky test that was telling the truth
+
+Later, the full suite failed once on a repeated-call idempotence test for v4, then passed alone, then passed twice more. The obvious move is to call it a flake and rerun.
+
+I hammered it instead, 400 calls per kernel with the allocator perturbed between them. v1, v2 and v3 never differed. v4 differed **2 times in 400**, by at most 1.9×10⁻⁶.
+
+v4 was never going to be bit-reproducible. Split-K means several programs `atomic_add` partial sums into the same output element; the hardware orders those however it likes, and fp32 addition isn't associative. The test asserted a property the algorithm doesn't have, and passed for a long time only because the scheduler is *usually* stable.
+
+The bug the test exists to catch doubles the result: a relative error around 6×10². Atomic reordering moves it by about one ULP. Those are six orders of magnitude apart, so the test now asserts a bound that catches the real bug with enormous margin and tolerates the reordering. v1 and v2 are pinned as bit-exact in a separate test, so the property split-K trades away is visible in the suite.
+
+It also changes what I can claim. Over thousands of kernel calls per generation, ULP-level differences in activations are effectively certain. Greedy output still doesn't change, because the gap between the top two logits dwarfs one ULP. So "token-identical" is something I measured at this scale, not something I can guarantee, and the README says it that way.
+
+## 8.9× on the kernel, 5.2× on the model
+
+A kernel win isn't a model win. I patched `nn.Linear.forward` model-wide to go through the dispatcher and measured real decode:
+
+| batch | stock tok/s | patched tok/s | speedup |
+| ---: | ---: | ---: | ---: |
+| 1 | 53.9 | 54.5 | 1.01× |
+| 2 | 11.4 | 55.2 | 4.86× |
+| 4 | 22.8 | 116.1 | 5.10× |
+| 8 | 45.0 | 224.6 | 4.99× |
+| 16 | 86.7 | **450.7** | **5.20×** |
+| 32 (control) | 166.7 | 165.3 | 0.99× |
+
+Why 5.2× and not 8.9×? At batch 16, 94.4% of the baseline step was linear layers and 5.6% was everything else: attention, norms, RoPE, the Python loop. Solving Amdahl's law with the measured kernel speedup predicts a 35.50 ms step. The measured step was 35.50 ms. That's a consistency check, not an independent prediction, but it bounds the future: an *infinitely* fast GEMM caps this model at 18×, and closing the remaining 2× to the memory roof would get to roughly 8×, not 18×.
 
 ## Making the benchmark hard to fool
 
-- Interleaved arms, clock and temperature sampled per measurement.
-- Negative controls: batch 32 (0.99×), prefill (0.97–1.08×), batch 1 routed to cuBLAS (1.01×).
+- **The two arms are interleaved** in random order, with clock and temperature sampled per measurement, so a hotter, slower arm can't bias the other.
+- **Negative controls come out flat.** Batch 32 is 0.99× and prefill is 0.97–1.08×: in both, the kernel's window doesn't apply and both arms run identical code. If the harness had a bias, it would show here.
+- **The 5% that wasn't.** A first run showed 1.05× at batch 1, with a coefficient of variation of 0.092. The tightened re-run gave 1.01×. Reporting the first number would have been a small lie in a convenient direction.
+- **The benchmark refuses bad workloads.** A dispatch ledger caught prompts being truncated to the shortest in each batch, so sequence length quietly depended on batch size. It's fixed, pinned by a test, and the benchmark won't run if lengths diverge.
+
+## What I don't know yet
+
+Everything here is scoped to one GTX 1650 Mobile, one model and one dtype. I can't tell you whether it reproduces on a GTX 1660 or a T400 until I run it on one. bf16 takes a different cuBLAS path and is untested. v4 still leaves about 2× of the memory roof on the table, and deeper pipelining is the obvious next lever; I didn't explore it because autotuning was already slow enough to hit a 10-minute wall twice.
+
+The code, the data and all 182 tests are at [github.com/9shrey/inferbench](https://github.com/9shrey/inferbench).

@@ -3,20 +3,22 @@ import ModeSwitch from "../mode/ModeSwitch";
 import CopyEmail from "../site/CopyEmail";
 import Clock from "../motion/Clock";
 import Plate, { PLATE_KIND } from "../art/Plate";
-import HeroFigure from "./HeroFigure";
+import Pen, { Note } from "./Pen";
+import PrintRoofline from "./PrintRoofline";
+import WorkIndex, { type WorkRow } from "./WorkIndex";
 import { site } from "@/app/data/site";
 import { education, roles } from "@/app/data/experience";
 import { projects } from "@/app/data/projects";
 import { skillGroups } from "@/app/data/skills";
+import { faqs, lies, rules } from "@/app/data/notes";
 import { HEADLINE } from "@/app/data/roofline";
 import { listPosts, showDrafts } from "@/app/lib/posts";
 
-/* The professional mode: everything a recruiter needs in reading order,
-   presented like a monograph — paper ground, dark measured plates, quiet
-   motion. All of it comes from the data files and the server renders all of
-   it, so crawlers and no-JS visitors get the full résumé. */
+/* The professional site's home: a printed document in black ink, with my
+   notes over it in blue pen. One idea per screen. Every figure comes from a
+   data file that was checked against the project's repo, and the server
+   renders all of it, so crawlers and no-JS visitors get the whole thing. */
 
-const host = (u: string) => u.replace(/^https?:\/\//, "");
 const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { month: "short", year: "numeric" });
 
 export function split(title: string) {
@@ -24,26 +26,35 @@ export function split(title: string) {
   return i < 0 ? [title, ""] : [title.slice(0, i), title.slice(i + 2)];
 }
 
-function SecHead({ id, idx, title, note, children }: { id: string; idx: string; title: string; note?: string; children?: React.ReactNode }) {
+const TOTAL = "09";
+
+/** The running head every section opens with, like a page in a report. */
+function Folio({ n, label }: { n: string; label: string }) {
   return (
-    <header className="sx-head" data-reveal>
-      <p className="sx-idx">
-        <span>{idx}</span>
-      </p>
-      <div>
-        <h2 id={id} className="sx-title">{title}</h2>
-        {note && <p className="sx-note">{note}</p>}
-      </div>
-      {children && <div className="sx-aside">{children}</div>}
-    </header>
+    <p className="folio" aria-hidden>
+      <span>
+        {n} / {TOTAL}
+      </span>
+      <span>{label}</span>
+      <span>Shrey Singh · ML Systems</span>
+    </p>
   );
 }
 
-const Arrow = () => (
-  <svg className="ico" viewBox="0 0 16 16" aria-hidden>
-    <path d="M4 12 12 4M6 4h6v6" fill="none" stroke="currentColor" strokeWidth="1.5" />
-  </svg>
-);
+/** Words that ink in one by one as they scroll through the middle of the
+ *  screen. Pure CSS (scroll-driven animation); without support they're
+ *  simply printed. */
+function Inked({ text, pen = [] }: { text: string; pen?: string[] }) {
+  return (
+    <>
+      {text.split(" ").map((w, i) => (
+        <span key={i} className={`iw${pen.includes(w.replace(/[.,]/g, "")) ? " iw-pen" : ""}`}>
+          {w}{" "}
+        </span>
+      ))}
+    </>
+  );
+}
 
 export default async function ProPage() {
   const posts = (await listPosts()).filter((p) => p.status !== "template");
@@ -51,253 +62,344 @@ export default async function ProPage() {
   const shown = published.length ? published : posts;
 
   const now = roles[0];
-  const netapp = roles.find((r) => r.company === "NetApp");
   const tested = projects.filter((p) => p.codeStatus === "public" && p.testCount > 0);
   const tests = tested.reduce((n, p) => n + p.testCount, 0);
 
-  const stats = [
-    {
-      value: `${HEADLINE.e2eSpeedup}×`,
-      label: "faster batched LLM decode",
-      src: `Inferbench · ${HEADLINE.tokBefore} → ${HEADLINE.tokAfter} tok/s`,
-    },
-    {
-      value: `${HEADLINE.kernelSpeedup}×`,
-      label: "on the projection kernel",
-      src: "Triton split-K vs cuBLAS",
-    },
-    {
-      value: netapp?.metrics?.[0]?.value ?? "$150M+",
-      label: "quarterly planning on my forecasts",
-      src: "NetApp · 1.5M+ records",
-    },
-    {
-      value: String(tests),
-      label: `tests across ${tested.length} public repos`,
-      src: "Every chart traces to one",
-    },
-  ];
+  const rows: WorkRow[] = projects.map((p) => {
+    const [name, sub] = split(p.title);
+    return {
+      slug: p.slug,
+      name: p.shortTitle,
+      sub: sub || name,
+      area: p.area,
+      year: p.year,
+      figure: p.headline[0],
+      kind: PLATE_KIND[p.slug]?.kind ?? null,
+    };
+  });
+  const plates = projects.map((p) => <Plate key={p.slug} slug={p.slug} tone="paper" />);
 
   return (
-    <div className="pro">
-      {/* ------------------------------------------------------------ hero */}
+    <div className="home">
+      {/* ------------------------------------------------------------ 01 hero */}
       <section className="hero" aria-labelledby="hero-name">
-        <div className="hero-grid" aria-hidden />
-        <div className="hero-copy">
-          <p className="hero-status">
-            <span className="pill">
-              <i className="dot-live" aria-hidden />
-              Now · <span className="pill-role">{now.title} at </span>
-              {now.company}
+        <p className="hero-meta">
+          <span>{site.title}</span>
+          <span>
+            {site.location.split(",")[0]} · <Clock />
+          </span>
+          <span className="hero-now">
+            <i aria-hidden /> Now: {now.title.replace("Machine Learning", "ML")}, {now.company}
+          </span>
+        </p>
+
+        <h1 id="hero-name" className="hero-name" aria-label={site.name}>
+          {site.name.split(" ").map((word, w) => (
+            <span key={word} className="hero-line" aria-hidden>
+              {word.split("").map((ch, i) => (
+                <span key={i} className="hero-ch" style={{ "--i": i + w * 5 } as React.CSSProperties}>
+                  {ch}
+                </span>
+              ))}
             </span>
-            <span className="hero-loc">
-              {site.location.split(",")[0]} · <Clock />
+          ))}
+        </h1>
+
+        <div className="hero-foot">
+          <p className="hero-claim">
+            I make models{" "}
+            <span className="pen-wrap">
+              fast
+              <Pen mark="underline" delay={1.6} />
+            </span>{" "}
+            and{" "}
+            <span className="pen-wrap">
+              measurable.
+              <Pen mark="squiggle" delay={2} />
             </span>
           </p>
-          <h1 id="hero-name" className="hero-name">
-            {site.name}
-          </h1>
-          <p className="hero-role">{site.title}</p>
-          <p className="hero-tag">{site.tagline}</p>
-          <p className="hero-pitch">{site.pitch}</p>
-          <div className="hero-cta">
-            <a href="#work" className="b b-ink">
-              See the work <span aria-hidden>↓</span>
-            </a>
-            <a href={site.resume} target="_blank" rel="noopener" className="b">
-              Résumé PDF <Arrow />
-            </a>
-            <CopyEmail email={site.email} />
+          <div className="hero-side">
+            <Note className="hero-note" tilt={-4}>
+              {HEADLINE.tokBefore} → {HEADLINE.tokAfter} tok/s, measured with controls ↓
+            </Note>
+            <p>{site.pitch}</p>
+            <p className="acts">
+              <a href="#exhibit" className="act act-ink">
+                See the proof <span aria-hidden>↓</span>
+              </a>
+              <a href={site.resume} target="_blank" rel="noopener" className="act">
+                Résumé <span aria-hidden>↗</span>
+              </a>
+              <CopyEmail email={site.email} />
+            </p>
           </div>
-          <p className="hero-links">
-            <a href={site.links.github} target="_blank" rel="noopener">
-              GitHub <Arrow />
-            </a>
-            <a href={site.links.linkedin} target="_blank" rel="noopener">
-              LinkedIn <Arrow />
-            </a>
-            <ModeSwitch to="fun" className="hero-fun">
-              <span aria-hidden>{">_"}</span> boot the fun version
-            </ModeSwitch>
-          </p>
-        </div>
-        <div className="hero-art">
-          <HeroFigure />
         </div>
       </section>
 
-      {/* ----------------------------------------------------------- stats */}
-      <section className="stats" aria-label="At a glance" data-reveal>
-        {stats.map((s) => (
-          <div key={s.label} className="stat">
-            <b data-count={s.value}>{s.value}</b>
-            <span>{s.label}</span>
-            <small>{s.src}</small>
-          </div>
-        ))}
+      {/* ------------------------------------------------------- 02 statement */}
+      <section className="stmt" aria-label="How I work">
+        <Folio n="01" label="Approach" />
+        <p className="stmt-lead" data-reveal>
+          Most of my work starts with a number that looks wrong.
+        </p>
+        <p className="stmt-body">
+          <Inked
+            text="Batch 2 decoding slower than batch 1. A kernel that's fast and wrong. A test that fails once, then never again. I find out why, I fix it, and then I try hard to prove myself wrong before I tell anyone."
+            pen={["why", "wrong"]}
+          />
+        </p>
+        <Note className="stmt-note" tilt={4}>
+          ← all three of these happened. scroll down.
+        </Note>
       </section>
 
-      {/* ------------------------------------------------------------ work */}
-      <section id="work" className="sx" aria-labelledby="work-h">
-        <SecHead
-          id="work-h"
-          idx="01"
-          title="Selected work"
-          note="Five projects, each with a case study. Plates marked measured are plotted from the repo’s own data; the rest are diagrams of the method."
-        >
-          <a href={site.links.github} target="_blank" rel="noopener" className="lnk">
-            {host(site.links.github)} <Arrow />
+      {/* --------------------------------------------------------- 03 exhibit */}
+      <section id="exhibit" className="ex" aria-labelledby="ex-h">
+        <Folio n="02" label="Exhibit A · Inferbench" />
+        <h2 id="ex-h" className="sr-only">
+          Exhibit A: Inferbench, {HEADLINE.tokBefore} to {HEADLINE.tokAfter} tokens per second
+        </h2>
+        <p className="ex-num" data-reveal aria-hidden>
+          <span data-count={String(HEADLINE.tokBefore)}>{HEADLINE.tokBefore}</span>
+          <span className="ex-arrow">→</span>
+          <span data-count={String(HEADLINE.tokAfter)}>{HEADLINE.tokAfter}</span>
+        </p>
+        <p className="ex-unit" data-reveal>
+          tokens / second · Qwen2.5-0.5B decode at batch 16 · {HEADLINE.e2eSpeedup}× end to end · token-identical output
+        </p>
+        <PrintRoofline />
+        <ol className="ex-steps">
+          <li data-reveal>
+            <span className="ex-k">The symptom</span>
+            <p>On a GTX 1650, batching made fp16 decode 4.7× slower. Stock PyTorch didn&apos;t recover single-sequence speed until batch 16.</p>
+          </li>
+          <li data-reveal style={{ "--d": "80ms" } as React.CSSProperties}>
+            <span className="ex-k">The cause</span>
+            <p>At batch ≥ 2, cuBLAS dispatches a GEMM kernel built for tensor cores. This GPU doesn&apos;t have any.</p>
+          </li>
+          <li data-reveal style={{ "--d": "160ms" } as React.CSSProperties}>
+            <span className="ex-k">The fix</span>
+            <p>
+              Four Triton kernels, each chosen by the last one&apos;s bottleneck. v4 reaches {Math.round(HEADLINE.kernelOfRoof * 100)}% of the memory roof:{" "}
+              {HEADLINE.kernelSpeedup}× on the projection.
+            </p>
+          </li>
+        </ol>
+        <p className="ex-more">
+          <Link href="/work/inferbench" className="act act-ink">
+            Read the case study <span aria-hidden>→</span>
+          </Link>
+          <a href="https://github.com/9shrey/inferbench" target="_blank" rel="noopener" className="act">
+            The repo, 182 tests <span aria-hidden>↗</span>
           </a>
-        </SecHead>
-        <div className="work">
-          {projects.map((p, i) => {
-            const [name, sub] = split(p.title);
-            const plate = PLATE_KIND[p.slug];
-            return (
-              <article key={p.slug} className={`card ${i < 2 ? "card-lg" : ""}`} data-reveal style={{ "--d": `${(i % 3) * 70}ms` } as React.CSSProperties}>
-                <div className="card-plate">
-                  <Plate slug={p.slug} />
-                  {plate && <span className="card-kind" data-kind={plate.kind}>{plate.kind === "data" ? "Measured" : "Schematic"}</span>}
-                  <span className="card-no">{String(i + 1).padStart(2, "0")}</span>
-                </div>
-                <div className="card-body">
-                  <p className="card-area">
-                    {p.area} <span>· {p.year}</span>
-                  </p>
-                  <h3 className="card-name">
-                    <Link href={`/work/${p.slug}`} className="stretch">
-                      {name}
-                    </Link>
-                  </h3>
-                  {sub && <p className="card-sub">{sub}</p>}
-                  <p className="card-blurb">{p.blurb}</p>
-                  <p className="card-figs">
-                    {p.headline.map((m) => (
-                      <span key={m.label}>
-                        <b>{m.value}</b> {m.label}
-                      </span>
-                    ))}
-                  </p>
-                  <ul className="chips" aria-label="Stack">
-                    {p.stack.slice(0, 5).map((s) => (
-                      <li key={s}>{s}</li>
-                    ))}
-                  </ul>
-                  <p className="card-foot">
-                    <span className="card-cta">
-                      Case study <span aria-hidden>→</span>
-                    </span>
-                    {p.github && (
-                      <a href={p.github} target="_blank" rel="noopener" className="card-gh">
-                        Code <Arrow />
-                      </a>
-                    )}
-                  </p>
-                </div>
-              </article>
-            );
-          })}
-        </div>
+        </p>
       </section>
 
-      {/* ------------------------------------------------------ experience */}
-      <section id="experience" className="sx" aria-labelledby="xp-h">
-        <SecHead id="xp-h" idx="02" title="Experience" note="Production ML: forecasting at NetApp, now MLOps and physics-informed models." />
-        <ol className="tl">
-          {roles.map((r, i) => (
-            <li key={r.company} className="tl-item" data-reveal>
-              <div className="tl-when">
-                <span className={r.to === "Present" ? "tl-now" : undefined}>
+      {/* ------------------------------------------------------------ 04 work */}
+      <section id="work" className="sec" aria-labelledby="work-h">
+        <Folio n="03" label="Selected work" />
+        <header className="sec-head">
+          <h2 id="work-h" className="big" data-reveal>
+            Work<sup>({String(projects.length).padStart(2, "0")})</sup>
+          </h2>
+          <Note className="sec-note" tilt={-4}>
+            {tests} tests across {tested.length} public repos.
+            <span className="on-hover">
+              <br />
+              hover a row ↓
+            </span>
+          </Note>
+        </header>
+        <WorkIndex rows={rows} plates={plates} />
+      </section>
+
+      {/* ------------------------------------------------------------ 05 lies */}
+      <section id="notes" className="sec lies" aria-labelledby="lies-h">
+        <Folio n="04" label="Field notes" />
+        <header className="sec-head">
+          <h2 id="lies-h" className="big big-tight" data-reveal>
+            Things that
+            <br />
+            lied to me
+          </h2>
+          <Note className="sec-note" tilt={3}>
+            (and how I caught them)
+          </Note>
+        </header>
+        <ul className="cards">
+          {lies.map((l, i) => (
+            <li key={l.looked} className="card" data-reveal style={{ "--d": `${(i % 3) * 90}ms`, "--r": `${[-1.4, 0.9, -0.5, 1.2, -1, 0.6][i]}deg` } as React.CSSProperties}>
+              <span className="card-tape" aria-hidden />
+              <p className="card-top">
+                <span>№ {String(i + 1).padStart(2, "0")}</span>
+                <Link href={`/work/${l.slug}`}>{l.project}</Link>
+              </p>
+              <p className="card-k">It looked like</p>
+              <p className="card-looked">{l.looked}</p>
+              <p className="card-k">It was</p>
+              <p className="card-was">{l.was}</p>
+              <p className="card-now">
+                <span className="card-k">Now</span> {l.now}
+              </p>
+              <Note className="card-scrawl" tilt={-6}>
+                {l.scrawl}
+              </Note>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      {/* ----------------------------------------------------------- 06 rules */}
+      <section className="sec rules" aria-labelledby="rules-h">
+        <Folio n="05" label="Method" />
+        <h2 id="rules-h" className="rules-h">
+          Rules I work by
+        </h2>
+        <ol className="rules-list">
+          {rules.map((r, i) => (
+            <li key={r.text}>
+              <span className="rules-no">{String(i + 1).padStart(2, "0")}</span>
+              <span className="rules-text">{r.text}</span>
+              <span className="rules-where">{r.where}</span>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ------------------------------------------------------ 07 experience */}
+      <section id="experience" className="sec" aria-labelledby="xp-h">
+        <Folio n="06" label="Experience" />
+        <header className="sec-head">
+          <h2 id="xp-h" className="big" data-reveal>
+            Paid to
+            <br />
+            do this
+          </h2>
+          <Note className="sec-note" tilt={-3}>
+            production ML, not just notebooks
+          </Note>
+        </header>
+        <ol className="xp">
+          {roles.map((r) => (
+            <li key={r.company} className="xp-row" data-reveal>
+              <p className="xp-when">
+                <span>
                   {r.from} – {r.to}
                 </span>
-                <small>{r.location}</small>
-              </div>
-              <div className="tl-dot" aria-hidden data-now={i === 0 && r.to === "Present" ? "" : undefined} />
-              <div className="tl-body">
-                <h3>
-                  {r.title} <span>· {r.company}</span>
-                </h3>
-                {r.metrics && (
-                  <p className="tl-metrics">
-                    {r.metrics.map((m) => (
-                      <span key={m.label}>
-                        <b>{m.value}</b>
-                        {m.label}
-                      </span>
-                    ))}
-                  </p>
-                )}
-                <ul className="tl-points">
+                <span>{r.location}</span>
+                {r.to === "Present" && <span className="xp-live">● Current</span>}
+              </p>
+              <div className="xp-main">
+                <h3 className="xp-co">{r.company}</h3>
+                <p className="xp-title">{r.title}</p>
+                <ul className="xp-points">
                   {r.points.map((pt) => (
                     <li key={pt}>{pt}</li>
                   ))}
                 </ul>
-                <ul className="chips" aria-label="Stack">
-                  {r.stack.map((s) => (
-                    <li key={s}>{s}</li>
+              </div>
+              {r.metrics && (
+                <ul className="xp-figs">
+                  {r.metrics.map((m) => (
+                    <li key={m.label}>
+                      <b>{m.value}</b>
+                      {m.label}
+                    </li>
                   ))}
                 </ul>
-              </div>
+              )}
             </li>
           ))}
-          <li className="tl-item tl-edu" data-reveal>
-            <div className="tl-when">
+          <li className="xp-row xp-edu" data-reveal>
+            <p className="xp-when">
               <span>
                 {education.from} – {education.to}
               </span>
-              <small>{education.location}</small>
-            </div>
-            <div className="tl-dot" aria-hidden />
-            <div className="tl-body">
-              <h3>
-                {education.degree} <span>· {education.school}</span>
-              </h3>
-              <p className="tl-grade">{education.grade}</p>
+              <span>{education.location}</span>
+            </p>
+            <div className="xp-main">
+              <h3 className="xp-co">{education.school.replace(" Institute of Technology", " IT")}</h3>
+              <p className="xp-title">
+                {education.degree} · {education.grade}
+              </p>
             </div>
           </li>
         </ol>
-      </section>
-
-      {/* --------------------------------------------------------- toolkit */}
-      <section id="toolkit" className="sx" aria-labelledby="tk-h">
-        <SecHead id="tk-h" idx="03" title="Toolkit" note="What I reach for, and where it gets used." />
-        <div className="tk">
-          {skillGroups.map((g, i) => (
-            <div key={g.label} className="tk-card" data-reveal style={{ "--d": `${i * 60}ms` } as React.CSSProperties}>
-              <h3>{g.label}</h3>
-              <p>{g.note}</p>
-              <ul className="chips">
-                {g.items.map((s) => (
-                  <li key={s}>{s}</li>
-                ))}
-              </ul>
+        <div className="tools" data-reveal>
+          {skillGroups.map((g) => (
+            <div key={g.label} className="tools-g">
+              <p className="tools-k">{g.label}</p>
+              <p className="tools-v">{g.items.join(" / ")}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* --------------------------------------------------------- writing */}
+      {/* ------------------------------------------------------------- 08 faq */}
+      <section id="faq" className="sec faq" aria-labelledby="faq-h">
+        <Folio n="07" label="Questions" />
+        <div className="faq-grid">
+          <header className="faq-head">
+            <h2 id="faq-h" className="big big-tight" data-reveal>
+              Before
+              <br />
+              you ask
+            </h2>
+            <Note className="sec-note" tilt={-4}>
+              the honest versions
+            </Note>
+          </header>
+          <dl className="faq-list">
+            {faqs.map((f, i) => (
+              <div key={f.q} className="faq-item" data-reveal style={{ "--d": `${(i % 2) * 80}ms` } as React.CSSProperties}>
+                <dt>
+                  <span>{String(i + 1).padStart(2, "0")}</span>
+                  {f.q}
+                </dt>
+                <dd>
+                  {f.a}
+                  {i === faqs.length - 1 && (
+                    <>
+                      {" "}
+                      <ModeSwitch to="fun" className="inline-act">
+                        Boot it →
+                      </ModeSwitch>
+                    </>
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* --------------------------------------------------------- 09 writing */}
       {shown.length > 0 && (
-        <section id="writing" className="sx" aria-labelledby="wr-h">
-          <SecHead id="wr-h" idx="04" title="Writing" note="Longer notes on what the projects taught me.">
-            <Link href="/writing" className="lnk">
-              All writing →
+        <section id="writing" className="sec" aria-labelledby="wr-h">
+          <Folio n="08" label="Writing" />
+          <header className="sec-head">
+            <h2 id="wr-h" className="big" data-reveal>
+              Writing
+            </h2>
+            <Link href="/writing" className="act sec-link">
+              All notes <span aria-hidden>→</span>
             </Link>
-          </SecHead>
-          <ul className="wr" data-reveal>
+          </header>
+          <ul className="wr">
             {shown.map((p) => {
               const open = p.status === "published" || showDrafts;
               const inner = (
                 <>
+                  <span className="wr-date">{p.status === "published" ? fmt(p.date) : "In progress"}</span>
                   <span className="wr-title">{p.title}</span>
-                  <span className="wr-meta">{p.status === "published" ? fmt(p.date) : "In progress"}</span>
+                  <span className="wr-ex">{p.excerpt}</span>
                   <span className="wr-go" aria-hidden>
                     →
                   </span>
                 </>
               );
               return (
-                <li key={p.slug}>
+                <li key={p.slug} data-reveal>
                   {open ? (
                     <Link href={`/writing/${p.slug}`} className="wr-row">
                       {inner}
@@ -314,32 +416,33 @@ export default async function ProPage() {
         </section>
       )}
 
-      {/* --------------------------------------------------------- contact */}
-      <section id="contact" className="cta" aria-labelledby="contact-h">
-        <div className="cta-grid" aria-hidden />
-        <div className="cta-in" data-reveal>
-          <p className="sx-idx cta-idx">
-            <span>05</span> Contact
-          </p>
-          <h2 id="contact-h" className="cta-title">
-            Building inference, evals or ML&nbsp;platforms? <em>Let’s talk.</em>
-          </h2>
-          <a href={`mailto:${site.email}`} className="cta-mail">
-            {site.email}
+      {/* --------------------------------------------------------- 10 contact */}
+      <section id="contact" className="end" aria-labelledby="contact-h">
+        <Folio n="09" label="Contact" />
+        <p className="end-pre" data-reveal>
+          Building inference, evals or ML platforms?
+        </p>
+        <h2 id="contact-h" className="end-big" data-reveal>
+          Say hi.
+        </h2>
+        <p className="end-mail" data-reveal>
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+          <Note className="end-note" tilt={-4}>
+            ↖ straight to my inbox
+          </Note>
+        </p>
+        <p className="end-acts" data-reveal>
+          <CopyEmail email={site.email} />
+          <a href={site.links.linkedin} target="_blank" rel="noopener" className="act act-light">
+            LinkedIn <span aria-hidden>↗</span>
           </a>
-          <div className="cta-act">
-            <CopyEmail email={site.email} />
-            <a href={site.resume} target="_blank" rel="noopener" className="b b-light">
-              Résumé PDF <Arrow />
-            </a>
-            <a href={site.links.linkedin} target="_blank" rel="noopener" className="b b-light">
-              LinkedIn <Arrow />
-            </a>
-            <a href={site.links.github} target="_blank" rel="noopener" className="b b-light">
-              GitHub <Arrow />
-            </a>
-          </div>
-        </div>
+          <a href={site.links.github} target="_blank" rel="noopener" className="act act-light">
+            GitHub <span aria-hidden>↗</span>
+          </a>
+          <a href={site.resume} target="_blank" rel="noopener" className="act act-light">
+            Résumé PDF <span aria-hidden>↗</span>
+          </a>
+        </p>
       </section>
     </div>
   );

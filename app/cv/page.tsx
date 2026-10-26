@@ -16,32 +16,34 @@ const host = (u: string) => u.replace(/^https?:\/\//, "");
  *  cleanly. Generated from the same data files as the rest of the site. */
 export default function CvPage() {
   return (
-    <div className="wrap cv">
-      <h1>{site.name}</h1>
-      <p className="cv-contact mono">
-        <span>{site.title}</span>
-        <span>{site.location}</span>
-        <a href={`mailto:${site.email}`}>{site.email}</a>
-        <a href={site.links.github}>{host(site.links.github)}</a>
-        <a href={site.links.linkedin}>{host(site.links.linkedin)}</a>
-      </p>
-      <p className="prose" style={{ marginTop: 16 }}>
-        {site.tagline} {site.pitch}
-      </p>
-      <div className="cv-actions">
-        <a className="btn btn-primary" href={site.resume} target="_blank" rel="noopener">
-          Resume PDF
-        </a>
-      </div>
+    <div className="page cv">
+      <header className="cv-head">
+        <h1 className="cv-name">{site.name}</h1>
+        <p className="cv-contact">
+          <span>{site.title}</span>
+          <span>{site.location}</span>
+          <a href={`mailto:${site.email}`}>{site.email}</a>
+          <a href={site.links.github}>{host(site.links.github)}</a>
+          <a href={site.links.linkedin}>{host(site.links.linkedin)}</a>
+        </p>
+        <p className="cv-pitch">
+          {site.tagline} {site.pitch}
+        </p>
+        <p className="acts cv-actions">
+          <a className="act act-ink" href={site.resume} target="_blank" rel="noopener">
+            Résumé PDF <span aria-hidden>↗</span>
+          </a>
+        </p>
+      </header>
 
-      <h2 className="kicker">Experience</h2>
+      <h2 className="cv-k">Experience</h2>
       {roles.map((r) => (
         <div key={r.company} className="cv-item">
           <p className="cv-item-head">
             <b>
               {r.title}, {r.company}
             </b>
-            <span className="mono">
+            <span>
               {r.from} – {r.to} · {r.location}
             </span>
           </p>
@@ -53,12 +55,12 @@ export default function CvPage() {
         </div>
       ))}
 
-      <h2 className="kicker">Projects</h2>
+      <h2 className="cv-k">Projects</h2>
       {projects.map((p) => (
         <div key={p.slug} className="cv-item">
           <p className="cv-item-head">
             <b>{p.title}</b>
-            <span className="mono">{p.github ? host(p.github) : p.year}</span>
+            <span>{p.github ? host(p.github) : p.year}</span>
           </p>
           <ul>
             <li>{p.resumeBullet}</li>
@@ -66,19 +68,19 @@ export default function CvPage() {
         </div>
       ))}
 
-      <h2 className="kicker">Education</h2>
+      <h2 className="cv-k">Education</h2>
       <div className="cv-item">
         <p className="cv-item-head">
           <b>
             {education.degree}, {education.school}
           </b>
-          <span className="mono">
+          <span>
             {education.from} – {education.to} · {education.grade}
           </span>
         </p>
       </div>
 
-      <h2 className="kicker">Skills</h2>
+      <h2 className="cv-k">Skills</h2>
       <div className="cv-skills">
         {skillGroups.map((g) => (
           <p key={g.label}>

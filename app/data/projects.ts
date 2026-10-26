@@ -96,7 +96,7 @@ export const projects: Project[] = [
       approach:
         "Four authored documents with planted 'trap' fields (nullable and forced), four schema tiers extracting the same facts in different shapes, and three delivery modes: prompt-only, forced tool call, native response_format. Every metric is mechanical: jsonschema validation, an 11-class violation taxonomy, exact-match field accuracy, and fabrication defined as a substantive value for an absent fact.",
       result:
-        "A cache-first harness that turned a 50-request/day API cap into a cumulative budget and re-grades everything offline. It measured mode support across 8 models, caught one rejecting response_format outright (HTTP 400), and reports paired mode contrasts with exact McNemar tests.",
+        "A cache-first harness that turned a 50-request/day API cap into a cumulative budget and re-grades everything offline. It probed mode support across 8 models (every call that reached a model was honoured; an earlier bake-off on the same account caught one rejecting response_format outright with HTTP 400), and reports paired mode contrasts with exact McNemar tests.",
     },
     evidence:
       "175 tests pin the equality rules, the violation taxonomy, the trap verdicts and the budget behaviour, because every published number is whatever the grader says it is. A failing test caught a null-masking bug at the hostile tier before a single call was spent. Availability is kept separate from competence: 502s and length-truncated reasoning responses are excluded from schema denominators, not counted as failures.",

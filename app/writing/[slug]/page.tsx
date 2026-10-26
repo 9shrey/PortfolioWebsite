@@ -44,24 +44,28 @@ export default async function PostPage({ params }: Params) {
     author: { "@type": "Person", name: site.name, url: site.url },
   };
   return (
-    <article className="wrap post">
+    <article className="page post">
       {post.status === "published" && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />}
-      <header className="post-head">
-        <nav className="ed-crumb" aria-label="Breadcrumb">
+      <p className="folio" aria-hidden>
+        <span>
           <Link href="/writing">← Writing</Link>
-        </nav>
-        <h1>
-          {post.title}
-        </h1>
-        <p className="page-lede">{post.excerpt}</p>
-        <p className="post-meta mono" style={{ marginTop: 18 }}>
-          <span>{post.status === "published" ? fmt(post.date) : post.status.toUpperCase()}</span>
-          <span>{post.readingTime}</span>
-          {post.tags?.map((t) => <span key={t}>#{t}</span>)}
-        </p>
+        </span>
+        <span>{post.status === "published" ? fmt(post.date) : post.status}</span>
+        <span>{post.readingTime}</span>
+      </p>
+      <header className="post-head">
+        <h1 className="post-title">{post.title}</h1>
+        <p className="post-lede">{post.excerpt}</p>
+        {post.tags && (
+          <p className="post-tags">
+            {post.tags.map((t) => (
+              <span key={t}>#{t}</span>
+            ))}
+          </p>
+        )}
       </header>
       {post.status !== "published" && (
-        <p className="draft-banner mono">
+        <p className="draft-banner">
           {post.status === "template" ? "Template" : "Draft"} · only visible in development · set status: &quot;published&quot; in
           content/writing/{post.slug}.mdx to ship it
         </p>
@@ -69,6 +73,17 @@ export default async function PostPage({ params }: Params) {
       <div className="prose">
         <Body />
       </div>
+      <footer className="post-end">
+        <p className="post-sign">— Shrey</p>
+        <p className="acts">
+          <Link href="/writing" className="act">
+            More writing <span aria-hidden>→</span>
+          </Link>
+          <a href={`mailto:${site.email}`} className="act">
+            Reply by email <span aria-hidden>↗</span>
+          </a>
+        </p>
+      </footer>
     </article>
   );
 }

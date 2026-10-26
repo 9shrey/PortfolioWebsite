@@ -21,6 +21,21 @@ export const INK = {
   red: "#ff6a4d",
 };
 
+type Palette = typeof INK;
+
+/** Ink on paper. The accent roles all become the blue pen. */
+export const PAPER: Palette = {
+  bg: "none",
+  line: "rgba(17,17,16,0.14)",
+  dim: "rgba(17,17,16,0.42)",
+  amber: "#2442d8",
+  cyan: "#111110",
+  hot: "#2442d8",
+  red: "#111110",
+};
+/** The roofline plate: the roof is printed, only the kernel is in pen. */
+const PAPER_ROOF: Palette = { ...PAPER, amber: "#111110" };
+
 export const PW = 400;
 export const PH = 260;
 
@@ -54,32 +69,32 @@ function rng(seed: string) {
   };
 }
 
-function InferPlate() {
+function InferPlate(C: Palette) {
   const s = PW / W;
   return (
     <g transform={`translate(0 ${(PH - H * s) / 2}) scale(${s})`}>
-      <path d={roofArea(1)} fill={INK.amber} fillOpacity={0.08} />
+      <path d={roofArea(1)} fill={C.amber} fillOpacity={0.08} />
       {ISO.map((f) => (
-        <path key={f} d={roofPath(f)} fill="none" stroke={INK.amber} strokeOpacity={0.22} strokeWidth={2} strokeDasharray="2 10" />
+        <path key={f} d={roofPath(f)} fill="none" stroke={C.amber} strokeOpacity={0.22} strokeWidth={2} strokeDasharray="2 10" />
       ))}
-      <path d={roofPath(1)} fill="none" stroke={INK.amber} strokeOpacity={0.25} strokeWidth={22} strokeLinecap="round" />
-      <path d={roofPath(1)} fill="none" stroke={INK.amber} strokeWidth={4} />
-      <path d={series(CUBLAS.slice(1))} fill="none" stroke={INK.red} strokeWidth={3} strokeDasharray="6 8" />
+      {C.bg !== "none" && <path d={roofPath(1)} fill="none" stroke={C.amber} strokeOpacity={0.25} strokeWidth={22} strokeLinecap="round" />}
+      <path d={roofPath(1)} fill="none" stroke={C.amber} strokeWidth={4} />
+      <path d={series(CUBLAS.slice(1))} fill="none" stroke={C.red} strokeWidth={3} strokeDasharray="6 8" />
       {CUBLAS.map((p) => (
-        <circle key={p.m} cx={X(p.ai)} cy={Y(p.gflops)} r={8} fill={INK.red} />
+        <circle key={p.m} cx={X(p.ai)} cy={Y(p.gflops)} r={8} fill={C.red} />
       ))}
-      <path d={series(KERNEL)} fill="none" stroke={INK.hot} strokeWidth={4} />
+      <path d={series(KERNEL)} fill="none" stroke={C.hot} strokeWidth={4} />
       {KERNEL.map((p) => (
         <g key={p.m}>
-          <circle cx={X(p.ai)} cy={Y(p.gflops)} r={26} fill={INK.amber} fillOpacity={0.18} />
-          <circle cx={X(p.ai)} cy={Y(p.gflops)} r={9} fill={INK.hot} />
+          <circle cx={X(p.ai)} cy={Y(p.gflops)} r={26} fill={C.hot} fillOpacity={0.14} />
+          <circle cx={X(p.ai)} cy={Y(p.gflops)} r={9} fill={C.hot} />
         </g>
       ))}
     </g>
   );
 }
 
-function SchemaPlate() {
+function SchemaPlate(C: Palette) {
   const cols = 3;
   const rows = SCHEMA_PROBE.length;
   const cw = 64;
@@ -89,24 +104,24 @@ function SchemaPlate() {
   return (
     <g>
       {Array.from({ length: cols }, (_, c) => (
-        <line key={c} x1={x0 + c * cw} x2={x0 + c * cw} y1={y0 - 18} y2={y0 + (rows - 1) * ch + 18} stroke={INK.line} />
+        <line key={c} x1={x0 + c * cw} x2={x0 + c * cw} y1={y0 - 18} y2={y0 + (rows - 1) * ch + 18} stroke={C.line} />
       ))}
       {SCHEMA_PROBE.map(([tool, strict], r) => {
         const y = y0 + r * ch;
         const cells = [null, tool, strict] as const;
         return (
           <g key={r}>
-            <line x1={x0 - 40} x2={x0 + (cols - 1) * cw + 40} y1={y} y2={y} stroke={INK.line} />
+            <line x1={x0 - 40} x2={x0 + (cols - 1) * cw + 40} y1={y} y2={y} stroke={C.line} />
             {cells.map((v, c) => {
               const x = x0 + c * cw;
-              if (v === null) return <circle key={c} cx={x} cy={y} r={2} fill={INK.dim} />;
+              if (v === null) return <circle key={c} cx={x} cy={y} r={2} fill={C.dim} />;
               return v ? (
                 <g key={c}>
-                  <circle cx={x} cy={y} r={14} fill={c === 2 ? INK.amber : INK.cyan} fillOpacity={0.16} />
-                  <circle cx={x} cy={y} r={6.5} fill={c === 2 ? INK.amber : INK.cyan} />
+                  <circle cx={x} cy={y} r={14} fill={c === 2 ? C.amber : C.cyan} fillOpacity={0.16} />
+                  <circle cx={x} cy={y} r={6.5} fill={c === 2 ? C.amber : C.cyan} />
                 </g>
               ) : (
-                <circle key={c} cx={x} cy={y} r={6} fill="none" stroke={INK.dim} strokeWidth={1.5} strokeDasharray="2 3" />
+                <circle key={c} cx={x} cy={y} r={6} fill="none" stroke={C.dim} strokeWidth={1.5} strokeDasharray="2 3" />
               );
             })}
           </g>
@@ -116,7 +131,7 @@ function SchemaPlate() {
   );
 }
 
-function ArgusPlate() {
+function ArgusPlate(C: Palette) {
   const r = rng("argus");
   const rows = 11;
   const cols = 26;
@@ -130,11 +145,11 @@ function ArgusPlate() {
       marks.push(
         flagged ? (
           <g key={`${i}-${j}`}>
-            <rect x={x - 3} y={y - 5} width={w + 6} height={10} rx={5} fill={INK.amber} fillOpacity={0.16} />
-            <rect x={x} y={y - 1.5} width={w} height={3} rx={1.5} fill={INK.amber} />
+            <rect x={x - 3} y={y - 5} width={w + 6} height={10} rx={5} fill={C.amber} fillOpacity={0.16} />
+            <rect x={x} y={y - 1.5} width={w} height={3} rx={1.5} fill={C.amber} />
           </g>
         ) : (
-          <rect key={`${i}-${j}`} x={x} y={y - 1} width={w} height={2} rx={1} fill={INK.dim} />
+          <rect key={`${i}-${j}`} x={x} y={y - 1} width={w} height={2} rx={1} fill={C.dim} />
         )
       );
     }
@@ -142,7 +157,7 @@ function ArgusPlate() {
   return <g>{marks}</g>;
 }
 
-function RlPlate() {
+function RlPlate(C: Palette) {
   const folds = 6;
   const x0 = 40;
   const x1 = PW - 40;
@@ -157,10 +172,10 @@ function RlPlate() {
         const train = base + i * step;
         return (
           <g key={i}>
-            <line x1={x0} x2={x1} y1={y} y2={y} stroke={INK.line} />
-            <rect x={x0} y={y - 5} width={train} height={10} rx={2} fill={INK.cyan} fillOpacity={0.28} />
-            <rect x={x0 + train + 3} y={y - 9} width={test} height={18} rx={2} fill={INK.amber} fillOpacity={0.18} />
-            <rect x={x0 + train + 3} y={y - 5} width={test} height={10} rx={2} fill={INK.amber} />
+            <line x1={x0} x2={x1} y1={y} y2={y} stroke={C.line} />
+            <rect x={x0} y={y - 5} width={train} height={10} rx={2} fill={C.cyan} fillOpacity={0.28} />
+            <rect x={x0 + train + 3} y={y - 9} width={test} height={18} rx={2} fill={C.amber} fillOpacity={0.18} />
+            <rect x={x0 + train + 3} y={y - 5} width={test} height={10} rx={2} fill={C.amber} />
           </g>
         );
       })}
@@ -168,7 +183,7 @@ function RlPlate() {
   );
 }
 
-function JevPlate() {
+function JevPlate(C: Palette) {
   const r = rng("jev");
   const bars = 44;
   const cx = PW / 2;
@@ -181,15 +196,15 @@ function JevPlate() {
         const h = 6 + env * (40 + r() * 70);
         const x = 30 + t * (PW - 60);
         const near = Math.abs(x - cx) < 60;
-        return <rect key={i} x={x - 2} y={cy - h / 2} width={4} height={h} rx={2} fill={near ? INK.amber : INK.dim} />;
+        return <rect key={i} x={x - 2} y={cy - h / 2} width={4} height={h} rx={2} fill={near ? C.amber : C.dim} />;
       })}
-      <circle cx={cx} cy={cy} r={74} fill="none" stroke={INK.amber} strokeOpacity={0.35} />
-      <circle cx={cx} cy={cy} r={92} fill="none" stroke={INK.amber} strokeOpacity={0.15} strokeDasharray="2 6" />
+      <circle cx={cx} cy={cy} r={74} fill="none" stroke={C.amber} strokeOpacity={0.35} />
+      <circle cx={cx} cy={cy} r={92} fill="none" stroke={C.amber} strokeOpacity={0.15} strokeDasharray="2 6" />
     </g>
   );
 }
 
-const PLATES: Record<string, () => React.JSX.Element> = {
+const PLATES: Record<string, (C: Palette) => React.JSX.Element> = {
   inferbench: InferPlate,
   schemabench: SchemaPlate,
   "argus-fraud-detection": ArgusPlate,
@@ -202,14 +217,19 @@ export default function Plate({
   title,
   className,
   px,
+  tone = "dark",
 }: {
   slug: string;
   title?: string;
   className?: string;
   /** Fixed pixel width (for next/og, which can't do width: 100%). */
   px?: number;
+  /** "paper": ink on the page with the pen for emphasis (the site);
+   *  "dark": the original print, for share images. */
+  tone?: "dark" | "paper";
 }) {
   const Body = PLATES[slug];
+  const C = tone === "paper" ? (slug === "inferbench" ? PAPER_ROOF : PAPER) : INK;
   return (
     <svg
       className={className}
@@ -221,10 +241,10 @@ export default function Plate({
       aria-hidden={title ? undefined : true}
       style={px ? { width: px, height: (px * PH) / PW } : { display: "block", width: "100%", height: "auto" }}
     >
-      <rect width={PW} height={PH} fill={INK.bg} />
+      {C.bg !== "none" && <rect width={PW} height={PH} fill={C.bg} />}
       {/* Called, not rendered as <Body />: next/og serialises SVG children
           without resolving components. The bodies use no hooks. */}
-      {Body ? Body() : null}
+      {Body ? Body(C) : null}
     </svg>
   );
 }

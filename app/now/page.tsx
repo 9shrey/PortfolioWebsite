@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Note } from "../components/pro/Pen";
 import { nowItems, updated } from "../data/now";
 
 export const metadata: Metadata = {
@@ -9,19 +10,24 @@ export const metadata: Metadata = {
 
 export default function NowPage() {
   return (
-    <div className="wrap">
+    <div className="page">
+      <p className="folio" aria-hidden>
+        <span>Now</span>
+        <span>Updated {updated}</span>
+        <span>Shrey Singh · ML Systems</span>
+      </p>
       <header className="page-head">
-        <p className="kicker">Updated {updated}</p>
-        <h1 className="page-title">
-          Now
-        </h1>
-        <p className="page-lede">What&apos;s on the bench this month. Overwritten when it changes.</p>
+        <h1 className="big">Now</h1>
+        <Note className="page-note" tilt={-4}>
+          overwritten when it changes
+        </Note>
+        <p className="page-lede">What&apos;s on the bench this month.</p>
       </header>
-      <ul className="now-list" style={{ marginBottom: 64 }}>
-        {nowItems.map((n) => (
-          <li key={n.label}>
-            <p className="kicker">{n.label}</p>
-            <p className="prose">{n.text}</p>
+      <ul className="now">
+        {nowItems.map((n, i) => (
+          <li key={n.label} data-reveal style={{ "--d": `${i * 70}ms` } as React.CSSProperties}>
+            <p className="now-k">{n.label}</p>
+            <p className="now-v">{n.text}</p>
           </li>
         ))}
       </ul>
