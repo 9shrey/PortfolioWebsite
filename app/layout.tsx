@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import Link from "next/link";
 import "./globals.css";
-import "./pro.css";
+import "./art.css";
 
 import FieldRoot from "./components/field/FieldRoot";
 import FunRoot from "./components/os/FunRoot";
@@ -15,9 +16,10 @@ import { MODE_SCRIPT } from "./components/mode/script";
 import { site } from "./data/site";
 import { listPosts } from "./lib/posts";
 
-/** Newsreader (editorial serif) for the professional page's headings,
- *  Familjen Grotesk to read, Martian Mono (width 75–112.5) for SHREY-OS and
- *  numbers, Anybody for the pixel wall's lettering. All OFL, in app/fonts. */
+/** The professional site is a printed page with notes in pen: Anybody (wide,
+ *  heavy) shouts, Familjen Grotesk talks, Martian Mono labels, and Nanum Pen
+ *  Script is the blue ballpoint. Newsreader stays for SHREY-OS's documents.
+ *  All OFL, in app/fonts. */
 const serif = localFont({
   src: [
     { path: "./fonts/newsreader-var.woff2", style: "normal" },
@@ -38,6 +40,12 @@ const sans = localFont({
   src: "./fonts/familjen-grotesk-var.woff2",
   variable: "--font-sans",
   weight: "400 700",
+  display: "swap",
+});
+const hand = localFont({
+  src: "./fonts/nanum-pen-latin.woff2",
+  variable: "--font-hand",
+  weight: "400",
   display: "swap",
 });
 const mono = localFont({
@@ -89,7 +97,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f7f6f2",
+  themeColor: "#ebe8df",
   colorScheme: "light",
 };
 
@@ -101,7 +109,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       lang="en"
       data-mode="pro"
       suppressHydrationWarning
-      className={`${sans.variable} ${serif.variable} ${display.variable} ${mono.variable}`}
+      className={`${sans.variable} ${serif.variable} ${display.variable} ${mono.variable} ${hand.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
@@ -118,27 +126,40 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
           </main>
           <footer className="foot">
             <div className="foot-in">
-              <p className="foot-sig">
-                <span className="nav-mono" aria-hidden>
-                  SS
-                </span>
-                <span>
-                  © {new Date().getFullYear()} {site.name}
-                  <small>Every figure on this site traces to a public repo.</small>
-                </span>
+              <p className="foot-big" aria-hidden>
+                Shrey Singh
               </p>
-              <p className="foot-links">
-                <a href={`mailto:${site.email}`}>{site.email}</a>
-                <a href={site.links.github} target="_blank" rel="noopener">
-                  GitHub
-                </a>
-                <a href={site.links.linkedin} target="_blank" rel="noopener">
-                  LinkedIn
-                </a>
-                <span className="foot-k">
-                  Press <kbd>/</kbd> to jump anywhere
-                </span>
-              </p>
+              <div className="foot-cols">
+                <p>
+                  <span className="foot-k">Contact</span>
+                  <a href={`mailto:${site.email}`}>{site.email}</a>
+                  <a href={site.links.github} target="_blank" rel="noopener">
+                    GitHub
+                  </a>
+                  <a href={site.links.linkedin} target="_blank" rel="noopener">
+                    LinkedIn
+                  </a>
+                </p>
+                <p>
+                  <span className="foot-k">Pages</span>
+                  <Link href="/#work">Work</Link>
+                  <Link href="/writing">Writing</Link>
+                  <Link href="/now">Now</Link>
+                  <Link href="/cv">One-page CV</Link>
+                </p>
+                <p>
+                  <span className="foot-k">Colophon</span>
+                  <span>Set in Anybody, Familjen Grotesk, Martian Mono and a blue ballpoint.</span>
+                  <span>Every figure on this site traces to a public repo.</span>
+                </p>
+                <p>
+                  <span className="foot-k">Elsewhere</span>
+                  <span>
+                    Press <kbd>/</kbd> to jump anywhere.
+                  </span>
+                  <span>© {new Date().getFullYear()} {site.name}, Bengaluru.</span>
+                </p>
+              </div>
             </div>
           </footer>
           <Motion />

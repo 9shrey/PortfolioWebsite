@@ -1,17 +1,25 @@
 import Link from "next/link";
+import { Note } from "./components/pro/Pen";
 
 export default function NotFound() {
   return (
-    <div className="wrap lost">
-      <p className="kicker">404 · below the roof</p>
-      <h1>Nothing measured here.</h1>
-      <p>That page doesn&apos;t exist, or it moved when the site was rebuilt.</p>
-      <p>
-        <Link className="btn btn-primary" href="/">
-          Back to the start
-        </Link>{" "}
-        <Link className="btn" href="/#work">
-          See the work
+    <div className="page lost">
+      <p className="folio" aria-hidden>
+        <span>Error</span>
+        <span>Below the roof</span>
+        <span>Shrey Singh · ML Systems</span>
+      </p>
+      <h1 className="lost-big">404</h1>
+      <Note className="page-note" tilt={-5}>
+        nothing measured here. not even noise.
+      </Note>
+      <p className="page-lede">That page doesn&apos;t exist, or it moved when the site was rebuilt.</p>
+      <p className="acts">
+        <Link className="act act-ink" href="/">
+          Back to the start <span aria-hidden>→</span>
+        </Link>
+        <Link className="act" href="/#work">
+          See the work <span aria-hidden>→</span>
         </Link>
       </p>
     </div>

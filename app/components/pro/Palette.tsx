@@ -67,9 +67,11 @@ export default function Palette({
       run: () => go(id),
     });
     return [
+      sec("exhibit", "Exhibit A: 87 → 451 tok/s", "The measured roofline"),
       sec("work", "Selected work", "Five projects with case studies"),
-      sec("experience", "Experience", "NetApp, Agneyas Labs, Manipal"),
-      sec("toolkit", "Toolkit", "Languages, ML, data, platforms"),
+      sec("notes", "Things that lied to me", "Bugs and how I caught them"),
+      sec("experience", "Experience", "Agneyas Labs, NetApp, Manipal, toolkit"),
+      sec("faq", "Before you ask", "The honest answers"),
       sec("writing", "Writing", "Notes from the projects"),
       sec("contact", "Contact", "Email and links"),
       ...projects.map<Item>((p) => ({

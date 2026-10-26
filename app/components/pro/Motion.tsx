@@ -7,8 +7,8 @@ import { useEffect } from "react";
    - [data-reveal] blocks rise in as they enter the viewport. The head script
      sets html[data-motion] before paint so nothing flashes; CSS shows them
      anyway after a few seconds if this never runs.
+   - .pen marks draw themselves and .note scrawls fade in the same way.
    - [data-count] numbers count up from zero the first time they're seen.
-   - .card tracks the pointer in --mx/--my for its spotlight.
    With reduced motion none of this runs and everything is simply there. */
 
 const NUM = /^([^\d]*)([\d][\d,]*\.?\d*)(.*)$/;
@@ -43,6 +43,7 @@ export default function Motion() {
       return;
     }
     root.dataset.motion = "on";
+    root.dataset.motionReady = "";
 
     const io = new IntersectionObserver(
       (entries) => {
@@ -50,26 +51,19 @@ export default function Motion() {
           if (!e.isIntersecting) continue;
           const el = e.target as HTMLElement;
           el.dataset.in = "";
+          if (el.dataset.count !== undefined) countUp(el);
           el.querySelectorAll<HTMLElement>("[data-count]").forEach(countUp);
           io.unobserve(el);
         }
       },
       { rootMargin: "0px 0px -8% 0px", threshold: 0.08 }
     );
-    document.querySelectorAll<HTMLElement>("[data-reveal]:not([data-in])").forEach((el) => io.observe(el));
-
-    const onMove = (e: PointerEvent) => {
-      const card = (e.target as Element | null)?.closest?.<HTMLElement>(".card");
-      if (!card) return;
-      const r = card.getBoundingClientRect();
-      card.style.setProperty("--mx", `${e.clientX - r.left}px`);
-      card.style.setProperty("--my", `${e.clientY - r.top}px`);
-    };
-    document.addEventListener("pointermove", onMove, { passive: true });
+    document
+      .querySelectorAll<HTMLElement>(":is([data-reveal], .pen, .note):not([data-in])")
+      .forEach((el) => io.observe(el));
 
     return () => {
       io.disconnect();
-      document.removeEventListener("pointermove", onMove);
     };
   }, [path]);
 

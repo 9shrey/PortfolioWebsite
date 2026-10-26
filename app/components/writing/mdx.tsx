@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import Roofline from "../art/Roofline";
 import Plate, { PLATE_KIND } from "../art/Plate";
+import PrintRoofline from "../pro/PrintRoofline";
 
 /* Components every post can use without importing them (wired up in
    mdx-components.tsx). Keep them honest: figures come from the same data
@@ -9,19 +9,19 @@ import Plate, { PLATE_KIND } from "../art/Plate";
 export function Callout({ label = "Note", children }: { label?: string; children: ReactNode }) {
   return (
     <aside className="callout">
-      <span className="callout-label mono">{label}</span>
+      <span className="callout-label">{label}</span>
       {children}
     </aside>
   );
 }
 
-/** The measured roofline from Inferbench, live in the post. */
+/** The measured roofline from Inferbench, printed in the post. */
 export function RooflineFigure({ caption }: { caption?: string }) {
   return (
-    <figure className="dark-plate">
-      <Roofline id="post-rf" figure="inferbench" />
-      {caption && <figcaption>{caption}</figcaption>}
-    </figure>
+    <div className="post-fig">
+      <PrintRoofline />
+      {caption && <p className="post-fig-cap">{caption}</p>}
+    </div>
   );
 }
 
@@ -29,11 +29,9 @@ export function RooflineFigure({ caption }: { caption?: string }) {
 export function PlateFigure({ slug, caption }: { slug: string; caption?: string }) {
   const kind = PLATE_KIND[slug];
   return (
-    <figure>
-      <div>
-        <Plate slug={slug} title={kind?.caption} />
-      </div>
-      <figcaption>{caption ?? (kind ? `${kind.kind === "data" ? "Data" : "Schematic"} · ${kind.caption}` : null)}</figcaption>
+    <figure className="post-fig post-plate">
+      <Plate slug={slug} title={kind?.caption} tone="paper" />
+      <figcaption>{caption ?? (kind ? `${kind.kind === "data" ? "Measured data" : "Schematic"} · ${kind.caption}` : null)}</figcaption>
     </figure>
   );
 }
@@ -41,13 +39,9 @@ export function PlateFigure({ slug, caption }: { slug: string; caption?: string 
 /** A number worth stopping on. */
 export function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <span style={{ display: "inline-grid", margin: "0.4em 2em 0.4em 0" }}>
-      <span className="mono" style={{ fontSize: "2.2rem", fontWeight: 300, fontStretch: "112.5%", color: "var(--ink)", lineHeight: 1 }}>
-        {value}
-      </span>
-      <span className="mono" style={{ color: "var(--ink-3)" }}>
-        {label}
-      </span>
+    <span className="stat">
+      <b>{value}</b>
+      <span>{label}</span>
     </span>
   );
 }

@@ -1,40 +1,107 @@
 export const meta = {
   title: "Strict mode guarantees a shape, not the truth",
   excerpt: "When a schema demands a fact the document doesn't contain, a model must break the contract or invent the fact. Measuring which, without an LLM judge.",
-  date: "2026-10-27",
-  status: "draft",
+  date: "2026-10-25",
+  status: "published",
   tags: ["evals", "llm", "structured-output"],
 };
 
-{/* Outline: write over each bullet. Stick to github.com/9shrey/schemabench (README, findings.md, data/results/*). */}
+{/* Every number here is from github.com/9shrey/schemabench (README, findings.md, data/results/*). */}
 
-Ask a model to fill a schema field whose fact isn't in the document. If the schema forbids `null`, it has two options: break the contract, or invent the fact.
+Ask a model to extract a field whose fact isn't in the document. If the schema allows `null`, it can say so. If the schema forbids `null`, it has two options: break the contract, or make something up.
+
+Strict structured output is sold as a correctness feature. It guarantees a *shape*. I wanted to know what it does to the *truth*, and I wanted to measure it without asking another LLM to grade the answers.
+
+<Stat value="0" label="LLM judges" />
+<Stat value="11" label="violation classes" />
+<Stat value="175" label="tests on the grader" />
 
 <PlateFigure slug="schemabench" />
 
 ## The trap split
 
-- Nullable traps: honesty is free. Forced traps: honesty is impossible.
-- Without nullable traps, "strict mode fabricates" is true by construction.
+Every document in the benchmark is missing some facts on purpose, and each missing fact comes in one of two flavours:
+
+- **Nullable traps.** The schema allows `null`. Abstaining is both correct and valid, so honesty is free. This measures whether a model takes an exit that's right there.
+- **Forced traps.** The schema forbids `null`. There's no valid honest answer: the model has to break the contract or invent a fact.
+
+The split is the whole design. If abstaining were never valid, "strict mode fabricates" would be true by construction, not by measurement. Nullable traps are the control; only the contrast between the two measures anything.
 
 ## Same facts, four shapes, three delivery modes
 
-- Tiers T1–T4 generated from one field spec; a test asserts "same facts" for all 16 combinations.
-- prompt_only / tool_call / strict; the schema is in the prompt in all three (state the limitation).
+Four schema tiers extract the *same* facts in different shapes: flat; constrained (enums, date formats, ranges); nested; and hostile (deep nesting, 50-value enums, `oneOf` unions, `additionalProperties: false`). They're generated from one field spec, so "same facts, different shape" is a structural property, and a test checks it for all 16 document-and-tier combinations.
+
+Each schema goes out three ways: in the prompt only, as a forced tool call, and as a native `response_format: json_schema`. The schema is in the prompt in all three, so the only thing that changes is the mechanism.
+
+<Callout label="stated limitation">
+Real deployments using strict mode often leave the schema out of the prompt. Keeping it in isolates the mechanism, but it probably understates how much the native modes help in practice.
+</Callout>
 
 ## Grading without a judge
 
-- schema_valid, the 11-class violation taxonomy, field accuracy, fabrication, availability.
-- Availability ≠ competence: 502s and length-truncated reasoning responses are excluded, not failed.
+Every metric is mechanical:
+
+| metric | graded by |
+| --- | --- |
+| schema valid | `jsonschema.validate()` |
+| violation class | the validator's own error path, mapped to 11 classes |
+| field accuracy | exact match against ground truth I wrote |
+| fabrication | a substantive value for a fact that isn't in the source |
+| availability | HTTP status and `finish_reason` |
+
+The documents are written for the benchmark, so ground truth is exact rather than argued about.
+
+**Availability isn't competence.** On free endpoints the most common failure is the endpoint being down, not the model being wrong. A 502 means the model was never tested, so those rows leave every denominator instead of counting as failures. The same goes for `finish_reason = length`: one reasoning model looked like a hard schema failure, with zero-length output, until I saw it had spent its whole 2,000-token budget on hidden reasoning. That's a harness condition, not a model defect.
+
+## The bug a test caught before I spent a call
+
+At the hostile tier, numeric fields are wrapped in a `oneOf` (a number, or a numeric string). When a model honestly abstains with `null` there, `jsonschema` reports the failure under `oneOf`, and the first version of my taxonomy filed it as "union unsatisfied".
+
+So at exactly the tier where the honesty-versus-validity choice is sharpest, honest refusals would have shown up as "can't handle unions". That's a different and much less interesting claim, and it would have been published as a clean number under the wrong heading. A failing test caught it before a single API call. The fix is to check for `null` before looking at which keyword failed, because a null in a forbidden slot can surface under six different keywords depending on how the field is expressed.
+
+The taxonomy isn't a reporting detail. It's the instrument.
 
 ## Engineering under a 50-request/day cap
 
-- Content-addressed cache as primary data; re-grade offline after any grader change.
-- Mock-first, so the first real call was the experiment.
-- The null-masking bug at T4 a failing test caught before any call was spent.
+The account allowed 50 requests a day, and that shaped the architecture more than anything else:
+
+- **Cache-first.** Every response is content-addressed and kept, so a daily cap becomes a cumulative budget. The cache is committed: it's the study's primary data.
+- **Grade from the cache, always.** Live runs and replays share one path, so a grader fix re-derives every number offline over data already paid for.
+- **Mock first.** The whole pipeline runs against a mock that reproduces fenced JSON, prose preambles, tool-call channel swaps, truncation and outages. The first real call was the experiment, not a debugging round.
+
+Rehearsing offline caught two more bugs that would have cost real calls or real data. The rate limiter was throttling the mock, so a 96-cell rehearsal spent six minutes asleep, and a rehearsal slower than the real thing doesn't get run. And mock responses were landing in the committed cache, where they'd have been indistinguishable from real ones. Mock runs now get their own cache root.
 
 ## What the probe found
 
-- Mode support across 8 models (data/results/probe.json).
-- One model rejected response_format outright (HTTP 400).
-- Say plainly what's underpowered.
+The first live step was a mode-support probe: one call per model per mode, across 8 free models.
+
+| outcome | tool call | strict |
+| --- | ---: | ---: |
+| honoured | 4 | 5 |
+| endpoint unavailable | 4 | 3 |
+| accepted, then ignored | 0 | 0 |
+
+Every call that reached a model was honoured. Prompt-only has nothing to honour, but it's telling anyway: 4 of the 5 reachable models that answered it returned schema-invalid output on that call.
+
+The more dangerous failure, accepting `response_format` and then silently ignoring it, didn't show up in this probe. An earlier bake-off on the same account did catch a model rejecting `response_format` outright with a 400, which is at least honest.
+
+## What one model did with the traps
+
+The live grid so far is one model (`lfm-2.5-2.6b`), two documents, four tiers and three modes: 24 cells, four per trap per mode. It's a pilot, not a finding, and I'm reporting it as one.
+
+| trap | prompt only | tool call | strict |
+| --- | --- | --- | --- |
+| nullable (×2) | abstained with `null`, 8/8 | abstained with `null`, 8/8 | abstained with `null`, 8/8 |
+| forced: revenue lost | **fabricated 3/4** | **fabricated 4/4** | **fabricated 4/4** |
+| forced: buyer email | broke the schema, 4/4 | wrote a placeholder, 4/4 | wrote a placeholder, 4/4 |
+| schema valid overall | 3/8 | 8/8 | 8/8 |
+
+The nullable traps say the model is happy to be honest when honesty is allowed. The forced traps show the trade. Asked for a revenue figure the incident report never gives, it invented a number in 11 of 12 cells. Asked for an email that isn't there, prompt-only broke the schema with `null`, while both constrained modes produced a schema-valid placeholder like "unknown". That's honest in substance and valid in type, which is the best available outcome when the contract leaves no honest option.
+
+Constrained decoding bought validity: 8/8 against 3/8. On this model, at this size, it didn't buy honesty about the revenue number. Prompt-only didn't either.
+
+## What's underpowered
+
+Almost everything. One model, four cells per comparison: the paired McNemar tests the harness runs have nothing like the power to call a difference between modes. The next step is the same grid across more models as the request budget allows. The cache means none of what's already been paid for has to be paid for again.
+
+The code, the cache and the tests are at [github.com/9shrey/schemabench](https://github.com/9shrey/schemabench).
