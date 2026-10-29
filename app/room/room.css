@@ -84,9 +84,9 @@ html.room .plain, html.room .skip { display: none; }
 .lap-body { flex: 1; display: grid; grid-template-columns: 290px 1fr; min-height: 0; }
 .lap-side { background: var(--l-side); border-right: 1px solid var(--l-rule); padding: 26px 16px; overflow: auto; }
 .lap-me { margin: 0 10px 22px; font-family: var(--font-display); font-weight: 850; font-stretch: 120%; font-size: 19px; }
-.lap-sec { display: block; padding: 8px 12px; border-radius: 7px; font-size: 17px; font-weight: 600; color: var(--l-mute); }
-.lap-sec:hover { color: var(--l-ink); }
-.lap-sec[aria-current="page"] { color: var(--l-ink); background: rgba(240, 162, 75, 0.12); box-shadow: inset 3px 0 0 var(--l-acc); }
+.lap .lap-sec { display: block; padding: 8px 12px; border-radius: 7px; font-size: 17px; font-weight: 600; color: var(--l-mute); }
+.lap .lap-sec:hover { color: var(--l-ink); }
+.lap .lap-sec[aria-current="page"] { color: var(--l-ink); background: rgba(240, 162, 75, 0.12); box-shadow: inset 3px 0 0 var(--l-acc); }
 .lap-sub { list-style: none; margin: 2px 0 10px 12px; padding: 0 0 0 10px; border-left: 1px solid var(--l-rule); }
 .lap-sub button { display: block; padding: 6px 8px; font-size: 14.5px; line-height: 1.35; color: var(--l-mute); border-radius: 6px; }
 .lap-sub button:hover, .lap-sub button[aria-current="page"] { color: var(--l-ink); }

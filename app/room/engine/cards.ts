@@ -29,6 +29,14 @@ function arrow(g: CanvasRenderingContext2D, x: number, y: number, dir: 1 | -1, c
 }
 
 
+/** A card's accent, lifted until it reads as light on the dark slide (a navy shroud projects as nothing). */
+function luminous(hex: string) {
+  let [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  const lum = () => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+  for (let k = 0; k < 12 && lum() < 0.42; k++) { r += (255 - r) * 0.18; g += (255 - g) * 0.18; b += (255 - b) * 0.18; }
+  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+}
+
 // ------------------------------------------------------------------ the projected slide
 /** A slide as a projector shows it: black is no light, so it is mostly dark, and the type is the light.
  *  One number is the hero (for Inferbench, the measured decode speed-up as bars); the rest sit quietly
@@ -50,7 +58,7 @@ export function drawSlide(card: CardContent | null, prev: CardContent | null, ne
     return { canvas: c, regions: [] };
   }
   const pad = 120, regions: Region[] = [];
-  const acc = card.accent;
+  const acc = luminous(card.accent);
 
   // the running head: where this sits in the stack, and what it is
   g.font = `500 30px ${F.mono}`; g.fillStyle = DIM;

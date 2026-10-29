@@ -168,7 +168,7 @@ export class RoomEngine {
           if (name === "laptop_screen") m.color.set("#1b2233");
           return;
         }
-        if (name === "screen") m.lightMapIntensity = 2.1;   // projected light: the slide's type should glow
+        if (name === "screen") m.lightMapIntensity = 2.7;   // projected light: the slide's type should glow
         liveLoads.push((async () => {
           const shade = await tex(`${BASE}shade_${name}.webp`);
           shade.channel = 0;
@@ -256,9 +256,10 @@ export class RoomEngine {
     this.makePivots();
 
 
-    const h = this.info.home;
     // the loader showed this framing out of focus: start a step back from it and push in
-    this.pose = { pos: new THREE.Vector3(...h.pos).add(new THREE.Vector3(0, 0.04, 0.38)), look: new THREE.Vector3(...h.look), fov: h.fov + 3 };
+    this.resize();
+    const hp = this.homePose();
+    this.pose = { pos: hp.pos.clone().add(new THREE.Vector3(0, 0.04, 0.38)), look: hp.look.clone(), fov: hp.fov + 3 };
     this.from = this.clonePose(this.pose); this.to = this.clonePose(this.pose);
     this.applyPose(this.pose);
     this.go({ kind: "home" }, false, 2.6);
@@ -310,10 +311,19 @@ export class RoomEngine {
     return this.frame3(c, dir, size, size * 0.75);
   }
 
-  poseFor(v: View): Pose {
+  /** The desk from the chair. A phone held upright sees too little of it: step back and centre on the desk. */
+  private homePose(): Pose {
     const h = this.info.home;
+    const pos = new THREE.Vector3(...h.pos), look = new THREE.Vector3(...h.look);
+    const portrait = THREE.MathUtils.clamp((1.1 - this.camera.aspect) / 0.6, 0, 1);
+    pos.add(new THREE.Vector3(-0.22, 0.1, 0.75).multiplyScalar(portrait));
+    look.add(new THREE.Vector3(-0.3, 0.06, 0).multiplyScalar(portrait));
+    return { pos, look, fov: h.fov + 14 * portrait };
+  }
+
+  poseFor(v: View): Pose {
     switch (v.kind) {
-      case "home": case "poster": return { pos: new THREE.Vector3(...h.pos), look: new THREE.Vector3(...h.look), fov: h.fov };
+      case "home": case "poster": return this.homePose();
       case "work": return this.faceOn("screen", 1.08);
       case "year": return this.faceOn("calendar", 1.05);
       case "about": case "writing": case "online": return this.faceOn("laptop_screen", 1.24);
@@ -474,16 +484,16 @@ export class RoomEngine {
 
   // ------------------------------------------------------------------ frame
   private applyPose(p: Pose) {
-    // the home view widens on narrow screens so the desk still fits
-    const narrow = THREE.MathUtils.clamp((1.5 - this.camera.aspect) / 1.0, 0, 1);
-    this.camera.fov = p.fov + narrow * 18 * (this.tween >= 1 && this.isHome() ? 1 : 0);
+    // between wide and portrait (a tablet, a narrow window) the home view widens a little so the desk fits
+    const narrow = THREE.MathUtils.clamp((1.5 - this.camera.aspect) / 0.4, 0, 1);
+    this.camera.fov = p.fov + narrow * 8 * (this.tween >= 1 && this.isHome() ? 1 : 0);
     this.camera.position.copy(p.pos);
     const down = new THREE.Vector3().subVectors(p.look, p.pos).normalize().y < -0.97;
     this.camera.up.set(0, down ? 0 : 1, down ? -1 : 0);
     this.camera.lookAt(p.look);
     this.camera.updateProjectionMatrix();
   }
-  private isHome() { return this.to.pos.distanceTo(new THREE.Vector3(...this.info.home.pos)) < 0.01; }
+  private isHome() { return this.to.pos.distanceTo(this.homePose().pos) < 0.01; }
 
   private frame = () => {
     if (this.disposed) return;
@@ -510,8 +520,8 @@ export class RoomEngine {
         this.look.yaw = THREE.MathUtils.clamp(this.look.yaw - edge(this.pointer.x) * dt * 1.5, -YAW, YAW);
         this.look.pitch = THREE.MathUtils.clamp(this.look.pitch + edge(this.pointer.y, 0.7) * dt * 0.8, -0.6, 0.5);
       }
-      const h = this.info.home;
-      const base = new THREE.Vector3(...h.look).sub(new THREE.Vector3(...h.pos));
+      const hp = this.homePose();
+      const base = hp.look.clone().sub(hp.pos);
       const len = base.length();
       const dir = base.normalize().applyAxisAngle(new THREE.Vector3(0, 1, 0), this.look.yaw);
       const right = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0)).normalize();
