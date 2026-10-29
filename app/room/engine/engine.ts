@@ -91,6 +91,19 @@ export class RoomEngine {
   private keyBase = new Map<string, number>();
   private pressed = new Set<string>();
   private frames = 0; private fpsT = 0;
+  /** every part that turns or swings hangs from a pivot of its own: compressed nodes carry an unpacking
+   *  scale and offset, so rotating the node itself would swing it about the wrong point */
+  private pivots = new Map<string, THREE.Group>();
+  /** the desk lamp: 0 on, 1 off, crossfading two bakes of the room */
+  private lampOff = { value: 0 };
+  private lampTarget = 0;
+  private lampReady = false;
+  private envFresh = true;
+  private curtainK = 0; private curtainTarget = 0;
+  /** a poster lifted off the wall to look at */
+  private card?: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private dim?: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  private cardK = 0; private cardOn = false;
   private regions = new Map<string, { regions: Region[]; w: number; h: number; flipY: boolean }>();
   /** the laptop's screen: real HTML, placed on the lid with a CSS 3D transform */
   private css?: CSS3DRenderer;
@@ -155,6 +168,7 @@ export class RoomEngine {
           if (name === "laptop_screen") m.color.set("#1b2233");
           return;
         }
+        if (name === "screen") m.lightMapIntensity = 2.1;   // projected light: the slide's type should glow
         liveLoads.push((async () => {
           const shade = await tex(`${BASE}shade_${name}.webp`);
           shade.channel = 0;
@@ -230,19 +244,30 @@ export class RoomEngine {
     pick("bench", { kind: "toy", name: "fan", label: "" });
     pick("keyboard", { kind: "toy", name: "keyboard", label: "" });
     pick("lamp", { kind: "toy", name: "lamp", label: "" });
-    for (let i = 0; i < 6; i++) pick(`poster_${i}`, { kind: "toy", name: `poster_${i}`, label: "" });
+    for (let i = 0; i < 6; i++) {
+      pick(`poster_${i}`, { kind: "toy", name: `poster_${i}`, label: "" });
+      pick(`poster_frame_${i}`, { kind: "toy", name: `poster_${i}`, label: "" });
+    }
+    pick("curtain_l", { kind: "toy", name: "curtains", label: "" });
+    pick("curtain_r", { kind: "toy", name: "curtains", label: "" });
+    pick("figure_pirate", { kind: "toy", name: "figure_pirate", label: "" });
+    pick("figure_saiyan", { kind: "toy", name: "figure_saiyan", label: "" });
+    pick("dragonball", { kind: "toy", name: "dragonball", label: "" });
+    this.makePivots();
 
-    // the camera starts back by the door and walks in to the desk
+
     const h = this.info.home;
-    this.pose = { pos: new THREE.Vector3(...h.pos).add(new THREE.Vector3(0.35, 0.3, 1.7)), look: new THREE.Vector3(...h.look).add(new THREE.Vector3(-0.3, 0.35, 0)), fov: h.fov + 6 };
+    // the loader showed this framing out of focus: start a step back from it and push in
+    this.pose = { pos: new THREE.Vector3(...h.pos).add(new THREE.Vector3(0, 0.04, 0.38)), look: new THREE.Vector3(...h.look), fov: h.fov + 3 };
     this.from = this.clonePose(this.pose); this.to = this.clonePose(this.pose);
     this.applyPose(this.pose);
-    this.go({ kind: "home" }, false, 3.6);
+    this.go({ kind: "home" }, false, 2.6);
     this.listen();
     this.resize();
     this.ev.ready?.();
     this.raf = requestAnimationFrame(this.frame);
     setTimeout(() => !this.disposed && this.captureEnv(), 1500);
+    this.loadLampOff(Object.fromEntries(atlases));
   }
 
   // ------------------------------------------------------------------ live surfaces
@@ -288,10 +313,10 @@ export class RoomEngine {
   poseFor(v: View): Pose {
     const h = this.info.home;
     switch (v.kind) {
-      case "home": return { pos: new THREE.Vector3(...h.pos), look: new THREE.Vector3(...h.look), fov: h.fov };
+      case "home": case "poster": return { pos: new THREE.Vector3(...h.pos), look: new THREE.Vector3(...h.look), fov: h.fov };
       case "work": return this.faceOn("screen", 1.08);
       case "year": return this.faceOn("calendar", 1.05);
-      case "about": case "writing": case "online": return this.faceOn("laptop_screen", 1.08);
+      case "about": case "writing": case "online": return this.faceOn("laptop_screen", 1.24);
       case "contact": return this.faceOn("phone_screen", 1.25);
       case "resume": return this.faceOn("resume_page", 1.08);
       case "books": {
@@ -391,10 +416,13 @@ export class RoomEngine {
     if (Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > 8) return;
     this.onMove(e);
     const hit = this.pick();
+    if (this.cardOn) { this.ev.click?.({ kind: "view", view: { kind: "home" }, label: "" }); return; }
     if (this.clockStopped !== null && this.lastRoot?.name === "clock_battery") { this.toys.set("clock", this.clock.elapsedTime); this.clickClock(); return; }
     if (!hit) return;
     if (hit.kind === "toy") this.toys.set(hit.name, this.clock.elapsedTime);
     if (hit.kind === "toy" && hit.name === "clock") return this.clickClock(), this.ev.click?.(hit);
+    if (hit.kind === "toy" && hit.name === "lamp") { this.lampTarget = 1 - this.lampTarget; this.toys.set("lamp", this.clock.elapsedTime); }
+    if (hit.kind === "toy" && hit.name === "curtains") this.curtainTarget = 1 - this.curtainTarget;
     if (hit.kind === "toy" && hit.name === "keyboard") { for (let i = 0; i < 6; i++) setTimeout(() => this.tapRandomKey(), i * 90); }
     this.ev.click?.(hit);
   };
@@ -476,7 +504,7 @@ export class RoomEngine {
       this.pose.fov = THREE.MathUtils.lerp(this.from.fov, this.to.fov, k);
     }
     // looking around from the home spot: drag, or rest the pointer near an edge and the view turns
-    if (this.atHome()) {
+    if (this.atHome() && !this.cardOn) {
       if (!this.dragging && !this.hovered && Math.abs(this.pointer.x) <= 1) {
         const edge = (v: number, from = 0.62) => Math.sign(v) * Math.pow(Math.max(0, (Math.abs(v) - from) / (1 - from)), 2);
         this.look.yaw = THREE.MathUtils.clamp(this.look.yaw - edge(this.pointer.x) * dt * 1.5, -YAW, YAW);
@@ -508,30 +536,46 @@ export class RoomEngine {
 
     // toys
     const since = (name: string) => t - (this.toys.get(name) ?? -99);
-    const fan = this.nodes.get("bench_fan");
+    const P = (n: string) => this.pivots.get(n);
+    const fan = P("bench_fan");
     if (fan) fan.rotation.z += dt * (this.installedId ? 7 + 30 * Math.exp(-since("fan") * 0.6) : 2);
-    for (const s of ["projector_spool_takeup", "projector_spool_feed"]) {
-      const n = this.nodes.get(s); if (n) n.rotation.x -= dt * 1.4;
-    }
-    const mug = this.nodes.get("mug");
+    for (const s of ["projector_spool_takeup", "projector_spool_feed"]) { const n = P(s); if (n) n.rotation.x -= dt * 1.4; }
+    const mug = P("mug");
     if (mug) {
       const k = since("mug");
       const lift = k < 2.2 ? Math.sin(Math.min(1, k / 2.2) * Math.PI) : 0;
-      mug.userData.base ??= mug.position.y;
-      mug.position.y = mug.userData.base + lift * 0.09;
-      mug.rotation.z = lift * 0.5;
+      mug.userData.y0 ??= mug.position.y;
+      mug.position.y = mug.userData.y0 + lift * 0.09;
+      mug.rotation.z = lift * 0.45;
     }
-    const plant = this.nodes.get("plant");
+    const plant = P("plant");
     if (plant) {
       const k = since("plant");
-      plant.rotation.z = Math.sin(t * 0.9) * 0.004 + (k < 3 ? Math.sin(k * 14) * Math.exp(-k * 1.6) * 0.04 : 0);
+      plant.rotation.z = Math.sin(t * 0.9) * 0.006 + (k < 3 ? Math.sin(k * 14) * Math.exp(-k * 1.6) * 0.05 : 0);
     }
-    for (let i = 0; i < 6; i++) {
-      const k = since(`poster_${i}`);
-      const n = this.nodes.get(`poster_frame_${i}`), a = this.nodes.get(`poster_${i}`);
-      const r = k < 4 ? Math.sin(k * 7) * Math.exp(-k * 1.4) * 0.05 : 0;
-      for (const o of [n, a]) if (o) { o.userData.rz ??= o.rotation.z; o.rotation.z = o.userData.rz + r; }
+    for (const f of ["figure_pirate", "figure_saiyan"]) {
+      const n = P(f); if (!n) continue;
+      const k = since(f); n.userData.y0 ??= n.position.y;
+      const hop = k < 0.8 ? Math.sin((k / 0.8) * Math.PI) : 0;
+      n.position.y = n.userData.y0 + hop * 0.05; n.rotation.y = k < 0.8 ? (k / 0.8) * Math.PI * 2 : 0;
     }
+    const ball = P("dragonball");
+    if (ball) { const k = since("dragonball"); ball.rotation.y += dt * (0.15 + (k < 3 ? 9 * Math.exp(-k * 1.5) : 0)); }
+    // curtains: gathered open, drawn shut on a click
+    this.curtainK += (this.curtainTarget - this.curtainK) * Math.min(1, dt * 2.2);
+    for (const c of ["curtain_l", "curtain_r"]) {
+      const n = P(c); if (n) n.scale.x = 1 + (n.userData.closed - 1) * ease(this.curtainK);
+    }
+    // the lamp: on almost at once with a flicker of the filament, off quickly
+    if (this.lampReady) {
+      const k = since("lamp");
+      const flicker = this.lampTarget === 0 && k < 0.35 ? (Math.sin(k * 90) > 0.2 ? 0.5 : 0) * (1 - k / 0.35) : 0;
+      this.lampOff.value += (this.lampTarget - this.lampOff.value) * Math.min(1, dt * (this.lampTarget ? 14 : 9));
+      this.lampOff.value = THREE.MathUtils.clamp(this.lampOff.value + flicker, 0, 1);
+      if (Math.abs(this.lampOff.value - this.lampTarget) < 0.002 && this.toys.has("lamp") && k > 0.6 && !this.envFresh) { this.captureEnv(); this.envFresh = true; }
+      if (k < 0.6) this.envFresh = false;
+    }
+    this.tickPoster(dt);
 
     // hover: the thing under the pointer brightens; a card in the rack slides up a little
     for (const [root, g] of this.glow) {
@@ -584,6 +628,114 @@ export class RoomEngine {
     const url = this.canvas.toDataURL("image/jpeg", 0.88);
     this.renderer.setPixelRatio(this.dpr); this.renderer.setSize(cw, ch, false); this.resize();
     return url;
+  }
+
+  // ------------------------------------------------------------------ pivots
+  /** Hangs a node from a pivot at `at` (world space), oriented `q`. The node keeps its place. */
+  private pivot(name: string, at: THREE.Vector3, q = new THREE.Quaternion()) {
+    const n = this.nodes.get(name);
+    if (!n?.parent) return;
+    const g = new THREE.Group(); g.name = `pivot:${name}`;
+    g.position.copy(at); g.quaternion.copy(q);
+    n.parent.add(g); g.updateMatrixWorld(true);
+    g.attach(n);
+    g.userData.q0 = g.quaternion.clone();
+    this.pivots.set(name, g);
+    return g;
+  }
+  private makePivots() {
+    const box = (n: string) => new THREE.Box3().setFromObject(this.nodes.get(n)!);
+    const centre = (n: string) => box(n).getCenter(new THREE.Vector3());
+    const bottom = (n: string) => { const b = box(n); return new THREE.Vector3((b.min.x + b.max.x) / 2, b.min.y, (b.min.z + b.max.z) / 2); };
+    for (const n of ["bench_fan", "projector_spool_takeup", "projector_spool_feed", "dragonball"]) if (this.nodes.has(n)) this.pivot(n, centre(n));
+    for (const n of ["mug", "plant", "figure_pirate", "figure_saiyan"]) if (this.nodes.has(n)) this.pivot(n, bottom(n));
+    // clock hands turn about the face's centre, on its normal (pivot's local y)
+    const face = this.info.live.clock_face;
+    if (face) {
+      const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...face.normal).normalize());
+      for (const h of ["hour", "minute", "second"]) if (this.nodes.has(`clock_${h}`)) this.pivot(`clock_${h}`, new THREE.Vector3(...face.pos), q);
+    }
+    // curtains gather towards their outer edge; closed, they reach the middle of the window
+    const w = this.info.window, mid = (w.x0 + w.x1) / 2;
+    for (const [n, outerMin] of [["curtain_l", true], ["curtain_r", false]] as const) {
+      if (!this.nodes.has(n)) continue;
+      const b = box(n), outer = outerMin ? b.min.x : b.max.x;
+      const g = this.pivot(n, new THREE.Vector3(outer, (b.min.y + b.max.y) / 2, (b.min.z + b.max.z) / 2));
+      if (g) g.userData.closed = Math.abs(mid - outer) / (b.max.x - b.min.x);
+    }
+  }
+
+  // ------------------------------------------------------------------ the lamp
+  /** Loads the lamp-off bake and teaches every baked material to crossfade to it. */
+  private async loadLampOff(atlasTex: Record<string, THREE.Texture>) {
+    const tl = new THREE.TextureLoader();
+    const load = (u: string) => tl.loadAsync(u).then((t) => { t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = this.renderer.capabilities.getMaxAnisotropy(); return t; }).catch(() => null);
+    const off = new Map<THREE.Texture, THREE.Texture>();
+    await Promise.all([
+      ...Object.entries(atlasTex).map(async ([k, t]) => { const o = await load(`${BASE}atlas_${k}_off.webp`); if (o) off.set(t, o); }),
+      ...[...this.live.entries()].map(async ([name, m]) => {
+        if (!m.lightMap) return;
+        const o = await load(`${BASE}shade_${name}_off.webp`); if (o) { o.channel = 0; off.set(m.lightMap, o); }
+      }),
+    ]);
+    if (this.disposed || !off.size) return;
+    const lamp = this.lampOff;
+    this.scene.traverse((o) => {
+      if (!(o instanceof THREE.Mesh)) return;
+      for (const m of Array.isArray(o.material) ? o.material : [o.material]) {
+        const src = m.map ?? m.emissiveMap ?? m.lightMap;
+        const mapOff = (m.map && off.get(m.map)) || (m.emissiveMap && off.get(m.emissiveMap)) || (m.lightMap && off.get(m.lightMap));
+        if (!src || !mapOff || m.userData.lampMix) continue;
+        m.userData.lampMix = true;
+        const which = m.lightMap && off.get(m.lightMap) ? "light" : m.emissiveMap ? "emissive" : "map";
+        m.onBeforeCompile = (sh: THREE.WebGLProgramParametersWithUniforms) => {
+          sh.uniforms.mapOff = { value: mapOff }; sh.uniforms.lampOff = lamp;
+          sh.fragmentShader = "uniform sampler2D mapOff;\nuniform float lampOff;\n" + sh.fragmentShader;
+          if (which === "map") sh.fragmentShader = sh.fragmentShader.replace("texture2D( map, vMapUv )", "mix( texture2D( map, vMapUv ), texture2D( mapOff, vMapUv ), lampOff )");
+          if (which === "emissive") sh.fragmentShader = sh.fragmentShader.replace("texture2D( emissiveMap, vEmissiveMapUv )", "mix( texture2D( emissiveMap, vEmissiveMapUv ), texture2D( mapOff, vEmissiveMapUv ), lampOff )");
+          if (which === "light") sh.fragmentShader = sh.fragmentShader.replace("texture2D( lightMap, vLightMapUv )", "mix( texture2D( lightMap, vLightMapUv ), texture2D( mapOff, vLightMapUv ), lampOff )");
+        };
+        m.customProgramCacheKey = () => `lamp-${which}`;
+        m.needsUpdate = true;
+      }
+    });
+    this.lampReady = true;
+  }
+
+  // ------------------------------------------------------------------ a poster, lifted off the wall
+  showPoster(i: number) {
+    const art = this.live.get(`poster_${i}`);
+    if (!art?.map) return;
+    const img = art.map.image as { width: number; height: number };
+    if (!this.card) {
+      this.card = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, toneMapped: false }));
+      this.card.renderOrder = 11; this.camera.add(this.card);
+      this.dim = new THREE.Mesh(new THREE.PlaneGeometry(6, 6), new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
+      this.dim.position.z = -0.62; this.dim.renderOrder = 10; this.camera.add(this.dim);
+    }
+    // a copy of the poster's own picture, the right way up (its texture is set up for glTF's UVs)
+    const t = art.map.clone(); t.flipY = true; t.needsUpdate = true;
+    this.card.material.map?.dispose(); this.card.material.map = t; this.card.material.needsUpdate = true;
+    this.card.userData.aspect = img.height / img.width;
+    const n = this.nodes.get(`poster_${i}`)!;
+    this.camera.updateMatrixWorld();
+    if (!this.cardOn) { this.card.userData.from = this.camera.worldToLocal(n.getWorldPosition(new THREE.Vector3())); this.cardK = this.reduced ? 1 : 0; }
+    this.cardOn = true;
+  }
+  hidePoster() { this.cardOn = false; }
+  private tickPoster(dt: number) {
+    const c = this.card, d = this.dim;
+    if (!c || !d) return;
+    this.cardK += ((this.cardOn ? 1 : 0) - this.cardK) * Math.min(1, dt * (this.cardOn ? 4.5 : 8));
+    c.visible = d.visible = this.cardK > 0.01;
+    if (!c.visible) return;
+    const dist = 0.6, vh = 2 * dist * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)), vw = vh * this.camera.aspect;
+    const a = c.userData.aspect ?? 1.3, s = Math.min((vh * 0.8) / a, vw * 0.88);
+    const k = ease(Math.min(1, this.cardK));
+    c.position.lerpVectors(c.userData.from ?? new THREE.Vector3(), new THREE.Vector3(0, -vh * 0.02, -dist), k);
+    c.scale.set(s * (0.3 + 0.7 * k), s * a * (0.3 + 0.7 * k), 1);
+    c.rotation.set(0, (1 - k) * 0.6, (1 - k) * 0.1);
+    c.material.opacity = Math.min(1, k * 2); d.material.opacity = 0.55 * k;
   }
 
   // ------------------------------------------------------------------ reflections
@@ -713,10 +865,9 @@ export class RoomEngine {
     const s = now.getSeconds() + (this.clockStopped ? 0 : Math.min(1, (now.getMilliseconds() / 1000) * 6)); // quartz tick
     const m = now.getMinutes() + s / 60, h = (now.getHours() % 12) + m / 60;
     const set = (name: string, turns: number) => {
-      const n = this.nodes.get(`clock_${name}`);
-      if (!n) return;
-      n.userData.q0 ??= n.quaternion.clone();
-      n.quaternion.copy(n.userData.q0).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turns * Math.PI * 2));
+      const p = this.pivots.get(`clock_${name}`);
+      if (!p) return;
+      p.quaternion.copy(p.userData.q0).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turns * Math.PI * 2));
     };
     set("hour", h / 12); set("minute", m / 60); set("second", s / 60);
   }

@@ -15,7 +15,9 @@ they hold:
 The top bar has three titles (Work, Writing, About) and two icons (sound, settings). Rest the pointer
 near an edge, or drag, to look around: as far as the projector and the shelves, never the back wall.
 Typing presses the keys on the desk; the wall clock keeps your time (click it and the battery falls
-out). The mug, plant, posters and bench fan respond to clicks. Settings are remembered per browser. The
+out). Click the lamp to switch it off and on (the room is baked twice and crossfades), the curtains to
+draw them, a poster to lift it off the wall. Next to the books stand two figurines and a four-star
+ball. The mug, plant and bench fan respond to clicks too. Settings are remembered per browser. The
 URL hash mirrors the view (`/#work/inferbench`, `/#writing`, ...). Sound (rain and an original
 music-box waltz, both synthesised) is off until the visitor turns it on; to use a recording instead,
 put it in `public/room/` and set `MUSIC_URL` in `app/room/engine/audio.ts`.

@@ -78,4 +78,5 @@ export type View =
   | { kind: "year" }
   | { kind: "resume" }
   | { kind: "books"; book?: number }
-  | { kind: "online" };
+  | { kind: "online" }
+  | { kind: "poster"; i: number };

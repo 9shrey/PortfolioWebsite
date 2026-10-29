@@ -73,6 +73,23 @@ for k in range(60):
 d.text((S / 2, S * 0.66), "SS-26", font=font("martian-mono-var", 30, weight=500), fill=(110, 110, 116), anchor="mm")
 im.save(f"{OUT}/clock_face.png")
 
+# A four-star ball: orange glass with four red stars on the side that faces the room (equirect UVs)
+Wd, Hd = 1024, 512
+im = Image.new("RGB", (Wd, Hd), (236, 128, 26)); d = ImageDraw.Draw(im)
+for yy in range(Hd):
+    t = abs(yy - Hd / 2) / (Hd / 2)
+    d.line([(0, yy), (Wd, yy)], fill=(int(250 - 60 * t), int(160 - 70 * t), int(40 - 20 * t)))
+def star(cx, cy, r, fill):
+    pts = []
+    for k in range(10):
+        a = math.pi / 2 + k * math.pi / 5; rr = r if k % 2 == 0 else r * 0.42
+        pts.append((cx + rr * math.cos(a) * 0.5, cy - rr * math.sin(a)))   # x squeezed: equirect stretches it back
+    d.polygon(pts, fill=fill)
+for cu in (0.25, 0.75):            # the stars on both sides, so they face the room however the ball turns
+    for sx, sy in ((-0.05, -0.12), (0.05, -0.1), (-0.04, 0.1), (0.05, 0.12)):
+        star(Wd * (cu + sx), Hd * (0.5 + sy), 40, (196, 30, 30))
+im.save(f"{OUT}/dragonball.png")
+
 # Résumé, first page of the PDF
 subprocess.run(["pdftoppm", "-png", "-r", "110", "-f", "1", "-l", "1", "-singlefile",
                 "public/Shrey_Singh_Resume.pdf", f"{OUT}/resume"], check=True)

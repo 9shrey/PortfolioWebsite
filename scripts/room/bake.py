@@ -161,6 +161,31 @@ for o in DYN:
 for g in ghosts: g.hide_render = False
 log("baked", len(DYN), "live surfaces")
 
+# ---------------------------------------------------------------- the same room with the desk lamp off
+# Everything again, lamp lights out and its bulb dark: the page crossfades between the two.
+for name in ("lamp_spot", "lamp_glow"):
+    if name in scene.objects: scene.objects[name].hide_render = True
+for m in bpy.data.materials:   # (use_nodes reads false on imported materials in Blender 5: test the tree)
+    if m.node_tree and "_light" in m.name and m.node_tree.nodes.get("Principled BSDF"):
+        m.node_tree.nodes["Principled BSDF"].inputs["Emission Strength"].default_value = 0
+if "ambient" in scene.objects: scene.objects["ambient"].data.energy *= 0.5   # the fill is the lamp's bounce, mostly
+for name, objs in atlases.items():
+    size = next(sz for n, _, sz, _ in GROUPS if n == name)
+    img = bpy.data.images.new(f"atlas_{name}_off", size, size, float_buffer=True)
+    log("baking (lamp off)", name)
+    bake(objs, img)
+    denoise_and_save(img, f"{OUT}/atlas_{name}_off.webp")
+for g in ghosts: g.hide_render = True
+for o in DYN:
+    w, h = max(o.dimensions.x, 0.01), max(o.dimensions.y, 0.01)
+    side = 256 if max(w, h) < 0.3 else 512
+    px = (side, max(16, round(side * h / w))) if w >= h else (max(16, round(side * w / h)), side)
+    img = bpy.data.images.new(f"shade_{o.name}_off", *px, float_buffer=True)
+    bake([o], img)
+    denoise_and_save(img, f"{OUT}/shade_{o.name}_off.webp")
+for g in ghosts: g.hide_render = False
+log("baked the lamp-off room")
+
 # ---------------------------------------------------------------- export
 def flatten(objs, mat_name):
     m = bpy.data.materials.get(mat_name) or principled(mat_name)

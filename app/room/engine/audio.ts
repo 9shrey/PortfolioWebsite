@@ -132,7 +132,7 @@ export class RoomAudio {
   }
 
   // ---------------------------------------------------------------- effects
-  click(kind: "card" | "tick" | "sip" | "whirr" | "key") {
+  click(kind: "card" | "tick" | "sip" | "whirr" | "key" | "switch" | "swish") {
     if (!this.ctx || !this.on) return;
     const c = this.ctx, t = c.currentTime;
     const o = c.createOscillator(), g = c.createGain(); o.connect(g).connect(this.master);
@@ -153,6 +153,16 @@ export class RoomAudio {
       const n = c.createOscillator(), ng = c.createGain(); n.type = "square"; n.frequency.value = 2400 + Math.random() * 800;
       ng.gain.setValueAtTime(0.025, t); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.012);
       n.connect(ng).connect(this.master); n.start(t); n.stop(t + 0.02);
+    } else if (kind === "switch") {   // a lamp's push switch: two short clicks
+      o.type = "square"; o.frequency.setValueAtTime(900, t);
+      g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.02);
+      g.gain.setValueAtTime(0.04, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+      o.start(t); o.stop(t + 0.08);
+    } else if (kind === "swish") {    // curtain rings along the rod
+      o.type = "sawtooth"; o.frequency.setValueAtTime(2200, t); o.frequency.linearRampToValueAtTime(1500, t + 0.6);
+      const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 3000; bp.Q.value = 2; o.disconnect(); o.connect(bp).connect(g);
+      g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.03, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
+      o.start(t); o.stop(t + 0.75);
     } else if (kind === "sip") {
       o.type = "sine"; o.frequency.setValueAtTime(400, t); o.frequency.linearRampToValueAtTime(260, t + 0.3);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.04, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);

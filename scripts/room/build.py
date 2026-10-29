@@ -277,20 +277,29 @@ win = join("window_frame", [
 ])
 STATIC_SHELL += [walls, floor, ceiling, skirt, win]
 
-def curtain(name, x0, x1):
-    bm = bmesh.new(); nx, nz = 48, 2
-    w, h = x1 - x0, 2.52
-    verts = [[bm.verts.new((x0 + w * i / nx, BACK - 0.11 + 0.035 * math.sin(i / nx * math.pi * 7.5) + 0.01 * math.sin(i * 1.7), 0.03 + h * j / nz))
+def curtain(name, outer, inner, open_w):
+    """Modelled drawn shut (outer edge to the middle of the window) and gathered open by its x scale,
+    with its origin on the outer edge so the page can draw it closed again."""
+    bm = bmesh.new(); nx, nz = 96, 2
+    w, h = inner - outer, 2.52
+    folds = abs(w) * 12
+    verts = [[bm.verts.new((w * i / nx, BACK - 0.11 + 0.03 * math.sin(i / nx * math.pi * folds) + 0.008 * math.sin(i * 1.7), 0.03 + h * j / nz))
               for j in range(nz + 1)] for i in range(nx + 1)]
     for i in range(nx):
-        for j in range(nz): bm.faces.new((verts[i][j], verts[i + 1][j], verts[i + 1][j + 1], verts[i][j + 1]))
+        for j in range(nz):
+            f = (verts[i][j], verts[i + 1][j], verts[i + 1][j + 1], verts[i][j + 1])
+            bm.faces.new(f if w > 0 else f[::-1])
     o = mesh_obj(name, bm, M["fabric"])
     s = o.modifiers.new("solid", "SOLIDIFY"); s.thickness = 0.006
+    o.location = (outer, 0, 0)
+    o.scale = (open_w / abs(w), 1, 1)        # open, as it is baked
+    o["closed"] = abs(w) / open_w            # how far it stretches to close
     return o
 
+xm_ = (WIN["x0"] + WIN["x1"]) / 2
 STATIC_SHELL += [
-    curtain("curtain_l", WIN["x0"] - 0.55, WIN["x0"] + 0.06),
-    curtain("curtain_r", WIN["x1"] - 0.06, WIN["x1"] + 0.26),
+    curtain("curtain_l", WIN["x0"] - 0.55, xm_ + 0.02, 0.61),
+    curtain("curtain_r", WIN["x1"] + 0.26, xm_ - 0.02, 0.32),
     cyl("curtain_rod", 0.012, X1 - X0 - 2.2, (xm, BACK - 0.11, 2.58), M["steel"], rot=(0, 90, 0)),
 ]
 
@@ -494,6 +503,78 @@ for i, bk in enumerate(real):
     y += t + 0.002
 # a bookend after them
 STATIC_PROPS.append(span("bookend", xb - 0.12, xb, y + 0.004, y + 0.01, REAL_BOARD, REAL_BOARD + 0.14, M["steel"]))
+
+# ------------------------------------------------------------------ figurines next to the books
+# Chunky vinyl-toy takes on two favourites (fan figurines, not replicas): a straw-hat pirate and a
+# saiyan in an orange gi, and a four-star ball on a little stand.
+def mat(name, hexc, rough=0.5, metal=0.0):
+    return M.setdefault(name, principled(name, srgb(hexc), rough, metal))
+def sphere(name, r, loc, m, scale=(1, 1, 1), seg=24):
+    bm = bmesh.new(); bm.loops.layers.uv.new("UVMap")           # calc_uvs fills an existing layer only
+    bmesh.ops.create_uvsphere(bm, u_segments=seg, v_segments=seg // 2, radius=r, calc_uvs=True)
+    for f in bm.faces: f.smooth = True
+    o = mesh_obj(name, bm, m); o.location = loc; o.scale = scale; return o
+def cone(name, r, d, loc, m, rot=(0, 0, 0)):
+    return cyl(name, r, d, loc, m, rot=rot, seg=10, r2=0.0)
+
+def figurine(name, at, kind):
+    x, y, z = at
+    skin = mat("fig_skin", "#f1c7a0", 0.45); black = mat("fig_black", "#121214", 0.35)
+    parts = [cyl("stand", 0.034, 0.008, (x, y, z + 0.004), black, seg=28)]
+    z0 = z + 0.008
+    if kind == "pirate":
+        shorts = mat("fig_blue", "#2f5fae", 0.5); vest = mat("fig_red", "#c8282d", 0.45)
+        straw = mat("fig_straw", "#e2b84a", 0.6); band = mat("fig_band", "#b3141b", 0.5)
+        for dy in (-0.009, 0.009):
+            parts += [cyl("leg", 0.006, 0.03, (x, y + dy, z0 + 0.015), skin, seg=10),
+                      cyl("sandal", 0.008, 0.004, (x - 0.003, y + dy, z0 + 0.002), mat("fig_brown", "#5b3a22"), seg=10)]
+        parts += [cyl("shorts", 0.017, 0.022, (x, y, z0 + 0.039), shorts, seg=16),
+                  cyl("chest", 0.015, 0.03, (x, y, z0 + 0.064), skin, seg=16),
+                  cyl("vest", 0.016, 0.028, (x + 0.002, y, z0 + 0.065), vest, seg=16)]
+        for dy, ang in ((-0.021, -14), (0.021, 14)):
+            parts.append(cyl("arm", 0.005, 0.032, (x, y + dy, z0 + 0.062), skin, rot=(ang, 0, 0), seg=8))
+        parts += [sphere("head", 0.017, (x, y, z0 + 0.097), skin),
+                  sphere("hair", 0.0175, (x - 0.003, y, z0 + 0.102), black, scale=(1, 1, 0.8)),
+                  cyl("brim", 0.034, 0.003, (x, y, z0 + 0.11), straw, seg=28),
+                  cyl("crown", 0.018, 0.016, (x, y, z0 + 0.12), straw, seg=20),
+                  cyl("band", 0.0185, 0.004, (x, y, z0 + 0.114), band, seg=20)]
+    else:
+        gi = mat("fig_orange", "#ee7a1c", 0.5); blue = mat("fig_navy", "#1d3f9a", 0.45)
+        for dy in (-0.01, 0.01):
+            parts += [cyl("boot", 0.007, 0.016, (x, y + dy, z0 + 0.008), blue, seg=10),
+                      cyl("pants", 0.009, 0.026, (x, y + dy, z0 + 0.029), gi, seg=10)]
+        parts += [cyl("belt", 0.018, 0.005, (x, y, z0 + 0.044), blue, seg=16),
+                  cyl("torso", 0.018, 0.032, (x, y, z0 + 0.063), gi, seg=16),
+                  cyl("collar", 0.012, 0.006, (x - 0.004, y, z0 + 0.078), blue, seg=12)]
+        for dy, ang in ((-0.024, -16), (0.024, 16)):
+            parts += [cyl("arm", 0.0055, 0.03, (x, y + dy, z0 + 0.06), skin, rot=(ang, 0, 0), seg=8),
+                      cyl("cuff", 0.0065, 0.006, (x, y + dy * 1.12, z0 + 0.05), blue, rot=(ang, 0, 0), seg=8)]
+        parts.append(sphere("head", 0.017, (x, y, z0 + 0.096), skin))
+        # the spiky hair: cones fanned out from the crown
+        hc = Vector((x - 0.002, y, z0 + 0.1))
+        for ax, ay, ln in ((0, -25, 0.05), (-40, -20, 0.045), (40, -20, 0.045), (-75, -10, 0.04), (75, -10, 0.04), (-20, -55, 0.042), (20, -55, 0.042), (0, -80, 0.038)):
+            rot = Euler((math.radians(ax), math.radians(ay), 0))
+            d = (rot.to_matrix() @ Vector((0, 0, 1))).normalized()
+            parts.append(cone("spike", 0.0085, ln, tuple(hc + d * (0.012 + ln / 2)), black, rot=(ax, ay, 0)))
+        parts.append(sphere("hair_cap", 0.0178, (x - 0.004, y, z0 + 0.101), black, scale=(1, 1, 0.85)))
+    for dy in (-0.006, 0.006):
+        parts.append(sphere("eye", 0.0022, (x + 0.0158, y + dy, z0 + 0.097), black, seg=8))
+    o = join(name, parts)
+    bpy.context.view_layer.update()
+    o.data.transform(o.matrix_world); o.matrix_world = Matrix.Identity(4)             # into world space…
+    o.data.transform(Matrix.Translation(-Vector((x, y, z)))); o.location = (x, y, z)   # …then the origin on the stand's centre
+    o.rotation_euler.z = math.radians(180 + (12 if kind == "pirate" else -10))           # built facing +x; face the room
+    return o
+
+fy = y + 0.07
+fig_x = xb - 0.075
+STATIC_PROPS.append(figurine("figure_pirate", (fig_x, fy, REAL_BOARD), "pirate")); fy += 0.085
+STATIC_PROPS.append(figurine("figure_saiyan", (fig_x, fy, REAL_BOARD), "saiyan")); fy += 0.075
+ball_m = image_mat("dragonball", f"{GEN}/dragonball.png", 0.12)
+ball = sphere("dragonball", 0.022, (fig_x, fy, REAL_BOARD + 0.026), ball_m, seg=32)
+ball.rotation_euler = (0, 0, math.radians(90))
+ring = cyl("ball_stand", 0.016, 0.006, (fig_x, fy, REAL_BOARD + 0.003), M["steel"], seg=24)
+STATIC_PROPS += [join("dragonball", [ball, ring])]
 desk_books = []
 zb = TOP
 for k, src in enumerate(sorted(book_src, key=lambda o: -o.dimensions.y * o.dimensions.z)[:7]):

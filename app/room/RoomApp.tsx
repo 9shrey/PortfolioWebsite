@@ -20,6 +20,7 @@ const NAV: { view: View; label: string }[] = [
   { view: { kind: "about" }, label: "About" },
 ];
 const LAPTOP: View["kind"][] = ["about", "writing", "online"];
+const LOADING = ["Opening the curtains", "Switching on the lamp", "Slotting the cards", "Pouring the chai", "Nearly there"];
 
 const SETTINGS_KEY = "room.settings";
 function loadSettings(): Settings {
@@ -30,12 +31,14 @@ function toHash(v: View) {
   if (v.kind === "home") return "";
   if (v.kind === "work") return v.card ? `#work/${v.card}` : "#work";
   if (v.kind === "books") return "#books";
+  if (v.kind === "poster") return `#poster/${v.i}`;
   return `#${v.kind}`;
 }
 function fromHash(h: string, content: RoomContent): View {
   const [k, id] = h.replace(/^#/, "").split("/");
   if (k === "work") return { kind: "work", card: content.cards.some((c) => c.id === id) ? id : "" };
   if (k === "books") return { kind: "books" };
+  if (k === "poster" && Number(id) >= 0 && Number(id) < 6) return { kind: "poster", i: Number(id) };
   if (["about", "writing", "online", "contact", "year", "resume"].includes(k)) return { kind: k } as View;
   return { kind: "home" };
 }
@@ -57,6 +60,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const [fps, setFps] = useState(0);
   const [toast, setToast] = useState("");
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
+  // on a phone the laptop's 1280 px app would be unreadably small on the lid: it opens full screen instead
+  const [narrow] = useState(() => matchMedia("(max-width: 760px)").matches);
 
   const ci = content.cards.findIndex((c) => c.id === installed);
   const card = content.cards[ci] ?? null;
@@ -70,7 +75,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     }
     if (v.kind === "about" || v.kind === "writing" || v.kind === "online") setTab(v.kind);
     setView(v);
-    e?.go(v);
+    if (v.kind === "poster") e?.showPoster(v.i); else { e?.hidePoster(); e?.go(v); }
     e?.setScreenActive(LAPTOP.includes(v.kind));
     setHint(false);
     const h = toHash(v);
@@ -117,7 +122,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         if (hit.kind === "card") return navigate({ kind: "work", card: hit.id });
         if (hit.kind === "view") return navigate(hit.view.kind === "about" && LAPTOP.includes(view.kind) ? view : hit.view);
         if (hit.kind === "action") return act(hit.action);
-        audio.current?.click(hit.name === "mug" ? "sip" : hit.name === "fan" ? "whirr" : "tick");
+        if (hit.name.startsWith("poster_")) return navigate({ kind: "poster", i: Number(hit.name.slice(7)) });
+        audio.current?.click(hit.name === "mug" ? "sip" : hit.name === "fan" ? "whirr" : hit.name === "lamp" ? "switch" : hit.name === "curtains" ? "swish" : "tick");
       },
     });
   }, [navigate, act, ready, view]);
@@ -136,7 +142,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     if (!ready) return;
     const n = content.cards.length;
     document.fonts.ready.then(() => {
-      const d = drawSlide(card, content.cards[(ci - 1 + n) % n], content.cards[(ci + 1) % n]);
+      const d = drawSlide(card, content.cards[(ci - 1 + n) % n], content.cards[(ci + 1) % n], ci, n);
       engine.current?.setSurface("screen", d.canvas);
       engine.current?.setRegions("screen", d);
     });
@@ -210,10 +216,15 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     <div ref={host} className={`room ${ready ? "is-ready" : ""} view-${view.kind}`}>
       <p className="sr-only">A desk at night by a rainy window in New York. Things on the desk and around the room open what they hold; the reading view has all of it as plain text.</p>
 
-      <div className={`room-loader ${ready ? "is-done" : ""}`} aria-hidden={ready}>
-        <p className="loader-name">{content.name}</p>
-        <div className="loader-bar"><span style={{ transform: `scaleX(${progress})` }} /></div>
-        <p className="loader-note">Setting up the desk</p>
+      <div className={`room-loader ${ready ? "is-done" : ""}`} aria-hidden={ready} style={{ ["--p" as string]: progress }}>
+        {/* the room itself, out of focus, coming into focus as it loads */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img className="loader-still" src="/room/still.webp" alt="" />
+        <div className="loader-foot">
+          <p className="loader-name">{content.name}</p>
+          <p className="loader-step">{LOADING[Math.min(LOADING.length - 1, Math.floor(progress * LOADING.length))]}</p>
+          <div className="loader-bar"><span /></div>
+        </div>
       </div>
 
       <header className="room-head">
@@ -252,6 +263,9 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       {toast && <p className="room-toast" role="status">{toast}</p>}
 
       {createPortal(<LaptopScreen c={content} tab={tab} onTab={(t) => navigate({ kind: t })} />, screenEl)}
+      {narrow && LAPTOP.includes(view.kind) && (
+        <div className="lap-full"><LaptopScreen c={content} tab={tab} onTab={(t) => navigate({ kind: t })} /></div>
+      )}
     </div>
   );
 }
