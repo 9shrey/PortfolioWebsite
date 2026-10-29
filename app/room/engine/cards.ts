@@ -29,119 +29,121 @@ function arrow(g: CanvasRenderingContext2D, x: number, y: number, dir: 1 | -1, c
 }
 
 
-/** A card's accent, lifted until it reads as light on the dark slide (a navy shroud projects as nothing). */
-function luminous(hex: string) {
-  let [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
-  const lum = () => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-  for (let k = 0; k < 12 && lum() < 0.42; k++) { r += (255 - r) * 0.18; g += (255 - g) * 0.18; b += (255 - b) * 0.18; }
-  return `rgb(${Math.round(r)},${Math.round(g)},${Math.round(b)})`;
+const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const lum = ([r, g, b]: number[]) => (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+/** A card's accent, darkened until it reads as ink on white (a lime or a sky blue would vanish). */
+function inked(hex: string) {
+  let c = rgb(hex);
+  for (let k = 0; k < 14 && lum(c) > 0.36; k++) c = c.map((v) => v * 0.86);
+  return `rgb(${c.map(Math.round).join(",")})`;
 }
 
 // ------------------------------------------------------------------ the projected slide
-/** A slide as a projector shows it: black is no light, so it is mostly dark, and the type is the light.
- *  One number is the hero (for Inferbench, the measured decode speed-up as bars); the rest sit quietly
- *  beneath. The case study and code are buttons; the cards either side are along the bottom edge. */
+/** A slide as the projector throws it: white, like a printed page on the wall. The project's name is
+ *  the poster across the top, the blurb is set in the serif, and one figure is the hero (for Inferbench,
+ *  the measured decode speed-up as two bars). A band in the card's own colour runs along the bottom and
+ *  carries the links and the way to the cards either side. */
 export function drawSlide(card: CardContent | null, prev: CardContent | null, next: CardContent | null, index = 0, total = 0): Drawn {
   const W = 1600, H = 1200;
   const c = document.createElement("canvas"); c.width = W; c.height = H;
   const g = c.getContext("2d")!;
   const F = fonts();
-  const LIGHT = "#f4efe4", DIM = "rgba(244,239,228,.58)", FAINT = "rgba(244,239,228,.18)";
-  // the throw: a dark frame with the lamp's light pooling a little in the middle
-  g.fillStyle = "#0b0b0d"; g.fillRect(0, 0, W, H);
-  const r = g.createRadialGradient(W * 0.5, H * 0.46, 60, W * 0.5, H * 0.5, W * 0.7);
-  r.addColorStop(0, "rgba(60,55,48,.55)"); r.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = r; g.fillRect(0, 0, W, H);
+  const serif = F.serif;
+  const PAPER = "#f7f5f0", BLACK = "#121214", GREY = "#6b6a70", RULE = "#dcd8cf";
+  g.fillStyle = PAPER; g.fillRect(0, 0, W, H);
   if (!card) {
-    g.fillStyle = DIM; g.font = `500 52px ${F.sans}`; g.textAlign = "center";
+    g.fillStyle = GREY; g.font = `italic 400 60px ${serif}`; g.textAlign = "center";
     g.fillText("Slot a card from the rack.", W / 2, H / 2);
     return { canvas: c, regions: [] };
   }
-  const pad = 120, regions: Region[] = [];
-  const acc = luminous(card.accent);
+  const pad = 112, regions: Region[] = [];
+  const ink = inked(card.accent);
+  const bandH = 176, bandY = H - bandH;
 
-  // the running head: where this sits in the stack, and what it is
-  g.font = `500 30px ${F.mono}`; g.fillStyle = DIM;
-  if (total) g.fillText(`${String(index + 1).padStart(2, "0")} / ${String(total).padStart(2, "0")}`, pad, pad);
-  g.textAlign = "right"; g.fillText(`${card.area}  ·  ${card.years}`, W - pad, pad); g.textAlign = "left";
-  g.fillStyle = acc; g.fillRect(pad, pad + 28, 64, 6);
+  // the running head: what it is, and where it sits in the stack
+  g.font = `500 32px ${F.sans}`; g.fillStyle = GREY;
+  g.fillText(`${card.area}, ${card.years}`, pad, pad);
+  if (total) { g.textAlign = "right"; g.fillText(`${index + 1} of ${total}`, W - pad, pad); g.textAlign = "left"; }
 
-  // the title, as wide as it can be
-  let size = 210; g.font = `900 ${size}px ${F.display}`;
-  while (g.measureText(card.label).width > W - pad * 2 && size > 90) { size -= 6; g.font = `900 ${size}px ${F.display}`; }
-  g.fillStyle = LIGHT; g.fillText(card.label, pad - 8, pad + 70 + size * 0.86);
-  let y = pad + 70 + size * 0.86 + 74;
-  g.font = `400 42px ${F.sans}`; g.fillStyle = DIM;
-  for (const line of wrap(g, card.blurb, W - pad * 2 - 260).slice(0, 3)) { g.fillText(line, pad, y); y += 56; }
+  // the title, the full width of the page
+  let size = 260; g.font = `900 ${size}px ${F.display}`;
+  while (g.measureText(card.label).width > W - pad * 2 + 10 && size > 90) { size -= 6; g.font = `900 ${size}px ${F.display}`; }
+  const ty = pad + 40 + size * 0.8;
+  g.fillStyle = BLACK; g.fillText(card.label, pad - size * 0.05, ty);
+
+  // the blurb, in the serif, in a measure a reader can follow
+  let y = ty + 98;
+  g.font = `400 50px ${serif}`; g.fillStyle = "#2c2b30";
+  const lines = wrap(g, card.blurb, W * 0.62);
+  for (const line of lines.slice(0, 4)) { g.fillText(line, pad, y); y += 66; }
 
   // the hero
-  const top = y + 46, heroH = H - pad - 150 - top;
+  const top = Math.max(y + 34, ty + 340), room = bandY - 70 - top;
   const ms = card.metrics;
   if (card.id === "inferbench") {
     // measured: Qwen2.5-0.5B decode at batch 16 on the GTX 1650, before and after the kernel
-    const bars: [string, number, string][] = [["stock", 87, "rgba(244,239,228,.35)"], ["with the kernel", 451, acc]];
-    const bx = pad + 300, bw = W - pad - bx - 220, bh = Math.min(56, heroH / 4);
+    const bars: [string, number, string][] = [["stock", 87, "#c9c5bc"], ["with the kernel", 451, ink]];
+    const bx = pad + 330, bw = W - pad - bx - 200, bh = Math.min(70, room / 3.4);
     bars.forEach(([lab, v, col], i) => {
-      const yy = top + 18 + i * (bh + 34);
-      g.fillStyle = DIM; g.font = `500 28px ${F.mono}`; g.fillText(lab, pad, yy + bh * 0.7);
+      const yy = top + i * (bh + 26);
+      g.fillStyle = GREY; g.font = `500 34px ${F.sans}`; g.fillText(lab, pad, yy + bh * 0.68);
       g.fillStyle = col; g.fillRect(bx, yy, (bw * v) / 451, bh);
-      g.fillStyle = LIGHT; g.font = `800 40px ${F.display}`; g.fillText(`${v}`, bx + (bw * v) / 451 + 18, yy + bh * 0.78);
+      g.fillStyle = i ? ink : BLACK; g.font = `900 ${Math.round(bh * 0.95)}px ${F.display}`; g.fillText(`${v}`, bx + (bw * v) / 451 + 20, yy + bh * 0.84);
     });
-    g.fillStyle = DIM; g.font = `500 24px ${F.mono}`;
-    g.fillText("tok/s · Qwen2.5-0.5B decode, batch 16, GTX 1650 · measured", pad, top + 18 + 2 * (bh + 34) + 18);
-  } else if (ms.length) {
-    const hero = ms[0];
-    let hs = 190; g.font = `800 ${hs}px ${F.display}`;
-    while (g.measureText(hero.value).width > 760 && hs > 90) { hs -= 8; g.font = `800 ${hs}px ${F.display}`; }
-    g.fillStyle = acc; g.fillText(hero.value, pad - 6, top + hs * 0.8);
-    g.fillStyle = DIM; g.font = `500 34px ${F.sans}`;
-    wrap(g, hero.label, 640).slice(0, 2).forEach((l, i) => g.fillText(l, pad, top + hs * 0.8 + 52 + i * 42));
+    g.fillStyle = GREY; g.font = `italic 400 32px ${serif}`;
+    g.fillText("tokens a second, Qwen2.5-0.5B decode at batch 16 on a GTX 1650. Measured.", pad, top + 2 * (bh + 26) + 30);
   } else {
-    g.fillStyle = acc; g.font = `800 120px ${F.display}`; g.fillText("Building", pad - 6, top + 100);
-    g.fillStyle = DIM; g.font = `500 34px ${F.sans}`; g.fillText("in the open, one release at a time", pad, top + 152);
-  }
-  // the rest of the numbers, quiet, on the right
-  const rest = card.id === "inferbench" ? ms : ms.slice(1);
-  if (rest.length && card.id !== "inferbench") {
-    let ry = top + 10;
-    for (const m of rest.slice(0, 2)) {
-      g.textAlign = "right"; g.fillStyle = LIGHT; g.font = `800 76px ${F.display}`; g.fillText(m.value, W - pad, ry + 64);
-      g.fillStyle = DIM; g.font = `500 28px ${F.sans}`; g.fillText(m.label, W - pad, ry + 104); g.textAlign = "left";
+    const hero = ms[0] ?? { value: "Building", label: "in the open, one release at a time" };
+    let hs = Math.min(230, room * 0.9); g.font = `900 ${hs}px ${F.display}`;
+    while (g.measureText(hero.value).width > W * 0.5 && hs > 90) { hs -= 8; g.font = `900 ${hs}px ${F.display}`; }
+    const hy = top + hs * 0.78;
+    g.fillStyle = ink; g.fillText(hero.value, pad - hs * 0.04, hy);
+    const lx = pad + g.measureText(hero.value).width + 44;
+    g.fillStyle = "#2c2b30"; g.font = `italic 400 40px ${serif}`;
+    wrap(g, hero.label, Math.min(520, W - pad - lx)).slice(0, 3).forEach((l, i, arr) => g.fillText(l, lx, hy - (arr.length - 1) * 50 + i * 50));
+    // two more numbers, smaller, at the right edge
+    let ry = top + 6;
+    g.textAlign = "right";
+    for (const m of ms.slice(1, 3)) {
+      if (lx + 560 > W - pad - 300) break;   // no room beside a long hero
+      g.fillStyle = BLACK; g.font = `900 84px ${F.display}`; g.fillText(m.value, W - pad, ry + 70);
+      g.fillStyle = GREY; g.font = `500 28px ${F.sans}`; g.fillText(m.label, W - pad, ry + 110);
       ry += 150;
     }
+    g.textAlign = "left";
   }
+  g.fillStyle = RULE; g.fillRect(pad, bandY - 1, W - pad * 2, 0);
 
-  // the bottom edge: previous, the buttons, next
-  const by = H - pad + 6;
-  g.fillStyle = FAINT; g.fillRect(pad, by - 76, W - pad * 2, 2);
-  const pill = (label: string, x: number, action: string, primary: boolean) => {
-    g.font = `700 32px ${F.sans}`; const w = g.measureText(label).width + 84;
-    g.lineWidth = 3; g.strokeStyle = primary ? acc : FAINT;
-    if (primary) { g.fillStyle = acc; g.beginPath(); g.roundRect(x, by - 52, w, 64, 32); g.fill(); }
-    else { g.beginPath(); g.roundRect(x, by - 52, w, 64, 32); g.stroke(); }
-    g.fillStyle = primary ? "#0b0b0d" : LIGHT; g.fillText(label, x + 30, by - 9);
-    // a small arrow out of the box: it leaves the room
-    const ax = x + w - 40, ay = by - 22; g.strokeStyle = primary ? "#0b0b0d" : LIGHT; g.lineWidth = 3;
-    g.beginPath(); g.moveTo(ax - 7, ay + 7); g.lineTo(ax + 7, ay - 7); g.moveTo(ax - 3, ay - 7); g.lineTo(ax + 7, ay - 7); g.lineTo(ax + 7, ay + 3); g.stroke();
-    regions.push({ x, y: by - 52, w, h: 64, action, label });
-    return w;
-  };
+  // the band: the card's colour, its links, and the cards either side
+  g.fillStyle = card.accent; g.fillRect(0, bandY, W, bandH);
+  const on = lum(rgb(card.accent)) > 0.5 ? BLACK : "#ffffff";
+  const mid = bandY + bandH / 2;
   let lx = pad;
-  card.links.forEach((l, i) => {
-    const w = pill(i === 0 && l.href.startsWith("/") ? "Case study" : l.label, lx, l.href.startsWith("http") ? `ext:${l.href}` : `href:${l.href}`, i === 0);
-    lx += w + 18;
+  card.links.forEach((l) => {
+    const label = l.href.startsWith("/") ? "Read the case study" : l.label;
+    g.font = `800 44px ${F.display}`; g.fillStyle = on;
+    const w = g.measureText(label).width;
+    g.fillText(label, lx, mid + 15);
+    g.fillRect(lx, mid + 26, w, 4);
+    if (l.href.startsWith("http")) {   // leaves the room: a small arrow out of the box
+      const ax = lx + w + 26, ay = mid - 2; g.strokeStyle = on; g.lineWidth = 4;
+      g.beginPath(); g.moveTo(ax - 9, ay + 9); g.lineTo(ax + 9, ay - 9); g.moveTo(ax - 4, ay - 9); g.lineTo(ax + 9, ay - 9); g.lineTo(ax + 9, ay + 4); g.stroke();
+    }
+    regions.push({ x: lx - 16, y: bandY + 20, w: w + 70, h: bandH - 40, action: l.href.startsWith("http") ? `ext:${l.href}` : `href:${l.href}`, label });
+    lx += w + 96;
   });
-  g.font = `600 30px ${F.sans}`;
+  g.font = `600 34px ${F.sans}`;
+  let rx = W - pad;
   if (next) {
     const t = next.label.toLowerCase(), tw = g.measureText(t).width;
-    g.fillStyle = DIM; g.fillText(t, W - pad - 46 - tw, by - 9); arrow(g, W - pad - 16, by - 20, 1, LIGHT);
-    regions.push({ x: W - pad - 66 - tw, y: by - 60, w: tw + 76, h: 80, action: "card:next", label: `Next: ${next.title}` });
+    g.fillStyle = on; g.fillText(t, rx - 50 - tw, mid + 12); arrow(g, rx - 18, mid, 1, on);
+    regions.push({ x: rx - 70 - tw, y: bandY + 20, w: tw + 86, h: bandH - 40, action: "card:next", label: `Next: ${next.title}` });
+    rx -= tw + 130;
   }
   if (prev) {
     const t = prev.label.toLowerCase(), tw = g.measureText(t).width;
-    const nx = W - pad - 46 - (next ? g.measureText(next.label.toLowerCase()).width + 110 : 0) - tw - 46;
-    arrow(g, nx + 16, by - 20, -1, LIGHT); g.fillStyle = DIM; g.fillText(t, nx + 46, by - 9);
-    regions.push({ x: nx - 10, y: by - 60, w: tw + 76, h: 80, action: "card:prev", label: `Previous: ${prev.title}` });
+    g.globalAlpha = 0.72; arrow(g, rx - tw - 32, mid, -1, on); g.fillStyle = on; g.fillText(t, rx - tw, mid + 12); g.globalAlpha = 1;
+    regions.push({ x: rx - tw - 66, y: bandY + 20, w: tw + 80, h: bandH - 40, action: "card:prev", label: `Previous: ${prev.title}` });
   }
   return { canvas: c, regions };
 }

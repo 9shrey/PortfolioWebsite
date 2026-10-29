@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { VT323 } from "next/font/google";
 import "./globals.css";
 import "./art.css";
 
@@ -40,6 +41,8 @@ const hand = localFont({
   weight: "400",
   display: "swap",
 });
+/** The pixel face of the old monitor and the room's chrome (as on Felix's), OFL. */
+const pixel = VT323({ weight: "400", subsets: ["latin"], variable: "--font-pixel", display: "swap" });
 const mono = localFont({
   src: "./fonts/martian-mono-var.woff2",
   variable: "--font-mono",
@@ -98,7 +101,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       lang="en"
       data-mode="pro"
       suppressHydrationWarning
-      className={`${sans.variable} ${serif.variable} ${display.variable} ${mono.variable} ${hand.variable}`}
+      className={`${sans.variable} ${serif.variable} ${display.variable} ${mono.variable} ${hand.variable} ${pixel.variable}`}
     >
       <head>
         <script dangerouslySetInnerHTML={{ __html: ROOM_SCRIPT }} />

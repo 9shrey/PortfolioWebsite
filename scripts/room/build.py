@@ -437,11 +437,34 @@ decimate(plant["main"], 0.6); STATIC_PROPS.append(plant["main"])
 shelf = import_model("steel_frame_shelves_03", (X1 - 0.27, 0.25, 0), rot_z=90, scale=0.72, name="shelves")["main"]
 STATIC_SHELL.append(shelf)
 
+def whiten(obj):
+    """The projector in white enamel: its charcoal body (dark, grey pixels of the texture) becomes off-white,
+    keeping the texture's wear; the cream panels and the bright parts stay as they are."""
+    import numpy as np
+    for slot in obj.material_slots:
+        m = slot.material
+        if not m or not m.node_tree: continue
+        for n in m.node_tree.nodes:
+            if n.type != "TEX_IMAGE" or not n.image or "diff" not in n.image.name: continue
+            img = n.image.copy(); img.name = "projector_white"
+            px = np.empty(len(img.pixels), dtype=np.float32); img.pixels.foreach_get(px); px = px.reshape(-1, 4)
+            rgb = px[:, :3]; l = rgb @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+            sat = rgb.max(1) - rgb.min(1)
+            w = (np.clip((0.36 - l) / 0.1, 0, 1) * np.clip((0.14 - sat) / 0.06, 0, 1))[:, None]
+            enamel = np.array([0.93, 0.92, 0.89], dtype=np.float32) * np.clip(0.8 + (l[:, None] - 0.14) * 1.2, 0.7, 1.0)
+            px[:, :3] = rgb * (1 - w) + enamel * w
+            img.pixels.foreach_set(px.ravel()); img.pack()
+            n.image = img
+        bsdf = m.node_tree.nodes.get("Principled BSDF")
+        if bsdf and "film" not in m.name:   # enamel, not bare metal
+            for l in list(bsdf.inputs["Metallic"].links): m.node_tree.links.remove(l)
+            bsdf.inputs["Metallic"].default_value = 0.0
+
 proj_table = import_model("side_table_01", (-1.85, -0.35, 0), rot_z=90, name="side_table")["main"]
 STATIC_PROPS.append(proj_table)
 proj = import_model("filmstrip_projector_8mm", (-1.85, -0.35, 0.551), rot_z=180, name="projector",
                     keep=("spool_takeup", "spool_feed"), drop=("_cable", "_schuko", "_connector"))
-decimate(proj["main"], 0.35); STATIC_PROPS.append(proj["main"]); MOVERS += [proj["spool_takeup"], proj["spool_feed"]]
+decimate(proj["main"], 0.35); whiten(proj["main"]); STATIC_PROPS.append(proj["main"]); MOVERS += [proj["spool_takeup"], proj["spool_feed"]]
 screen = import_model("projector_screen", (-1.62, 1.35, 0), rot_z=200, name="screen_stand")["main"]
 delete_material_faces(screen, "projector_screen") if False else None
 STATIC_PROPS.append(screen)
@@ -490,7 +513,7 @@ books_obj = join("books", books)
 # the real books, one object each with a live spine (title and author drawn crisp by the page)
 real = json.load(open("assets/room/books.json"))["books"]
 xb = sb_hi.x - 0.05
-y = (sb_lo.y + sb_hi.y) / 2 - len(real) * 0.035 / 2      # centred on the shelf
+y = (sb_lo.y + sb_hi.y) / 2 + 0.05                      # just past the shelf's centre post
 for i, bk in enumerate(real):
     t = 0.026 + 0.012 * random.random(); h = 0.2 + 0.035 * random.random(); dpt = 0.15
     cover = principled(f"cover_{i}", srgb(bk["color"]), 0.55)
@@ -575,6 +598,91 @@ ball = sphere("dragonball", 0.022, (fig_x, fy, REAL_BOARD + 0.026), ball_m, seg=
 ball.rotation_euler = (0, 0, math.radians(90))
 ring = cyl("ball_stand", 0.016, 0.006, (fig_x, fy, REAL_BOARD + 0.003), M["steel"], seg=24)
 STATIC_PROPS += [join("dragonball", [ball, ring])]
+
+# fan figurines from more series, the same chunky vinyl style: (series, who, colours and a hair shape)
+ANIME = [
+    ("figure_gon",      dict(hair="spiky", hair_c="#15161a", top="#2f7a3e", bottom="#2f7a3e", shoes="#c8282d")),
+    ("figure_killua",   dict(hair="spiky", hair_c="#eceaf2", top="#5b4a8f", bottom="#d8d4cc", shoes="#2a2a30")),
+    ("figure_gojo",     dict(hair="spiky_up", hair_c="#f2f2f5", top="#1a1d2e", bottom="#1a1d2e", shoes="#111114", blindfold=True)),
+    ("figure_yuji",     dict(hair="short", hair_c="#e88aa0", top="#1b1e2c", bottom="#1b1e2c", shoes="#111114", hood="#c8282d")),
+    ("figure_edward",   dict(hair="braid", hair_c="#e8c35a", top="#b3201f", bottom="#16161a", shoes="#16161a", coat=True)),
+    ("figure_alphonse", dict(armor=True)),
+    ("figure_mob",      dict(hair="bowl", hair_c="#121214", top="#15161c", bottom="#15161c", shoes="#111114", buttons=True)),
+    ("figure_reigen",   dict(hair="short", hair_c="#a7865a", top="#8a8d93", bottom="#8a8d93", shoes="#2a1e16", tie="#e88aa0")),
+]
+
+def anime_figure(name, at, f):
+    x, y, z = at
+    skin = mat("fig_skin", "#f1c7a0", 0.45); black = mat("fig_black", "#121214", 0.35)
+    parts = [cyl("stand", 0.03, 0.008, (x, y, z + 0.004), black, seg=28)]
+    z0 = z + 0.008
+    if f.get("armor"):      # a suit of armour: boxy, bigger, a crest on the helmet
+        steel = mat("fig_armor", "#8e9196", 0.35, 0.6); red = mat("fig_crest", "#b3201f", 0.5)
+        for dy in (-0.011, 0.011):
+            parts.append(span("leg", x - 0.008, x + 0.008, y + dy - 0.008, y + dy + 0.008, z0, z0 + 0.04, steel, bevel=0.002))
+        parts += [span("hips", x - 0.012, x + 0.012, y - 0.02, y + 0.02, z0 + 0.038, z0 + 0.05, steel, bevel=0.002),
+                  span("chest", x - 0.016, x + 0.016, y - 0.026, y + 0.026, z0 + 0.05, z0 + 0.094, steel, bevel=0.004),
+                  span("pauldron_l", x - 0.012, x + 0.012, y - 0.036, y - 0.02, z0 + 0.08, z0 + 0.096, steel, bevel=0.004),
+                  span("pauldron_r", x - 0.012, x + 0.012, y + 0.02, y + 0.036, z0 + 0.08, z0 + 0.096, steel, bevel=0.004),
+                  span("helmet", x - 0.014, x + 0.014, y - 0.014, y + 0.014, z0 + 0.096, z0 + 0.124, steel, bevel=0.004),
+                  cone("spike", 0.004, 0.02, (x - 0.004, y, z0 + 0.134), steel),
+                  span("crest", x - 0.016, x - 0.012, y - 0.003, y + 0.003, z0 + 0.1, z0 + 0.13, red)]
+        for dy in (-0.004, 0.004):
+            parts.append(span("eye", x + 0.014, x + 0.0146, y + dy - 0.002, y + dy + 0.002, z0 + 0.108, z0 + 0.112, mat("fig_eyeglow", "#ffcf6b", 0.3)))
+        for dy, ang in ((-0.03, -10), (0.03, 10)):
+            parts.append(cyl("arm", 0.0065, 0.036, (x, y + dy, z0 + 0.064), steel, rot=(ang, 0, 0), seg=10))
+    else:
+        top = mat(f"fig_{f['top']}", f["top"], 0.5); bottom = mat(f"fig_{f['bottom']}", f["bottom"], 0.5)
+        hair = mat(f"fig_{f['hair_c']}", f["hair_c"], 0.4); shoes = mat(f"fig_{f['shoes']}", f["shoes"], 0.45)
+        for dy in (-0.009, 0.009):
+            parts += [cyl("shoe", 0.007, 0.008, (x, y + dy, z0 + 0.004), shoes, seg=10),
+                      cyl("leg", 0.0072, 0.03, (x, y + dy, z0 + 0.023), bottom, seg=10)]
+        torso_len = 0.05 if f.get("coat") else 0.032
+        parts.append(cyl("torso", 0.017, torso_len, (x, y, z0 + 0.078 - torso_len / 2), top, seg=16))
+        if f.get("coat"): parts.append(cyl("coat_hem", 0.02, 0.012, (x, y, z0 + 0.034), top, seg=16))
+        if f.get("hood"): parts.append(cyl("hood", 0.016, 0.008, (x - 0.004, y, z0 + 0.08), mat("fig_hood", f["hood"], 0.5), seg=14))
+        if f.get("tie"): parts.append(span("tie", x + 0.0165, x + 0.0175, y - 0.003, y + 0.003, z0 + 0.052, z0 + 0.076, mat("fig_tie", f["tie"], 0.5)))
+        if f.get("buttons"):
+            for k in range(3): parts.append(sphere("button", 0.0018, (x + 0.017, y, z0 + 0.054 + k * 0.009), mat("fig_gold", "#d9a441", 0.3, 0.8), seg=8))
+        for dy, ang in ((-0.022, -12), (0.022, 12)):
+            parts.append(cyl("arm", 0.0052, 0.032, (x, y + dy, z0 + 0.064), top, rot=(ang, 0, 0), seg=8))
+            parts.append(sphere("hand", 0.0055, (x, y + dy * 1.15, z0 + 0.047), skin, seg=10))
+        parts.append(sphere("head", 0.017, (x, y, z0 + 0.097), skin))
+        hc = Vector((x - 0.002, y, z0 + 0.1))
+        style = f["hair"]
+        if style in ("spiky", "spiky_up"):
+            spikes = ((0, -15, 0.04), (-35, -15, 0.036), (35, -15, 0.036), (-60, 0, 0.03), (60, 0, 0.03), (0, -50, 0.034), (-25, -45, 0.03), (25, -45, 0.03))
+            if style == "spiky_up": spikes = tuple((ax * 0.5, ay * 0.4, ln * 1.1) for ax, ay, ln in spikes)
+            for ax, ay, ln in spikes:
+                d = (Euler((math.radians(ax), math.radians(ay), 0)).to_matrix() @ Vector((0, 0, 1))).normalized()
+                parts.append(cone("spike", 0.008, ln, tuple(hc + d * (0.012 + ln / 2)), hair, rot=(ax, ay, 0)))
+            parts.append(sphere("hair_cap", 0.0178, (x - 0.004, y, z0 + 0.101), hair, scale=(1, 1, 0.85)))
+        elif style == "bowl":     # a straight-cut bowl, low over the eyes
+            parts.append(sphere("hair_cap", 0.0186, (x - 0.001, y, z0 + 0.1), hair, scale=(1, 1, 0.9)))
+            parts.append(cyl("fringe", 0.0186, 0.006, (x, y, z0 + 0.103), hair, seg=24))
+        else:
+            parts.append(sphere("hair_cap", 0.018, (x - 0.004, y, z0 + 0.103), hair, scale=(1, 1, 0.8)))
+            if style == "braid":
+                parts.append(cyl("braid", 0.0035, 0.03, (x - 0.019, y, z0 + 0.078), hair, rot=(0, 15, 0), seg=8))
+                parts.append(cone("ahoge", 0.003, 0.014, (x, y, z0 + 0.122), hair, rot=(0, -20, 0)))
+        if f.get("blindfold"):
+            parts.append(cyl("blindfold", 0.0175, 0.008, (x, y, z0 + 0.1), black, seg=24))
+        else:
+            for dy in (-0.006, 0.006):
+                parts.append(sphere("eye", 0.0022, (x + 0.0158, y + dy, z0 + 0.097), black, seg=8))
+    o = join(name, parts)
+    bpy.context.view_layer.update()
+    o.data.transform(o.matrix_world); o.matrix_world = Matrix.Identity(4)
+    o.data.transform(Matrix.Translation(-Vector((x, y, z)))); o.location = (x, y, z)
+    o.rotation_euler.z = math.radians(180 + random.uniform(-14, 14))      # built facing +x; face the room
+    return o
+
+# on the eye-level shelf, in a row before the books
+ay0, ay1 = sb_lo.y + 0.09, (sb_lo.y + sb_hi.y) / 2 - 0.06   # the bay before the post
+step = (ay1 - ay0) / (len(ANIME) - 1)
+for k, (nm, spec) in enumerate(ANIME):
+    STATIC_PROPS.append(anime_figure(nm, (xb - 0.07 - (0.02 if k % 2 else 0), ay0 + k * step, REAL_BOARD), spec))
+
 desk_books = []
 zb = TOP
 for k, src in enumerate(sorted(book_src, key=lambda o: -o.dimensions.y * o.dimensions.z)[:7]):
@@ -628,26 +736,44 @@ ps = plane("phone_screen", 0.066, 0.145, (0, 0, 0), rot=(0, 0, 0), mat=principle
 ps.matrix_world = phone.matrix_world @ Matrix.Translation((0, 0, 0.0042)); parent_keep(ps, phone); DYN.append(ps)
 
 # ------------------------------------------------------------------ the laptop, open behind the keyboard
-def laptop(cx, cy, open_deg=108):
-    L = Matrix.Translation((cx, cy, TOP)) @ Matrix.Rotation(math.radians(-3), 4, "Z")
-    W, D, T2 = 0.304, 0.212, 0.011
-    alu = principled("laptop_alu", srgb("#a9abb0"), 0.32, 0.9)
-    dark = principled("laptop_keys", srgb("#1a1a1c"), 0.6)
-    base = box("laptop", (W, D, T2), (0, 0, T2 / 2), alu, bevel=0.003)
-    deck = span("deck", -W / 2 + 0.02, W / 2 - 0.02, -0.02, D / 2 - 0.015, T2, T2 + 0.0006, dark)
-    pad = span("pad", -0.055, 0.055, -D / 2 + 0.012, -0.03, T2, T2 + 0.0004, principled("trackpad", srgb("#8f9196"), 0.25, 0.8))
-    b = join("laptop", [base, deck, pad]); b.matrix_world = L @ b.matrix_world
-    # the lid hinges at the back edge and leans back a little past upright
-    hinge = L @ Matrix.Translation((0, D / 2 - 0.004, T2)) @ Matrix.Rotation(math.radians(open_deg - 90), 4, "X")
-    lid = box("laptop_lid", (W, 0.006, D), (0, 0.003, D / 2), alu, bevel=0.003)
-    bezel = span("bezel", -W / 2 + 0.003, W / 2 - 0.003, -0.0012, 0.0, 0.003, D - 0.003, principled("bezel", srgb("#0b0b0d"), 0.2))
-    lid = join("laptop_lid", [lid, bezel]); lid.matrix_world = hinge @ lid.matrix_world
-    # the screen: a live surface (the page puts real HTML on it); bright in the bake, so it lights the desk
-    sw, sh = W - 0.024, (W - 0.024) / 1.6
-    scr = plane("laptop_screen", sw, sh, (0, 0, 0), mat=principled("laptop_glow", (0, 0, 0), emit=(0.75, 0.82, 1.0), strength=2.2))
-    scr.matrix_world = hinge @ Matrix.Translation((0, -0.0014, 0.012 + sh / 2)) @ Matrix.Rotation(math.radians(90), 4, "X")
-    STATIC_PROPS.extend([b, lid]); DYN.append(scr)
-laptop(0.30, 1.76)
+def crt(cx, cy):
+    """An old beige CRT monitor on a swivel foot, like the one on Felix's desk: its screen is a live
+    surface (the page draws a terminal on it, through a CRT shader), and it glows in the bake so the
+    desk in front of it catches its light. A Polaroid is taped to the bezel."""
+    C = Matrix.Translation((cx, cy, TOP)) @ Matrix.Rotation(math.radians(-4), 4, "Z")
+    beige = principled("crt_beige", srgb("#d8cfbd"), 0.55)
+    dark = principled("crt_dark", srgb("#2a2824"), 0.4)
+    W, Hh, D = 0.37, 0.32, 0.05          # the front bezel
+    z0 = 0.045                           # it stands on a swivel foot
+    parts = [
+        cyl("foot", 0.11, 0.018, (0, 0.06, 0.009), beige, seg=40),
+        cyl("neck", 0.05, 0.03, (0, 0.06, 0.03), beige, seg=24),
+        span("bezel", -W / 2, W / 2, -D / 2, D / 2, z0, z0 + Hh, beige, bevel=0.012),
+        span("body", -0.15, 0.15, D / 2 - 0.005, D / 2 + 0.2, z0 + 0.025, z0 + Hh - 0.02, beige, bevel=0.02),
+        span("tube", -0.1, 0.1, D / 2 + 0.19, D / 2 + 0.29, z0 + 0.07, z0 + Hh - 0.07, beige, bevel=0.02),
+        # the recess around the glass, and the badge and buttons under it
+        span("recess", -0.152, 0.152, -D / 2 - 0.002, -D / 2 + 0.006, z0 + 0.062, z0 + Hh - 0.022, dark, bevel=0.004),
+        span("badge", -0.03, 0.03, -D / 2 - 0.003, -D / 2, z0 + 0.03, z0 + 0.042, dark),
+        span("led", 0.13, 0.138, -D / 2 - 0.004, -D / 2, z0 + 0.034, z0 + 0.04, principled("crt_led", (0, 0, 0), emit=srgb("#ffb000"), strength=6)),
+    ]
+    for k in range(3):
+        parts.append(cyl("knob", 0.006, 0.006, (0.08 + k * 0.016, -D / 2 - 0.002, z0 + 0.037), dark, rot=(90, 0, 0), seg=12))
+    m = join("crt", parts); m.matrix_world = C @ m.matrix_world
+    # the glass: 4:3, a little inside the recess; bright amber in the bake
+    sw, sh = 0.284, 0.213
+    scr = plane("crt_screen", sw, sh, (0, 0, 0), mat=principled("crt_glow", (0, 0, 0), emit=srgb("#ffb347"), strength=1.6))
+    scr.matrix_world = C @ Matrix.Translation((0, -D / 2 - 0.0035, z0 + 0.062 + (Hh - 0.084) / 2)) @ Matrix.Rotation(math.radians(90), 4, "X")
+    # a Polaroid taped to the bezel's top right corner, tilted
+    pol = C @ Matrix.Translation((0.152, -D / 2 - 0.004, z0 + Hh - 0.035)) @ Matrix.Rotation(math.radians(-8), 4, "Y")
+    frame = box("polaroid", (0.07, 0.0012, 0.084), (0, 0, 0), principled("polaroid_white", srgb("#f3f1ea"), 0.7))
+    frame.matrix_world = pol @ frame.matrix_world
+    tape = box("tape", (0.03, 0.0008, 0.012), (0, 0, 0), principled("tape", srgb("#e9e1c8"), 0.8))
+    tape.matrix_world = pol @ Matrix.Translation((0, -0.0006, 0.041)) @ Matrix.Rotation(math.radians(6), 4, "Y")
+    photo = plane("polaroid_photo", 0.06, 0.06, (0, 0, 0), mat=principled("photo_white", (0.8, 0.8, 0.8), 0.6))
+    photo.matrix_world = pol @ Matrix.Translation((0, -0.0007, 0.008)) @ Matrix.Rotation(math.radians(90), 4, "X")
+    photo["image"] = "me.png"
+    STATIC_PROPS.extend([m, frame, tape]); DYN.extend([scr, photo])
+crt(0.30, 1.80)
 
 # ------------------------------------------------------------------ live surfaces: calendar, projector screen, posters
 cal_x0, cal_x1, cal_z0, cal_z1 = 0.80, 1.80, 1.10, 2.20

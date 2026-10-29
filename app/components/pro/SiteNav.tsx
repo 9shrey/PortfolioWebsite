@@ -1,25 +1,29 @@
-import Link from "next/link";
+"use client";
 
-/** The bar on case studies, posts and the CV. Everything else lives in the room at /. */
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import ThemeToggle from "@/app/room/ThemeToggle";
+
+/** The bar on case studies, posts and the CV: the room's three titles, in the old monitor's face. */
 const LINKS = [
-  { href: "/#work", label: "Work" },
-  { href: "/#about", label: "About" },
-  { href: "/#writing", label: "Writing" },
-  { href: "/#year", label: "Year" },
-  { href: "/#contact", label: "Contact" },
+  { href: "/#work", label: "Work", on: (p: string) => p.startsWith("/work") },
+  { href: "/writing", label: "Writing", on: (p: string) => p.startsWith("/writing") },
+  { href: "/#about", label: "About", on: () => false },
 ];
 
 export default function SiteNav() {
+  const path = usePathname() ?? "";
   return (
-    <header className="nav">
+    <header className="nav px-nav">
       <div className="nav-in">
-        <Link href="/" className="nav-name" aria-label="Shrey Singh, back to the room">
+        <Link href="/" className="px-name" aria-label="Shrey Singh, back to the room">
           Shrey Singh
         </Link>
-        <nav aria-label="Primary" className="nav-links">
+        <nav aria-label="Primary" className="px-links">
           {LINKS.map((l) => (
-            <a key={l.href} href={l.href}>{l.label}</a>
+            <Link key={l.href} href={l.href} aria-current={l.on(path) ? "page" : undefined}>{l.label}</Link>
           ))}
+          <ThemeToggle />
         </nav>
       </div>
     </header>

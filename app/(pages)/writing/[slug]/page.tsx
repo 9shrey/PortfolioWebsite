@@ -44,45 +44,28 @@ export default async function PostPage({ params }: Params) {
     author: { "@type": "Person", name: site.name, url: site.url },
   };
   return (
-    <article className="page post">
+    <article className="wx-col wx-post">
       {post.status === "published" && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />}
-      <p className="folio" aria-hidden>
-        <span>
-          <Link href="/writing">← Writing</Link>
-        </span>
-        <span>{post.status === "published" ? fmt(post.date) : post.status}</span>
-        <span>{post.readingTime}</span>
-      </p>
-      <header className="post-head">
-        <h1 className="post-title">{post.title}</h1>
-        <p className="post-lede">{post.excerpt}</p>
-        {post.tags && (
-          <p className="post-tags">
-            {post.tags.map((t) => (
-              <span key={t}>#{t}</span>
-            ))}
-          </p>
-        )}
+      <p className="wx-back"><Link href="/writing">◂ Writing</Link></p>
+      <header>
+        <h1 className="wx-h">{post.title}</h1>
+        <p className="wx-meta">
+          {post.status === "published" ? fmt(post.date) : post.status} · {post.readingTime}
+          {post.tags?.length ? <> · {post.tags.join(", ")}</> : null}
+        </p>
       </header>
       {post.status !== "published" && (
         <p className="draft-banner">
-          {post.status === "template" ? "Template" : "Draft"} · only visible in development · set status: &quot;published&quot; in
-          content/writing/{post.slug}.mdx to ship it
+          {post.status === "template" ? "Template" : "Draft"}: only visible in development. Set status: &quot;published&quot; in
+          content/writing/{post.slug}.mdx to ship it.
         </p>
       )}
-      <div className="prose">
+      <div className="prose wx-prose">
         <Body />
       </div>
-      <footer className="post-end">
-        <p className="post-sign">— Shrey</p>
-        <p className="acts">
-          <Link href="/writing" className="act">
-            More writing <span aria-hidden>→</span>
-          </Link>
-          <a href={`mailto:${site.email}`} className="act">
-            Reply by email <span aria-hidden>↗</span>
-          </a>
-        </p>
+      <footer className="wx-end">
+        <p>Thanks for reading. Replies go to <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
+        <p className="wx-back"><Link href="/writing">◂ More writing</Link></p>
       </footer>
     </article>
   );

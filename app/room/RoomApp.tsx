@@ -1,26 +1,26 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { DEFAULT_SETTINGS, RoomEngine, type Hit, type Settings } from "./engine/engine";
 import { RoomAudio } from "./engine/audio";
 import { drawCalendar } from "./engine/surfaces";
 import { drawPhone, drawSlide } from "./engine/cards";
-import LaptopScreen, { type Tab } from "./LaptopScreen";
+import { Terminal, type TermPage } from "./engine/terminal";
 import type { RoomContent, View } from "./types";
 
 /* The page around the room: loading, three titles and two small controls. Everything else is in the
-   room, to be found: work on the projector, the laptop (about, writing, online), the phone (contact),
+   room, to be found: work on the projector, the old monitor (about, writing, online), the phone (contact),
    the résumé in its tray, the books on the shelf, the year on the wall. Nothing is labelled. The URL
    hash mirrors the view (#work/inferbench, #writing, ...). */
 
-const NAV: { view: View; label: string }[] = [
-  { view: { kind: "work", card: "" }, label: "Work" },
-  { view: { kind: "writing" }, label: "Writing" },
-  { view: { kind: "about" }, label: "About" },
+/* Writing is the one section that leaves the room: it is its own pages, as on Felix's site. */
+const NAV: { view: View | null; href: string; label: string }[] = [
+  { view: { kind: "work", card: "" }, href: "#work", label: "Work" },
+  { view: null, href: "/writing", label: "Writing" },
+  { view: { kind: "about" }, href: "#about", label: "About" },
 ];
-const LAPTOP: View["kind"][] = ["about", "writing", "online"];
-const LOADING = ["Opening the curtains", "Switching on the lamp", "Slotting the cards", "Pouring the chai", "Nearly there"];
+const TERM: View["kind"][] = ["about", "writing", "online", "terminal"];
+const LOADING = ["Opening the curtains", "Switching on the lamp", "Slotting the cards", "Pouring the chai", "Warming up the tube"];
 
 const SETTINGS_KEY = "room.settings";
 function loadSettings(): Settings {
@@ -39,7 +39,7 @@ function fromHash(h: string, content: RoomContent): View {
   if (k === "work") return { kind: "work", card: content.cards.some((c) => c.id === id) ? id : "" };
   if (k === "books") return { kind: "books" };
   if (k === "poster" && Number(id) >= 0 && Number(id) < 6) return { kind: "poster", i: Number(id) };
-  if (["about", "writing", "online", "contact", "year", "resume"].includes(k)) return { kind: k } as View;
+  if (["about", "writing", "online", "terminal", "contact", "year", "resume"].includes(k)) return { kind: k } as View;
   return { kind: "home" };
 }
 
@@ -47,11 +47,11 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const host = useRef<HTMLDivElement>(null);
   const engine = useRef<RoomEngine | null>(null);
   const audio = useRef<RoomAudio | null>(null);
-  const [screenEl] = useState(() => document.createElement("div"));
+  const term = useRef<Terminal | null>(null);
+  const termView = useRef<HTMLCanvasElement>(null);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<View>({ kind: "home" });
-  const [tab, setTab] = useState<Tab>("about");
   const [installed, setInstalled] = useState<string>(content.cards[0].id);
   const [sound, setSound] = useState(false);
   const [hint, setHint] = useState(true);
@@ -60,7 +60,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const [fps, setFps] = useState(0);
   const [toast, setToast] = useState("");
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
-  // on a phone the laptop's 1280 px app would be unreadably small on the lid: it opens full screen instead
+  // on a phone 48 columns on a tube across the room would be unreadable: the terminal fills the screen instead
   const [narrow] = useState(() => matchMedia("(max-width: 760px)").matches);
 
   const ci = content.cards.findIndex((c) => c.id === installed);
@@ -73,10 +73,14 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       v = { kind: "work", card: id };
       e?.install(id);
     }
-    if (v.kind === "about" || v.kind === "writing" || v.kind === "online") setTab(v.kind);
+    const t = term.current;
+    if (t && TERM.includes(v.kind)) {
+      t.boot(performance.now() / 1000);
+      if (v.kind !== "terminal") t.go(v.kind as TermPage);
+    }
     setView(v);
     if (v.kind === "poster") e?.showPoster(v.i); else { e?.hidePoster(); e?.go(v); }
-    e?.setScreenActive(LAPTOP.includes(v.kind));
+    e?.setCrtPower(TERM.includes(v.kind));
     setHint(false);
     const h = toHash(v);
     if (push && location.hash !== h) history.pushState(null, "", h || location.pathname + location.search);
@@ -95,7 +99,9 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     else if (kind === "ext") { if (arg.startsWith("mailto:")) location.href = arg; else window.open(arg, "_blank", "noopener"); }
     else if (kind === "copy") { navigator.clipboard?.writeText(arg); setToast("Copied"); setTimeout(() => setToast(""), 1600); }
     else if (kind === "card") step(arg === "next" ? 1 : -1);
-  }, [step]);
+    else if (kind === "term") navigate({ kind: arg === "menu" ? "terminal" : arg } as View);
+  }, [step, navigate]);
+  useEffect(() => { actRef.current = act; }, [act]);
 
   // engine
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     engine.current?.setEvents({
       click: (hit: Hit) => {
         if (hit.kind === "card") return navigate({ kind: "work", card: hit.id });
-        if (hit.kind === "view") return navigate(hit.view.kind === "about" && LAPTOP.includes(view.kind) ? view : hit.view);
+        if (hit.kind === "view") return navigate(TERM.includes(hit.view.kind) && TERM.includes(view.kind) ? view : hit.view);
         if (hit.kind === "action") return act(hit.action);
         if (hit.name.startsWith("poster_")) return navigate({ kind: "poster", i: Number(hit.name.slice(7)) });
         audio.current?.click(hit.name === "mug" ? "sip" : hit.name === "fan" ? "whirr" : hit.name === "lamp" ? "switch" : hit.name === "curtains" ? "swish" : "tick");
@@ -128,10 +134,26 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     });
   }, [navigate, act, ready, view]);
 
-  // the laptop's screen, once the room is up
+  // the old monitor's terminal: drawn when it changes (and through the boot), on the tube and, on a phone, full screen
   useEffect(() => {
-    if (ready && host.current) engine.current?.attachScreen(host.current, screenEl);
-  }, [ready, screenEl]);
+    if (!ready) return;
+    const t = new Terminal(content, (a) => actRef.current(a));
+    term.current = t;
+    let raf = 0;
+    const paint = () => {
+      raf = requestAnimationFrame(paint);
+      if (!t.draw(performance.now() / 1000)) return;
+      engine.current?.setSurface("crt_screen", t.canvas);
+      engine.current?.setRegions("crt_screen", t.regions());
+      const v = termView.current;
+      if (v) { v.width = t.canvas.width; v.height = t.canvas.height; v.getContext("2d")!.drawImage(t.canvas, 0, 0); }
+    };
+    document.fonts.ready.then(() => { t.dirty = true; paint(); });
+    const tick = setInterval(() => { t.dirty = true; }, 20000);   // the clock in its status bar
+    engine.current?.setCrtPower(false);
+    return () => { cancelAnimationFrame(raf); clearInterval(tick); term.current = null; };
+  }, [ready, content]);
+  const actRef = useRef<(a: string) => void>(() => {});
 
   // the planner once fonts are in; the slide whenever the card changes
   useEffect(() => {
@@ -187,11 +209,22 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.target instanceof HTMLInputElement || ev.metaKey || ev.ctrlKey) return;
-      if (ev.key === "Escape") { setSettingsOpen(false); navigate({ kind: "home" }); }
+      if (ev.key === "Escape") { setSettingsOpen(false); navigate({ kind: "home" }); return; }
+      // at the monitor, keys go to its terminal; Q on its menu gets up from the desk
+      const t = term.current;
+      if (t && TERM.includes(view.kind)) {
+        if ((ev.key === "q" || ev.key === "Q") && t.page === "menu") { navigate({ kind: "home" }); return; }
+        if (t.key(ev)) { ev.preventDefault(); audio.current?.click("key"); }
+        const k: Record<TermPage, View["kind"]> = { boot: "terminal", menu: "terminal", about: "about", writing: "writing", online: "online" };
+        if (k[t.page] !== view.kind) { setView({ kind: k[t.page] } as View); history.replaceState(null, "", `#${k[t.page]}`); }
+        return;
+      }
       if (view.kind === "work" && (ev.key === "ArrowRight" || ev.key === "ArrowLeft")) step(ev.key === "ArrowRight" ? 1 : -1);
     };
+    const onWheel = (ev: WheelEvent) => { if (TERM.includes(view.kind) && !(ev.target as Element).closest?.(".room-settings")) term.current?.wheel(ev.deltaY); };
     addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
+    addEventListener("wheel", onWheel, { passive: true });
+    return () => { removeEventListener("keydown", onKey); removeEventListener("wheel", onWheel); };
   }, [navigate, step, view]);
 
   // settings: remembered in this browser
@@ -210,7 +243,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   };
 
   const atHome = view.kind === "home";
-  const navOn = (k: View["kind"]) => k === view.kind || (k === "about" && view.kind === "online");
+  const navOn = (k: View["kind"]) => k === view.kind || (k === "about" && TERM.includes(view.kind));
 
   return (
     <div ref={host} className={`room ${ready ? "is-ready" : ""} view-${view.kind}`}>
@@ -220,10 +253,18 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         {/* the room itself, out of focus, coming into focus as it loads */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="loader-still" src="/room/still.webp" alt="" />
-        <div className="loader-foot">
-          <p className="loader-name">{content.name}</p>
-          <p className="loader-step">{LOADING[Math.min(LOADING.length - 1, Math.floor(progress * LOADING.length))]}</p>
-          <div className="loader-bar"><span /></div>
+        {/* a boot log, as the old monitor would print it: each line ticks over as its part arrives */}
+        <div className="loader-term" role="status" aria-live="polite">
+          <p className="lt-name">{content.name.toUpperCase()}</p>
+          {LOADING.map((l, i) => {
+            const at = (i + 1) / LOADING.length, done = progress >= at, now = !done && progress >= i / LOADING.length;
+            return (now || done) && (
+              <p key={l} className={done ? "is-done" : ""}>
+                <span>{l}</span><span>{done ? "OK" : `${Math.round(progress * 100)}%`}</span>
+              </p>
+            );
+          })}
+          <p className="lt-cursor" aria-hidden>_</p>
         </div>
       </div>
 
@@ -234,8 +275,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         </button>
         <nav className="room-nav" aria-label="Sections">
           {NAV.map((n) => (
-            <a key={n.label} href={toHash(n.view)} aria-current={navOn(n.view.kind) ? "page" : undefined}
-              onClick={(e) => { e.preventDefault(); navigate(n.view); }}>
+            <a key={n.label} href={n.href} aria-current={n.view && navOn(n.view.kind) ? "page" : undefined}
+              onClick={n.view ? (e) => { e.preventDefault(); navigate(n.view!); } : undefined}>
               {n.label}
             </a>
           ))}
@@ -258,13 +299,22 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       {ready && hint && atHome && <p className="room-hint">Have a look around.</p>}
 
       {!atHome && (
-        <button className="room-back" onClick={() => navigate({ kind: "home" })}>Back <kbd>Esc</kbd></button>
+        <button className="room-back" onClick={() => navigate({ kind: "home" })}>Back to the desk <kbd>· Esc</kbd></button>
       )}
       {toast && <p className="room-toast" role="status">{toast}</p>}
 
-      {createPortal(<LaptopScreen c={content} tab={tab} onTab={(t) => navigate({ kind: t })} />, screenEl)}
-      {narrow && LAPTOP.includes(view.kind) && (
-        <div className="lap-full"><LaptopScreen c={content} tab={tab} onTab={(t) => navigate({ kind: t })} /></div>
+      {narrow && TERM.includes(view.kind) && (
+        <div className="term-full">
+          <canvas ref={termView} className="term-tube" aria-label="Terminal. Tap a line to open it."
+            onClick={(e) => {
+              const t = term.current; if (!t) return;
+              const r = e.currentTarget.getBoundingClientRect();
+              const x = ((e.clientX - r.left) / r.width) * t.canvas.width, y = ((e.clientY - r.top) / r.height) * t.canvas.height;
+              const hit = t.regions().regions.find((g) => x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h);
+              if (hit) act(hit.action);
+            }}
+            onWheel={(e) => term.current?.wheel(e.deltaY)} />
+        </div>
       )}
     </div>
   );

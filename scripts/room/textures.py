@@ -90,6 +90,15 @@ for cu in (0.25, 0.75):            # the stars on both sides, so they face the r
         star(Wd * (cu + sx), Hd * (0.5 + sy), 40, (196, 30, 30))
 im.save(f"{OUT}/dragonball.png")
 
+# The Polaroid on the monitor: assets/room/me.jpg if it's there (the LinkedIn photo), else the portrait.
+# Square-cropped, warmed a little, like an instant print.
+src = "assets/room/me.jpg" if os.path.exists("assets/room/me.jpg") else "assets/portrait-128.png"
+ph = Image.open(src).convert("RGB")
+side = min(ph.size); ph = ph.crop(((ph.width - side) // 2, (ph.height - side) // 3, (ph.width + side) // 2, (ph.height - side) // 3 + side))
+ph = ph.resize((512, 512), Image.LANCZOS)
+r_, g_, b_ = ph.split(); ph = Image.merge("RGB", (r_.point(lambda v: min(255, int(v * 1.04 + 6))), g_, b_.point(lambda v: int(v * 0.92))))
+ph.save(f"{OUT}/me.png")
+
 # Résumé, first page of the PDF
 subprocess.run(["pdftoppm", "-png", "-r", "110", "-f", "1", "-l", "1", "-singlefile",
                 "public/Shrey_Singh_Resume.pdf", f"{OUT}/resume"], check=True)

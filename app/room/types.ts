@@ -29,8 +29,12 @@ export interface PostContent {
 
 export interface Goal {
   text: string;
-  /** 1-12: the month it's due, drawn on the calendar. */
-  due?: number;
+  /** ISO date (yyyy-mm-dd), ringed on the planner. */
+  date: string;
+  /** "by": a deadline; "on": something that happens that day (a race). */
+  kind: "by" | "on";
+  /** A short aside in the margin, e.g. where it stands now. */
+  note?: string;
   done?: boolean;
 }
 
@@ -79,4 +83,5 @@ export type View =
   | { kind: "resume" }
   | { kind: "books"; book?: number }
   | { kind: "online" }
+  | { kind: "terminal" }
   | { kind: "poster"; i: number };

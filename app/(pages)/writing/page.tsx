@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Note } from "@/app/components/pro/Pen";
 import { listPosts, showDrafts } from "@/app/lib/posts";
 
 export const metadata: Metadata = {
@@ -9,59 +8,35 @@ export const metadata: Metadata = {
   alternates: { canonical: "/writing" },
 };
 
-const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+const fmt = (d: string) => new Date(d).toISOString().slice(0, 10);
 
 export default async function WritingPage() {
   const posts = await listPosts();
-  const published = posts.filter((p) => p.status === "published").length;
   return (
-    <div className="page">
-      <p className="folio" aria-hidden>
-        <span>Notes</span>
-        <span>{published} published</span>
-        <span>Shrey Singh · ML Systems</span>
+    <div className="wx-col">
+      <p className="wx-back"><Link href="/">◂ The desk</Link></p>
+      <h1 className="wx-h">Writing</h1>
+      <p className="wx-lede">
+        Long-form notes from the work: what broke, how I found out, and what the fix was worth. Every number links back to a repo.
       </p>
-      <header className="page-head">
-        <h1 className="big">Writing</h1>
-        <Note className="page-note" tilt={-4}>
-          what broke, how I found out, what the fix was worth
-        </Note>
-        <p className="page-lede">
-          Long-form notes from the work, including the parts I still don&apos;t know. Every number links back to a repo.
-        </p>
-      </header>
-      <ul className="wr">
+      <ol className="wx-list">
         {posts.map((p) => {
           const open = p.status === "published" || showDrafts;
+          const when = p.status === "published" ? fmt(p.date) : p.status === "template" ? "template" : showDrafts ? "draft" : "soon";
           const inner = (
             <>
-              <span className="wr-date">
-                {p.status === "published" ? fmt(p.date) : p.status === "template" ? "Template" : showDrafts ? "Draft" : "In progress"}
-                <br />
-                {p.readingTime}
-              </span>
-              <span className="wr-title">{p.title}</span>
-              <span className="wr-ex">{p.excerpt}</span>
-              <span className="wr-go" aria-hidden>
-                →
-              </span>
+              <span className="wx-date">{when}</span>
+              <span className="wx-title">{p.title}</span>
+              <span className="wx-ex">{p.excerpt} <span className="wx-rt">{p.readingTime}</span></span>
             </>
           );
           return (
             <li key={p.slug}>
-              {open ? (
-                <Link href={`/writing/${p.slug}`} className="wr-row">
-                  {inner}
-                </Link>
-              ) : (
-                <span className="wr-row" data-closed>
-                  {inner}
-                </span>
-              )}
+              {open ? <Link href={`/writing/${p.slug}`} className="wx-row">{inner}</Link> : <span className="wx-row" data-closed>{inner}</span>}
             </li>
           );
         })}
-      </ul>
+      </ol>
     </div>
   );
 }

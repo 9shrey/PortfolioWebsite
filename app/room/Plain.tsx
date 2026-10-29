@@ -69,7 +69,10 @@ export default function Plain({ c }: { c: RoomContent }) {
 
       <section id="year" aria-labelledby="h-year">
         <h2 id="h-year">{c.year}: the goals</h2>
-        <ul>{c.goals.map((g) => <li key={g.text}>{g.done ? "Done: " : ""}{g.text}</li>)}</ul>
+        <ul>{c.goals.map((g) => (
+          <li key={g.text}>{g.done ? "Done: " : ""}{g.text}{g.note ? ` (${g.note})` : ""}, {g.kind}{" "}
+            {new Date(g.date + "T00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long" })}</li>
+        ))}</ul>
       </section>
 
       <section id="contact" aria-labelledby="h-contact">

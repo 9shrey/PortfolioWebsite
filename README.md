@@ -5,19 +5,21 @@ they hold:
 
 | Object | Holds |
 | --- | --- |
-| GPU cards in the stepped rack | Work: one moves into the test bench and the projector shows its slide (case study, GitHub and next/previous are on the slide) |
-| The laptop | About, Writing (posts open right on the screen) and Online: real HTML on the lid (`app/room/LaptopScreen.tsx`) |
+| GPU cards in the stepped rack | Work: one moves into the test bench and the white projector throws its slide (case study, GitHub and next/previous are on the slide's band) |
+| The old beige monitor | An amber VT323 terminal (`app/room/engine/terminal.ts`): it boots, then a menu of about.txt (a pager), writing/, online and the résumé. Keys and clicks drive it; the tube is a shader (curve, scanlines, warm-up). On a phone it fills the screen |
+| The Polaroid on the monitor | About |
 | The phone | A lock screen on the desk; picked up, how to reach me |
 | Paper tray | The résumé: the page is the link to the PDF |
 | Books on the eye-level shelf | `assets/room/books.json`, read off the spines |
 | Wall planner | This year's goals (`app/data/goals.ts`) |
 
-The top bar has three titles (Work, Writing, About) and two icons (sound, settings). Rest the pointer
+The top bar has three titles (Work, Writing, About) in VT323 and two icons (sound, settings). Writing
+leaves the room for its own pages (`/writing`): one serif column, light or dark, as on Felix's site. Rest the pointer
 near an edge, or drag, to look around: as far as the projector and the shelves, never the back wall.
 Typing presses the keys on the desk; the wall clock keeps your time (click it and the battery falls
 out). Click the lamp to switch it off and on (the room is baked twice and crossfades), the curtains to
-draw them, a poster to lift it off the wall. Next to the books stand two figurines and a four-star
-ball. The mug, plant and bench fan respond to clicks too. Settings are remembered per browser. The
+draw them, a poster to lift it off the wall. Next to the books stand ten vinyl figurines (One Piece,
+Dragon Ball, Hunter x Hunter, Jujutsu Kaisen, Fullmetal Alchemist, Mob Psycho 100) and a four-star ball. The mug, plant and bench fan respond to clicks too. Settings are remembered per browser. The
 URL hash mirrors the view (`/#work/inferbench`, `/#writing`, ...). Sound (rain and an original
 music-box waltz, both synthesised) is off until the visitor turns it on; to use a recording instead,
 put it in `public/room/` and set `MUSIC_URL` in `app/room/engine/audio.ts`.
@@ -49,7 +51,7 @@ baked into the atlases. Each gets a small *shade* map instead: a bake of a white
 draws the picture and multiplies it by that shade, so it stays sharp up close and can change without
 a rebake.
 
-Glossy things (mug, phone, laptop, lamp, desk, frames) keep the baked light and add real reflections
+Glossy things (mug, phone, monitor, lamp, desk, frames) keep the baked light and add real reflections
 from an environment map taken inside the room at load; the window and posters get a faint glass
 reflection. On top of that (`app/room/engine/fx.ts`): a glow on the brightest things (lamp, projected slide,
 lit windows), a vignette and fine grain, and the projector's beam with dust in it. On slow machines the

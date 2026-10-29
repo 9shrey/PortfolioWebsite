@@ -1,7 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
-import { CSS3DObject, CSS3DRenderer } from "three/addons/renderers/CSS3DRenderer.js";
 import { buildCity } from "./city";
 import { buildBeam, buildPost } from "./fx";
 import type { Drawn, Region } from "./cards";
@@ -13,6 +12,15 @@ import type { SceneInfo, View } from "../types";
 
 const BASE = "/room/";
 const ATLAS: Record<string, string> = { shell: "atlas_shell", props: "atlas_props", books: "atlas_books", plant: "atlas_plant" };
+
+/** the tube's curve: shared by its shader and the click test */
+const CRT_K = 0.07, CRT_S = 0.915;
+function crtWarp(uv: THREE.Vector2) {
+  const cx = uv.x * 2 - 1, cy = uv.y * 2 - 1, k = (1 + CRT_K * (cx * cx + cy * cy)) * CRT_S;
+  return new THREE.Vector2(cx * k * 0.5 + 0.5, cy * k * 0.5 + 0.5);
+}
+const FIGURES = ["figure_pirate", "figure_saiyan", "figure_gon", "figure_killua", "figure_gojo", "figure_yuji",
+  "figure_edward", "figure_alphonse", "figure_mob", "figure_reigen"];
 
 export type Hit =
   | { kind: "action"; action: string; label: string }
@@ -105,10 +113,9 @@ export class RoomEngine {
   private dim?: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   private cardK = 0; private cardOn = false;
   private regions = new Map<string, { regions: Region[]; w: number; h: number; flipY: boolean }>();
-  /** the laptop's screen: real HTML, placed on the lid with a CSS 3D transform */
-  private css?: CSS3DRenderer;
-  private cssScene = new THREE.Scene();
-  private cssScreen?: CSS3DObject;
+  /** the old monitor's tube: time and power for its shader (curve, scanlines, warm-up) */
+  private crt = { time: { value: 0 }, power: { value: 0 } };
+  private crtOn = 0;
 
   /** Makes its own canvas inside `host`: two engines must never share a WebGL context
    *  (React mounts twice in development, and the first one may still be loading). */
@@ -164,11 +171,11 @@ export class RoomEngine {
         const name = mname.slice(5);
         const m = new THREE.MeshBasicMaterial({ color: 0xffffff, lightMapIntensity: 1.25 });
         o.material = m; this.live.set(name, m);
-        if (name.endsWith("_screen") && name !== "screen") {   // the phone and the laptop give off their own light
-          if (name === "laptop_screen") m.color.set("#1b2233");
+        if (name.endsWith("_screen") && name !== "screen") {   // the phone and the monitor give off their own light
+          if (name === "crt_screen") this.crtShader(m);
           return;
         }
-        if (name === "screen") m.lightMapIntensity = 2.7;   // projected light: the slide's type should glow
+        if (name === "screen") m.lightMapIntensity = 1.15;   // projected white: bright, but the paper must not burn out
         liveLoads.push((async () => {
           const shade = await tex(`${BASE}shade_${name}.webp`);
           shade.channel = 0;
@@ -226,10 +233,11 @@ export class RoomEngine {
     pick("screen", { kind: "view", view: { kind: "work", card: "" }, label: "Projector" });
     pick("screen_stand", { kind: "view", view: { kind: "work", card: "" }, label: "Projector" });
     pick("badge", { kind: "view", view: { kind: "about" }, label: "About me" });
-    pick("notebook", { kind: "view", view: { kind: "writing" }, label: "Writing" });
+    pick("notebook", { kind: "action", action: "href:/writing", label: "Writing" });
     pick("phone", { kind: "view", view: { kind: "contact" }, label: "Contact" });
-    pick("laptop", { kind: "view", view: { kind: "about" }, label: "" });
-    pick("laptop_lid", { kind: "view", view: { kind: "about" }, label: "" });
+    pick("crt", { kind: "view", view: { kind: "terminal" }, label: "" });
+    pick("crt_screen", { kind: "view", view: { kind: "terminal" }, label: "" });
+    pick("polaroid_photo", { kind: "view", view: { kind: "about" }, label: "" });
     pick("calendar", { kind: "view", view: { kind: "year" }, label: "This year" });
     pick("resume", { kind: "view", view: { kind: "resume" }, label: "Résumé" });
     pick("tray", { kind: "view", view: { kind: "resume" }, label: "Résumé" });
@@ -250,8 +258,7 @@ export class RoomEngine {
     }
     pick("curtain_l", { kind: "toy", name: "curtains", label: "" });
     pick("curtain_r", { kind: "toy", name: "curtains", label: "" });
-    pick("figure_pirate", { kind: "toy", name: "figure_pirate", label: "" });
-    pick("figure_saiyan", { kind: "toy", name: "figure_saiyan", label: "" });
+    for (const f of FIGURES) pick(f, { kind: "toy", name: f, label: "" });
     pick("dragonball", { kind: "toy", name: "dragonball", label: "" });
     this.makePivots();
 
@@ -326,15 +333,18 @@ export class RoomEngine {
       case "home": case "poster": return this.homePose();
       case "work": return this.faceOn("screen", 1.08);
       case "year": return this.faceOn("calendar", 1.05);
-      case "about": case "writing": case "online": return this.faceOn("laptop_screen", 1.24);
+      case "about": case "writing": case "online": case "terminal": return this.faceOn("crt_screen", 1.6);
       case "contact": return this.faceOn("phone_screen", 1.25);
       case "resume": return this.faceOn("resume_page", 1.08);
       case "books": {
+        // the books and the figurines standing beside them, all along the shelf
         const sp = Object.entries(this.info.live).filter(([k]) => k.startsWith("spine_")).map(([, v]) => v);
-        const c = sp.reduce((a, v) => a.add(new THREE.Vector3(...v.pos)), new THREE.Vector3()).divideScalar(Math.max(sp.length, 1));
-        const ys = sp.map((v) => v.pos[2]);
-        const w = Math.max(...ys) - Math.min(...ys) + 0.12;
-        return this.frame3(c, new THREE.Vector3(...sp[0].normal).normalize(), w * 1.3, 0.34);
+        const pts = sp.map((v) => new THREE.Vector3(...v.pos));
+        for (const f of FIGURES) { const n = this.nodes.get(f); if (n) pts.push(n.getWorldPosition(new THREE.Vector3())); }
+        const box = new THREE.Box3().setFromPoints(pts);
+        const c = box.getCenter(new THREE.Vector3()); c.y = pts[0].y;
+        const w = box.max.z - box.min.z + 0.14;
+        return this.frame3(c, new THREE.Vector3(...sp[0].normal).normalize(), w * 1.1, 0.3);
       }
     }
   }
@@ -442,6 +452,7 @@ export class RoomEngine {
   private regionAt(name: string, uv?: THREE.Vector2): Hit | null {
     const r = this.regions.get(name);
     if (!r || !uv) return null;
+    if (name === "crt_screen") uv = crtWarp(uv);
     const x = uv.x * r.w, y = (r.flipY ? 1 - uv.y : uv.y) * r.h;
     const hit = r.regions.find((g) => x >= g.x && x <= g.x + g.w && y >= g.y && y <= g.y + g.h);
     return hit ? { kind: "action", action: hit.action, label: hit.label } : null;
@@ -477,7 +488,6 @@ export class RoomEngine {
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     this.renderer.setSize(w, h, false);
     this.post?.setSize(w, h, this.dpr);
-    this.css?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   };
@@ -563,7 +573,7 @@ export class RoomEngine {
       const k = since("plant");
       plant.rotation.z = Math.sin(t * 0.9) * 0.006 + (k < 3 ? Math.sin(k * 14) * Math.exp(-k * 1.6) * 0.05 : 0);
     }
-    for (const f of ["figure_pirate", "figure_saiyan"]) {
+    for (const f of FIGURES) {
       const n = P(f); if (!n) continue;
       const k = since(f); n.userData.y0 ??= n.position.y;
       const hop = k < 0.8 ? Math.sin((k / 0.8) * Math.PI) : 0;
@@ -604,6 +614,9 @@ export class RoomEngine {
     }
 
     this.tickClock();
+    // the tube warms up when you sit at it and stays on
+    this.crt.time.value = t;
+    this.crt.power.value += (this.crtOn - this.crt.power.value) * Math.min(1, dt * (this.crtOn ? 1.6 : 4));
     for (const [code, y0] of this.keyBase) {
       const n = this.nodes.get(`key_${code}`)!;
       const target = y0 - (this.pressed.has(code) ? 0.0035 : 0);
@@ -613,7 +626,6 @@ export class RoomEngine {
     this.city?.tick(t);
     this.beam?.tick(t, this.renderer.getPixelRatio() * this.canvas.clientHeight * 0.0016);
     if (this.post) this.post.render(t); else this.renderer.render(this.scene, this.camera);
-    if (this.css) this.css.render(this.cssScene, this.camera);
     this.frames++;
     if (t - this.fpsT > 0.5) { if (this.settings.fps) this.ev.fps?.(Math.round(this.frames / (t - this.fpsT))); this.frames = 0; this.fpsT = t; }
     if (this.settings.quality === "auto") this.adapt(dt);
@@ -658,7 +670,7 @@ export class RoomEngine {
     const centre = (n: string) => box(n).getCenter(new THREE.Vector3());
     const bottom = (n: string) => { const b = box(n); return new THREE.Vector3((b.min.x + b.max.x) / 2, b.min.y, (b.min.z + b.max.z) / 2); };
     for (const n of ["bench_fan", "projector_spool_takeup", "projector_spool_feed", "dragonball"]) if (this.nodes.has(n)) this.pivot(n, centre(n));
-    for (const n of ["mug", "plant", "figure_pirate", "figure_saiyan"]) if (this.nodes.has(n)) this.pivot(n, bottom(n));
+    for (const n of ["mug", "plant", ...FIGURES]) if (this.nodes.has(n)) this.pivot(n, bottom(n));
     // clock hands turn about the face's centre, on its normal (pivot's local y)
     const face = this.info.live.clock_face;
     if (face) {
@@ -767,7 +779,7 @@ export class RoomEngine {
     const spec: [RegExp, { rough: number; metal?: number; tint?: string; amt: number; coat?: number }][] = [
       [/^mug$/, { rough: 0.12, amt: 1.0, coat: 1 }],
       [/^phone$/, { rough: 0.08, amt: 1.0, coat: 1 }],
-      [/^laptop(_lid)?$/, { rough: 0.32, metal: 1, tint: "#8d9096", amt: 0.55 }],
+      [/^crt$/, { rough: 0.4, amt: 0.35, coat: 0.5 }],
       [/^lamp$/, { rough: 0.28, amt: 0.7, coat: 0.6 }],
       [/^desk$/, { rough: 0.42, amt: 0.35, coat: 0.3 }],
       [/^window_frame$/, { rough: 0.35, amt: 0.4 }],
@@ -831,27 +843,38 @@ export class RoomEngine {
     for (const m of this.gloss) { m.envMap = env; m.needsUpdate = true; }
   }
 
-  // ------------------------------------------------------------------ the laptop's screen
-  /** Puts `el` (px wide, 16:10) on the laptop's screen. It takes the pointer only when `active`. */
-  attachScreen(host: HTMLElement, el: HTMLElement, px = 1280) {
-    const s = this.info.live.laptop_screen;
-    if (!s) return;
-    if (!this.css) {
-      this.css = new CSS3DRenderer();
-      this.css.domElement.className = "room-css";
-      host.insertBefore(this.css.domElement, this.canvas.nextSibling);
-      this.resize();
-    }
-    if (this.cssScreen) this.cssScene.remove(this.cssScreen);
-    el.style.width = `${px}px`; el.style.height = `${Math.round(px / 1.6)}px`;
-    const o = new CSS3DObject(el);
-    const pos = new THREE.Vector3(...s.pos), n = new THREE.Vector3(...s.normal).normalize();
-    o.position.copy(pos).addScaledVector(n, 0.0008);
-    o.lookAt(pos.clone().add(n));
-    o.scale.setScalar(s.size[0] / px);
-    this.cssScene.add(o); this.cssScreen = o;
+  // ------------------------------------------------------------------ the old monitor
+  /** The tube: the terminal's canvas, bowed like glass, with scanlines, a vignette and a slow warm-up. */
+  private crtShader(m: THREE.MeshBasicMaterial) {
+    m.onBeforeCompile = (sh) => {
+      sh.uniforms.uTime = this.crt.time; sh.uniforms.uPower = this.crt.power;
+      sh.fragmentShader = "uniform float uTime;\nuniform float uPower;\n" + sh.fragmentShader.replace("#include <map_fragment>", `
+        #ifdef USE_MAP
+          vec2 cc = vMapUv * 2.0 - 1.0;
+          cc *= (1.0 + ${CRT_K.toFixed(3)} * dot(cc, cc)) * ${CRT_S.toFixed(3)};
+          vec2 tuv = cc * 0.5 + 0.5;
+          vec2 e = smoothstep(vec2(0.0), vec2(0.015), tuv) * smoothstep(vec2(0.0), vec2(0.015), 1.0 - tuv);
+          float edge = e.x * e.y;
+          // the picture opens out from a bright line as the tube warms
+          float open = smoothstep(0.0, 0.3, uPower);
+          float band = step(abs(tuv.y - 0.5), 0.5 * open + 0.004);
+          vec3 tex = texture2D(map, vec2(tuv.x, 0.5 + (tuv.y - 0.5) / max(open, 0.01))).rgb;
+          // a little colour bleed sideways, like a real phosphor
+          tex = max(tex, texture2D(map, tuv + vec2(0.0016, 0.0)).rgb * 0.55);
+          float scan = 0.78 + 0.22 * sin(tuv.y * 768.0 * 3.14159);
+          float vig = 1.0 - 0.42 * dot(cc, cc);
+          float flick = 0.975 + 0.025 * sin(uTime * 53.0) + 0.012 * sin(uTime * 7.3);
+          float roll = 0.04 * smoothstep(0.0, 0.03, abs(fract(tuv.y * 0.5 - uTime * 0.08) - 0.5) - 0.47);
+          vec3 glass = vec3(0.045, 0.03, 0.015) * vig;          // the tube's own faint glow, even dark
+          vec3 col = (tex * scan * flick + roll) * vig * band * smoothstep(0.0, 1.0, uPower * 1.4);
+          col += vec3(1.0, 0.75, 0.4) * (1.0 - smoothstep(0.0, 0.004, abs(tuv.y - 0.5))) * (1.0 - open) * step(0.02, uPower);
+          diffuseColor.rgb = (col + glass) * edge;
+        #endif`);
+    };
+    m.customProgramCacheKey = () => "crt";
   }
-  setScreenActive(on: boolean) { this.cssScreen?.element.classList.toggle("is-active", on); }
+  /** Warm the tube up (or let it go dark). */
+  setCrtPower(on: boolean) { this.crtOn = on ? 1 : 0.35; }
 
   // ------------------------------------------------------------------ drawn surfaces
   /** Clickable regions on a live surface ("screen"); glTF surfaces have v running down. */

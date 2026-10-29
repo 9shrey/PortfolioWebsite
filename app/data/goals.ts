@@ -1,14 +1,11 @@
 import type { Goal } from "../room/types";
 
-/** The year planner on the wall of the room. Each goal is written along the top of the planner
- *  and its due month gets a red dot. Tick one off with `done: true`.
- *
- *  PLACEHOLDERS: Shrey hasn't given the real goals yet. Replace these before publishing. */
-export const goalsYear = 2026;
+/** The year planner on the wall of the room. Each goal is written along the top of the planner, and
+ *  its date is ringed in red pen on the calendar below. Tick one off with `done: true`. */
+export const goalsYear = 2027;
 
 export const goals: Goal[] = [
-  { text: "Ship Timeblock 1.0", due: 11 },
-  { text: "Publish six posts", due: 12 },
-  { text: "A fused Triton kernel, end to end", due: 12 },
-  { text: "Land an ML systems role", due: 12 },
+  { text: "Run a full marathon", date: "2027-02-20", kind: "on" },
+  { text: "Down to 10% body fat", date: "2027-04-01", kind: "by" },
+  { text: "15 lakh in investments", date: "2027-12-05", kind: "by", note: "2 lakh now" },
 ];

@@ -1,15 +1,47 @@
 {
-  "_": "The books on the eye-level shelf, left to right. PLACEHOLDERS until Shrey sends the real list. Change titles/notes freely: rerun `npm run room:textures` and copy assets/room/src/gen/spine_*.png to public/room/labels/ (no rebake needed unless the number of books changes).",
+  "_": "The books on the eye-level shelf, left to right. Titles/authors can change freely: rerun `npm run room:textures` and copy assets/room/src/gen/spine_*.png to public/room/labels/ (a rebake only if the number of books changes).",
   "books": [
-    { "title": "Book one", "author": "Author", "color": "#1d3557", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book two", "author": "Author", "color": "#e9e1cf", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book three", "author": "Author", "color": "#8a2a1f", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book four", "author": "Author", "color": "#2f4f3a", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book five", "author": "Author", "color": "#d9a441", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book six", "author": "Author", "color": "#16161a", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book seven", "author": "Author", "color": "#5a6b8c", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book eight", "author": "Author", "color": "#c9ccd1", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book nine", "author": "Author", "color": "#6b3e26", "note": "Why it stuck with me.", "placeholder": true },
-    { "title": "Book ten", "author": "Author", "color": "#2442d8", "note": "Why it stuck with me.", "placeholder": true }
+    {
+      "title": "Reverend Insanity",
+      "author": "Gu Zhen Ren",
+      "color": "#5b1520",
+      "note": ""
+    },
+    {
+      "title": "Shadow Slave",
+      "author": "Guiltythree",
+      "color": "#1c2030",
+      "note": ""
+    },
+    {
+      "title": "Red Rising",
+      "author": "Pierce Brown",
+      "color": "#b3201f",
+      "note": ""
+    },
+    {
+      "title": "Deep Work",
+      "author": "Cal Newport",
+      "color": "#ece8de",
+      "note": ""
+    },
+    {
+      "title": "The Hitchhiker's Guide to the Galaxy",
+      "author": "Douglas Adams",
+      "color": "#141414",
+      "note": "All five in one book."
+    },
+    {
+      "title": "The Odyssey",
+      "author": "Homer",
+      "color": "#1f3a5f",
+      "note": ""
+    },
+    {
+      "title": "The Iliad",
+      "author": "Homer",
+      "color": "#8a5a2b",
+      "note": ""
+    }
   ]
 }

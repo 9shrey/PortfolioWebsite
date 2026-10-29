@@ -2577,3 +2577,22 @@ main:has(.cs) + .foot {
     color: inherit;
   }
 }
+
+/* ---------------------------------------------------------------- the room's bar on inner pages */
+/* Three titles in the old monitor's face (VT323); the current one in inverse video, as the terminal
+   shows a selection. */
+.px-nav .nav-in { justify-content: space-between; }
+.px-name { font: 28px/1 var(--font-pixel), monospace; text-decoration: none; color: var(--ink); white-space: nowrap; }
+.px-name:hover { color: var(--pen); }
+.px-links { display: flex; align-items: center; gap: 4px; font: 21px/1 var(--font-pixel), monospace; }
+.px-links a { padding: 3px 8px 2px; text-decoration: none; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.px-links a:hover { color: var(--ink); background: var(--line); }
+.px-links a[aria-current="page"] { background: var(--ink); color: var(--bg); }
+.px-links a:focus-visible { outline: 2px solid var(--pen); outline-offset: 2px; }
+.px-links .pl-theme { all: unset; cursor: pointer; margin-left: 10px; padding: 3px 8px 2px; border: 1px solid var(--line-2); text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-2); }
+.px-links .pl-theme:hover { color: var(--ink); }
+html:has(.wx) .px-name, html:has(.wx) .px-links a { color: var(--wx-ink); }
+html:has(.wx) .px-links a[aria-current="page"] { background: var(--wx-ink); color: var(--wx-bg); }
+html:has(.wx) .px-links .pl-theme { color: var(--wx-mute); border-color: var(--wx-rule); }
+html:has(.wx) .nav { border-bottom-color: var(--wx-rule); }
+@media (max-width: 560px) { .px-name { font-size: 22px; } .px-links { font-size: 18px; } .px-links a { padding: 3px 5px 2px; } }
