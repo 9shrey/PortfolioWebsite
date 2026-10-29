@@ -680,8 +680,27 @@ def anime_figure(name, at, f):
 # on the eye-level shelf, in a row before the books
 ay0, ay1 = sb_lo.y + 0.09, (sb_lo.y + sb_hi.y) / 2 - 0.06   # the bay before the post
 step = (ay1 - ay0) / (len(ANIME) - 1)
+def surface_below(x, y, z_from):
+    """The top of whatever is under (x, y): this bay's board sits lower than the books' one."""
+    bpy.context.view_layer.update()
+    hit, loc, *_ = scene.ray_cast(bpy.context.evaluated_depsgraph_get(), Vector((x, y, z_from)), Vector((0, 0, -1)), distance=0.5)
+    return loc.z if hit else REAL_BOARD
+# The shelf's boards are staggered: the eye-level one only spans the books' bay. Give the figurines' bay a
+# board of its own, the same plank mirrored about the centre post, in the shelf's own material.
+def eye_board():
+    faces = [p for p in shelf.data.polygons if p.normal.z > 0.95 and abs((shelf.matrix_world @ p.center).z - REAL_BOARD) < 0.01]
+    pts = [shelf.matrix_world @ shelf.data.vertices[v].co for p in faces for v in p.vertices]
+    lo, hi = Vector(map(min, *pts)), Vector(map(max, *pts))
+    mat = shelf.material_slots[max(set(p.material_index for p in faces), key=[p.material_index for p in faces].count)].material
+    return lo, hi, mat
+b_lo, b_hi, b_mat = eye_board()
+post = (sb_lo.y + sb_hi.y) / 2
+print("EYE BOARD", [round(v, 3) for v in (*b_lo, *b_hi)], "post", round(post, 3))
+plank = span("fig_board", b_lo.x, b_hi.x, 2 * post - b_hi.y, min(2 * post - b_lo.y, b_lo.y - 0.002), REAL_BOARD - 0.022, REAL_BOARD, b_mat)
+STATIC_SHELL.append(plank)
+BAY_BOARD = REAL_BOARD
 for k, (nm, spec) in enumerate(ANIME):
-    STATIC_PROPS.append(anime_figure(nm, (xb - 0.07 - (0.02 if k % 2 else 0), ay0 + k * step, REAL_BOARD), spec))
+    STATIC_PROPS.append(anime_figure(nm, (xb - 0.07 - (0.02 if k % 2 else 0), ay0 + k * step, BAY_BOARD), spec))
 
 desk_books = []
 zb = TOP
