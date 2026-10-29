@@ -1,0 +1,170 @@
+/* ==========================================================================
+   THE ROOM (home) and its plain reading view.
+
+   The room is a night scene, so the page around it stays out of the way: paper-coloured type on the
+   dark, the lamp's amber for what's current, and panels that look like a sheet laid over the scene
+   (paper, ink, the blue pen from the printed pages). Handwriting is for notes left on the desk.
+   ========================================================================== */
+
+:root {
+  --r-night: #07080c;
+  --r-paper: #f3efe6;
+  --r-paper-2: #e6e0d3;
+  --r-ink: #16161a;
+  --r-ink-2: #4a4a52;
+  --r-pen: #2442d8;
+  --r-lamp: #f0a24b;
+  --r-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* The head script adds .room when the room will run: the plain page stays out of sight. */
+html.room, html.room body { background: var(--r-night); overflow: hidden; height: 100%; }
+html.room .plain, html.room .skip { display: none; }
+
+.room { position: fixed; inset: 0; color: var(--r-paper); font-family: var(--font-sans); }
+.room-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
+
+/* loading */
+.room-loader {
+  position: absolute; inset: 0; z-index: 30; background: var(--r-night);
+  display: grid; place-content: center; gap: 18px; padding: 24px;
+  transition: opacity 0.9s var(--r-ease), visibility 0s linear 0.9s;
+}
+.room-loader.is-done { opacity: 0; visibility: hidden; }
+.loader-name {
+  margin: 0; font-family: var(--font-display); font-weight: 900; font-stretch: 140%;
+  font-size: clamp(34px, 6vw, 72px); letter-spacing: -0.01em; line-height: 0.9;
+}
+.loader-bar { height: 2px; width: min(420px, 80vw); background: rgba(243, 239, 230, 0.12); overflow: hidden; }
+.loader-bar span { display: block; height: 100%; background: var(--r-lamp); transform-origin: 0 50%; transition: transform 0.4s var(--r-ease); }
+.loader-note { margin: 0; font-family: var(--font-hand); font-size: 24px; color: rgba(243, 239, 230, 0.6); }
+
+/* header: who, and the way around */
+.room-head {
+  position: absolute; z-index: 10; inset: 0 0 auto 0; display: flex; align-items: flex-start;
+  justify-content: space-between; gap: 16px; padding: 18px 22px; pointer-events: none;
+  background: linear-gradient(rgba(7, 8, 12, 0.55), rgba(7, 8, 12, 0));
+}
+.room-head > * { pointer-events: auto; }
+.room-name { all: unset; cursor: pointer; display: grid; gap: 3px; }
+.room-name .n { font-family: var(--font-display); font-weight: 850; font-stretch: 125%; font-size: 21px; line-height: 1; }
+.room-name .t { font-size: 13.5px; color: rgba(243, 239, 230, 0.66); }
+.room-name:focus-visible { outline: 2px solid var(--r-lamp); outline-offset: 4px; }
+.room-nav { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 4px 18px; font-size: 15px; }
+.room-nav a, .room-nav button {
+  all: unset; cursor: pointer; color: rgba(243, 239, 230, 0.86); padding: 2px 0;
+  border-bottom: 1.5px solid transparent; transition: color 0.2s, border-color 0.2s;
+}
+.room-nav a:hover, .room-nav button:hover { color: var(--r-paper); }
+.room-nav a[aria-current="page"] { color: var(--r-paper); border-color: var(--r-lamp); }
+.room-nav a:focus-visible, .room-nav button:focus-visible { outline: 2px solid var(--r-lamp); outline-offset: 3px; }
+.room-nav .room-sound, .room-nav .room-plain { font-size: 13.5px; color: rgba(243, 239, 230, 0.55); }
+.room-nav .room-sound { margin-left: 10px; }
+.room-nav .room-sound[aria-pressed="true"] { color: var(--r-lamp); }
+
+/* what the pointer is over */
+.room-tip {
+  position: fixed; z-index: 12; pointer-events: none; transform: translate(14px, 14px);
+  background: var(--r-paper); color: var(--r-ink); font-size: 13.5px; padding: 5px 9px 6px; border-radius: 2px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); white-space: nowrap;
+}
+
+/* a note on the screen, once */
+.room-hint {
+  position: absolute; z-index: 9; left: 50%; bottom: 26px; transform: translateX(-50%); margin: 0;
+  font-family: var(--font-hand); font-size: 26px; line-height: 1.1; color: rgba(243, 239, 230, 0.9);
+  text-align: center; width: max-content; max-width: calc(100vw - 32px); text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+  animation: hint-in 1.2s 1.6s both var(--r-ease);
+}
+@keyframes hint-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+
+/* away from the desk: one way back, and a word when something is copied */
+.room-back {
+  all: unset; cursor: pointer; position: absolute; z-index: 11; left: 50%; bottom: 22px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-radius: 999px;
+  background: rgba(7, 8, 12, 0.6); backdrop-filter: blur(6px); color: var(--r-paper); font-size: 14px;
+  animation: hint-in 0.6s 0.4s both var(--r-ease);
+}
+.room-back:hover { background: rgba(7, 8, 12, 0.8); }
+.room-back:focus-visible { outline: 2px solid var(--r-lamp); outline-offset: 3px; }
+.room-back kbd { font: 500 11px var(--font-mono); border: 1px solid rgba(243, 239, 230, 0.35); border-radius: 3px; padding: 1px 5px; }
+.room-toast {
+  position: absolute; z-index: 14; left: 50%; bottom: 74px; transform: translateX(-50%); margin: 0;
+  background: var(--r-paper); color: var(--r-ink); font-size: 14px; padding: 6px 12px; border-radius: 3px;
+}
+
+@keyframes sheet-in { from { opacity: 0; transform: translateY(-6px); } }
+
+/* settings: a small sheet under the nav, not a camera move */
+.room-settings {
+  position: absolute; z-index: 13; top: 70px; right: 22px; width: min(320px, calc(100vw - 32px));
+  background: var(--r-paper); color: var(--r-ink); border-radius: 3px; padding: 14px 18px 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5); font-size: 14px; animation: sheet-in 0.4s both var(--r-ease);
+}
+.rs-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.rs-head h2 { margin: 0; font-family: var(--font-display); font-weight: 850; font-stretch: 118%; font-size: 20px; }
+.rs-head button { all: unset; cursor: pointer; font-size: 13px; color: var(--r-ink-2); }
+.rs-head button:hover { color: var(--r-ink); }
+.room-settings fieldset { border: 0; padding: 0; margin: 0 0 8px; }
+.room-settings legend { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.room-settings label { display: grid; grid-template-columns: 18px 1fr; gap: 0 8px; padding: 5px 0; cursor: pointer; align-items: baseline; }
+.room-settings label small { grid-column: 2; color: var(--r-ink-2); font-size: 12.5px; line-height: 1.35; }
+.room-settings input { accent-color: var(--r-pen); margin: 0; }
+.rs-toggle { border-top: 1px solid var(--r-paper-2); }
+.rs-note { margin: 8px 0 0; font-size: 12px; color: var(--r-ink-2); }
+.room-nav .room-settings-btn { font-size: 13.5px; color: rgba(243, 239, 230, 0.55); margin-left: 10px; }
+.room-nav .room-settings-btn[aria-expanded="true"] { color: var(--r-lamp); }
+.room-nav .room-sound { margin-left: 0; }
+.room-fps { position: absolute; z-index: 12; left: 22px; bottom: 18px; margin: 0; font: 500 12px var(--font-mono); color: rgba(243, 239, 230, 0.7); }
+
+
+@media (max-width: 760px) {
+  .room-head { flex-direction: column; padding: 14px 16px; gap: 8px; }
+  .room-nav { justify-content: flex-start; gap: 2px 14px; font-size: 14.5px; }
+  .room-nav .room-plain { display: none; }
+  .room-hint { font-size: 22px; bottom: 18px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .room-back, .room-hint, .room-settings { animation: none; }
+  .room-loader, .loader-bar span { transition: none; }
+}
+
+/* ==========================================================================
+   Reading view: the same content as one plain page, in the print look of the inner pages.
+   ========================================================================== */
+.plain {
+  --pl-bg: #ebe8df; --pl-ink: #111110; --pl-mute: #55554f; --pl-pen: #2442d8; --pl-rule: rgba(17, 17, 16, 0.14);
+  max-width: 700px; margin: 0 auto; padding: 32px 16px 96px; color: var(--pl-ink); background: var(--pl-bg);
+  font-family: var(--font-sans); font-size: 17px; line-height: 1.6;
+}
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .plain { --pl-bg: #0f1013; --pl-ink: #ebe6da; --pl-mute: #9a958a; --pl-pen: #8ea2ff; --pl-rule: rgba(235, 230, 218, 0.16); }
+  html:not([data-theme="light"]):not(.room) body:has(.plain) { background: #0f1013; }
+}
+html[data-theme="dark"] .plain { --pl-bg: #0f1013; --pl-ink: #ebe6da; --pl-mute: #9a958a; --pl-pen: #8ea2ff; --pl-rule: rgba(235, 230, 218, 0.16); }
+html:not(.room) body:has(.plain) { background: #ebe8df; }
+html[data-theme="dark"]:not(.room) body:has(.plain) { background: #0f1013; }
+.pl-still { display: block; width: calc(100% + 32px); max-width: none; height: auto; margin: 0 -16px 28px; border-radius: 2px; }
+@media (min-width: 760px) { .pl-still { width: 100%; margin: 0 0 32px; } }
+.pl-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pl-theme { all: unset; cursor: pointer; font: 500 12px var(--font-mono); color: var(--pl-mute); border: 1px solid var(--pl-rule); border-radius: 3px; padding: 3px 8px; margin-top: 8px; }
+.pl-theme:hover { color: var(--pl-ink); }
+.pl-theme:focus-visible { outline: 2px solid var(--pl-pen); outline-offset: 2px; }
+.plain h1 { margin: 0; font-family: var(--font-display); font-weight: 900; font-stretch: 150%; font-size: clamp(40px, 9vw, 76px); line-height: 0.92; letter-spacing: -0.02em; }
+.plain h2 { margin: 56px 0 14px; font-family: var(--font-display); font-weight: 800; font-stretch: 125%; font-size: 26px; }
+.plain h2.pl-sub { margin-top: 36px; font-size: 20px; }
+.plain h3 { margin: 0; font-size: 18px; }
+.plain a { color: var(--pl-pen); text-underline-offset: 3px; }
+.pl-lead { font-size: 20px; margin: 18px 0 10px; }
+.pl-nav { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; font-size: 15px; }
+.pl-nav .pl-room { font-family: var(--font-hand); font-size: 23px; line-height: 1; }
+.pl-item { margin: 0 0 22px; }
+.pl-item p { margin: 4px 0; }
+.pl-meta { font-family: var(--font-mono); font-size: 12.5px; color: var(--pl-mute); }
+.pl-year { display: grid; grid-template-columns: 64px 1fr; gap: 0 12px; border-top: 1px solid var(--pl-rule); padding-top: 10px; }
+.plain .pl-y { font: 500 13px var(--font-mono); color: var(--pl-mute); padding-top: 4px; }
+.pl-posts { padding-left: 0; list-style: none; margin: 0; }
+.pl-posts li { margin: 0 0 8px; }
+.pl-books { padding-left: 18px; }
+.pl-link { margin-right: 14px; }

@@ -190,45 +190,13 @@ export const projects: Project[] = [
     github: "https://github.com/9shrey/rl-statistical-arbitrage",
     codeStatus: "public",
   },
-  {
-    slug: "jev-voice-nav",
-    title: "Jev: voice navigation for this site",
-    shortTitle: "Jev",
-    area: "Applied ML · product",
-    year: "2026",
-    featured: false,
-    testCount: 0,
-    stack: ["Next.js", "Web Speech API", "Whisper (transformers.js)", "Web Workers"],
-    blurb:
-      "Say \"open Inferbench\" or \"copy your email\" and this site does it. Local intent matching first, an LLM classifier only for what the rules can't place.",
-    headline: [
-      { value: "2", label: "speech engines" },
-      { value: "13", label: "command types resolved locally" },
-    ],
-    tldr: {
-      problem:
-        "Free-form speech doesn't map cleanly onto a fixed set of pages, and sending every utterance to an LLM is slow and costs per call.",
-      approach:
-        "The browser's own speech recognition where it exists; otherwise Whisper-tiny running on-device in a Web Worker, downloaded only after the visitor opts in. Transcripts go to a local rule matcher first; only unmatched requests reach a server-side choice classifier, which must clear a confidence threshold before the site navigates.",
-      result:
-        "Navigation, project lookups, scrolling and copy-email resolve locally with no network round-trip; the LLM call is the fallback, not the path.",
-    },
-    evidence:
-      "Live on this site: the orb in the corner on desktop. No test suite, which is why it sits last.",
-    system:
-      "Mic → Web Speech API, or on-device Whisper via transformers.js in a Worker → local command matcher (pages, projects, scroll, history, copy email, terminal) → else POST /api/voice-intent → choice classifier with confidence threshold → router.push.",
-    technicalInterest:
-      "Putting the cheap, deterministic path first and the model last, and letting a low-confidence classifier decline rather than guess.",
-    challenges:
-      "Speech APIs vary across browsers; the button hides where neither engine can run. Chrome's speechSynthesis drops the first utterance unless it is primed inside a user gesture.",
-    retrospect:
-      "A low-confidence result asks the visitor to repeat themselves; offering the top two guesses would be kinder.",
-    resumeBullet:
-      "Built voice navigation for a production site: browser speech recognition with an on-device Whisper fallback, a local intent matcher, and an LLM choice classifier with a confidence threshold for free-form requests.",
-    github: "https://github.com/9shrey/PortfolioWebsite",
-    codeStatus: "public",
-  },
 ];
+
+/** "Inferbench: a Triton kernel…" -> ["Inferbench", "a Triton kernel…"] */
+export function split(title: string) {
+  const i = title.indexOf(": ");
+  return i < 0 ? [title, ""] : [title.slice(0, i), title.slice(i + 2)];
+}
 
 export function getProjectBySlug(slug: string): Project | undefined {
   return projects.find((p) => p.slug === slug);

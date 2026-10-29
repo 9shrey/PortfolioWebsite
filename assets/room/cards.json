@@ -1,0 +1,12 @@
+{
+  "_": "GPU cards on the desk, in rack order. kind=role reads app/data/experience.ts, kind=project reads app/data/projects.ts (by slug). Shared by scripts/room (build) and app/room (runtime).",
+  "cards": [
+    { "id": "inferbench",  "kind": "project", "slug": "inferbench",               "label": "INFERBENCH",   "spec": "87 to 451 tok/s",      "shroud": "#1b1b1d", "accent": "#ff9a1f" },
+    { "id": "schemabench", "kind": "project", "slug": "schemabench",              "label": "SCHEMABENCH",  "spec": "8 models · no judge",  "shroud": "#c9ccd1", "accent": "#2442d8" },
+    { "id": "argus",       "kind": "project", "slug": "argus-fraud-detection",    "label": "ARGUS",        "spec": "fraud scoring + SHAP", "shroud": "#4a0f14", "accent": "#ff5a4f" },
+    { "id": "rlarb",       "kind": "project", "slug": "rl-statistical-arbitrage", "label": "RL ARBITRAGE", "spec": "walk-forward · 94 tests","shroud": "#173a26", "accent": "#9be15d" },
+    { "id": "timeblock",   "kind": "project", "slug": "timeblock",                "label": "TIMEBLOCK",    "spec": "building now",        "shroud": "#e9e1cf", "accent": "#e2573b" },
+    { "id": "agneyas",     "kind": "role",    "company": "Agneyas Labs",          "label": "AGNEYAS LABS", "spec": "MLOps · 2026 –",      "shroud": "#0f3b3a", "accent": "#d9894a" },
+    { "id": "netapp",      "kind": "role",    "company": "NetApp",                "label": "NETAPP",       "spec": "ML intern · 2025–26", "shroud": "#0d2a52", "accent": "#7cc0ff" }
+  ]
+}

@@ -1,142 +1,77 @@
-# Shrey Singh — Portfolio
+# Shrey Singh — portfolio
 
-An editorial-technical portfolio for Shrey Singh — AI/ML Engineer.
-Built with **Next.js 16 · React 19 · Tailwind CSS v4 · TypeScript · Motion · Lenis**.
+A desk at night by a rainy window in New York, in the browser. Everything on the desk is a page:
 
-## Design direction — "Evidence, rendered."
-
-The content's argument is *proof, not demos* — 503 tests, leak-proof evaluation,
-token-identical correctness gates, exact McNemar contrasts. So the site is built
-to read like **instrumentation**: measured, precise, editorial. Cream on
-near-black, Instrument Serif display against JetBrains Mono data labels, and
-green demoted from decoration to **signal** — it only appears where something is
-measured, active, or selected.
-
-Rules instead of cards. Typography and whitespace instead of effects.
-
-## Routes
-
-| Route | What it is |
+| Object | Opens |
 | --- | --- |
-| `/` | Hero → proof ledger → pinned horizontal work reel → approach → outro |
-| `/work` | Editorial index of every project, filterable, with cursor-following preview |
-| `/work/[slug]` | Case study: problem, system, evidence, retrospect, sticky meta rail |
-| `/experience` | Scroll-drawn timeline |
-| `/about` | Bio + capabilities as a focused accordion (not a badge wall) |
-| `/now` | What's actually on the plate this month |
-| `/contact` | Large-type close |
-| `/writing` | Notes index — currently empty by design, not linked from the nav |
+| GPU cards in the stepped rack | Work: click one and it moves into the test bench; the projector shows its slide, with links to the case study and GitHub and the next/previous card drawn on it |
+| ID badge | About |
+| Notebook | Writing |
+| Phone | Contact |
+| Wall planner | This year's goals (`app/data/goals.ts`) |
+| Paper tray | Résumé |
+| Books on the eye-level shelf | Books (`assets/room/books.json`) |
 
-## Motion system
+There are no side panels: About, Writing, Contact, Résumé and Books are paper cards that float up off
+the desk (`app/room/engine/cards.ts`), and their links are clickable on the card itself.
 
-Three levels, encoded as CSS duration tokens so nothing animates at an
-arbitrary speed:
+Rest the pointer near an edge of the screen (or drag) to look around the room, all the way round.
+Typing on your keyboard presses the same keys on the desk. The wall clock keeps your local time; click
+it and the battery falls out. The mug, plant, posters and bench fan respond to clicks too. Settings
+(quality, glow, grain, camera sway, frame rate) are remembered per browser. The hash in the URL mirrors the view
+(`/#work/inferbench`, `/#about`, ...). Sound (rain and an original music-box waltz, both synthesised) is
+off until the visitor turns it on. To use a recording instead, put it in `public/room/` and set `MUSIC_URL` in `app/room/engine/audio.ts`.
 
-| Level | Token | Used for |
-| --- | --- | --- |
-| 1 — Micro | `--d-1` (0.25s) | hover, magnetic pull, underline wipe, cursor states |
-| 2 — Reveal | `--d-2` (0.6s) | section entrances, clip-path text masks, staggers |
-| 3 — Cinematic | `--d-3` (1.1s) | hero entrance, pinned work reel, scroll-linked statement |
+Built with Next.js 16, React 19, three.js and TypeScript. Inspired by felixrieseberg.com.
 
-**Exactly three Level-3 moments exist on the whole site** — the hero, the work
-reel, and the approach statement. Restraint is the point: everything else is
-Level 1 or 2.
+## How it's made
 
-## Interaction notes
-
-- **Pinned work reel** (`home/WorkReel.tsx`) — the section pins and project
-  spreads travel sideways as you scroll. Horizontal distance is *measured*, and
-  the section height is set to match, so wheel movement maps ~1:1 to travel.
-  Only on wide, fine-pointer, motion-allowed viewports; everywhere else the
-  same panels render as an ordinary vertical list, which is also the
-  server-rendered default.
-- **Scroll-linked statement** (`motion/ScrollWords.tsx`) — text resolves word by
-  word as it travels up the viewport. Used once, on the one paragraph worth
-  slowing a reader down for.
-- **Hero field** (`home/Field.tsx`) — a ruled measurement grid revealed only
-  where a pointer-tracked light sits. All CSS; JS writes two custom properties
-  at most once per frame.
-- **Cursor** (`layout/Cursor.tsx`) — viewfinder reticle with contextual states.
-  Elements opt in via `data-cursor` / `data-cursor-label`. Fine pointers only,
-  and the native cursor is hidden only *after* it mounts successfully.
-- **Index rows** — hovering or focusing one row dims its siblings, so the list
-  always has exactly one subject.
-
-## Accessibility & resilience
-
-- Reduced motion is respected in both CSS and JS — Lenis is never constructed,
-  the reel falls back to a list, and every reveal resolves immediately.
-- Scroll reveals have two failsafes so content is never stranded invisible: a
-  timeout in `Reveal.tsx` if the observer never fires, and a `<noscript>`
-  override if scripts never run.
-- `PageTransition` uses plain CSS rather than Motion on purpose — Motion's mount
-  detection can stall under Next's router transition and leave a page at
-  opacity 0.
-- Split headlines expose their real string to assistive tech (`aria-label` on
-  headings, visually-hidden text for paragraphs).
-- Skip link, visible focus rings, one `h1` per route, meaningful image alt text.
-
-## Dependencies
-
-Deliberately small — `framer-motion` for React motion and scroll primitives,
-`lenis` (~7KB gz) for scroll easing. **No GSAP** (`useScroll` + `position:
-sticky` already pin, so ScrollTrigger would be ~28KB gz of duplicate
-capability), **no Three.js** (nothing here is genuinely spatial), and no
-component libraries.
-
-## Develop
-
-```bash
-npm install
-```
-
-```bash
-npm run dev
-```
-
-```bash
-npm run build
-```
-
-```bash
-npm run lint
-```
-
-```bash
-npm run typecheck
-```
-
-## Content
-
-All content is typed data, separate from presentation:
-
-- `app/data/projects.ts` — drives the index, filters, reel, and case studies
-- `app/data/experience.ts` — roles and their metrics
-- `app/data/skills.ts` — capability groups
-- `app/data/now.ts` — the `/now` list (update `updated` in the same commit)
-- `app/data/writing.ts` — notes (currently empty)
-
-Project visuals are hand-authored SVGs in `public/project-visuals/`, resolved by
-slug. Resume PDF is `public/Shrey_Singh_Resume.pdf`.
-
-## Components
+The room is modelled and lit in Blender from a script, then baked: each surface's finished, lit look
+is rendered into a few texture atlases, so the browser only draws textured triangles and stays fast.
 
 ```
-app/components/
-  layout/    Nav · Footer · Cursor · PageTransition · ScrollProgress · Terminal
-  motion/    SmoothScroll · TextReveal · ScrollWords · Magnetic · Reveal · Counter · useMediaQuery
-  home/      Hero · Field · Ledger · WorkReel · Statement · Outro
-  work/      WorkIndex · ProjectPanel · ProjectDetail · HoverPreview
-  ui/        PageHeader
-  about/ · experience/ · contact/ · now/ · writing/
+scripts/room/fetch.mjs     CC0 models + textures from Poly Haven -> assets/room/src (gitignored)
+scripts/room/textures.py   card labels, ID badge, résumé page -> assets/room/src/gen
+scripts/room/build.py      builds the room in Blender (Z-up) and renders previews
+scripts/room/bake.py       bakes atlases + shade maps, exports public/room/room.glb and scene.json
+scripts/room/blender.sh    runs Blender headless (system install or the Flathub app)
+assets/room/cards.json     the cards, in rack order (shared by the build and the page)
 ```
 
-Press <kbd>`</kbd> anywhere for a terminal.
+```sh
+npm run room:fetch                 # once
+npm run room                       # textures -> bake (~25 min on a GTX 1650) -> compress
+scripts/room/blender.sh --python scripts/room/build.py -- preview /tmp/p.png   # quick look first
+```
 
-## Deploy
+**Live surfaces** (the planner, the projector screen, posters, card labels, badge, résumé) are not
+baked into the atlases. Each gets a small *shade* map instead: a bake of a white stand-in. The page
+draws the picture and multiplies it by that shade, so it stays sharp up close and can change without
+a rebake.
 
-Any Next.js-compatible host (Vercel recommended).
+On top of the bake (`app/room/engine/fx.ts`): a glow on the brightest things (lamp, projected slide,
+lit windows), a vignette and fine grain, and the projector's beam with dust in it. On slow machines the
+glow is the first thing dropped, then resolution.
 
-## Credits
+The view out of the window is a real photograph, Midtown at night from Top of the Rock by
+[Anthony Delanoix](https://unsplash.com/photos/aerial-photography-of-empire-state-building-during-nighttime-79HoTuHnNsc)
+on Unsplash (Unsplash License), cropped and softened into `public/room/nyc.webp`. It sits 10 m behind
+the glass for real parallax; a shader adds flickering windows, rain falling past and drops on the
+glass (`app/room/engine/city.ts`).
 
-Built by Shrey Singh — [github.com/9shrey](https://github.com/9shrey).
+## Where things are
+
+| Path | What |
+| --- | --- |
+| `app/page.tsx` | Home: the room, over a plain server-rendered copy of the same content |
+| `app/room/` | The room: engine, city, sound, surfaces, panels, styles |
+| `app/room/script.ts` | Head script: WebGL 2 on a real GPU gets the room; software renderers get the plain page |
+| `app/(pages)/` | Case studies, posts, CV, /now: the printed pages (styles in `app/art.css`) |
+| `app/data/` | Content: projects, experience, skills, goals, site identity |
+| `content/writing/` | Posts (MDX) |
+
+`?plain=1` shows the reading view; `?room=1` forces the room.
+
+## Rules
+
+Every number on the site traces to a project repo. Figures are labelled "measured" or "schematic".

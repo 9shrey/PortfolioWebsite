@@ -45,3 +45,6 @@ next-env.d.ts
 
 # separate project checked out inside this folder
 /sales_agent_db/
+
+# room source assets (CC0, re-fetch with scripts/room/fetch.mjs)
+/assets/room/src/

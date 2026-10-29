@@ -1,24 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
-import Link from "next/link";
 import "./globals.css";
 import "./art.css";
 
-import FieldRoot from "./components/field/FieldRoot";
-import FunRoot from "./components/os/FunRoot";
-import SiteNav from "./components/pro/SiteNav";
-import Motion from "./components/pro/Motion";
-import Palette from "./components/pro/Palette";
-import { projects } from "./data/projects";
-import { split } from "./components/pro/ProPage";
+import { ROOM_SCRIPT } from "./room/script";
 import VisitBeacon from "./components/site/VisitBeacon";
-import { MODE_SCRIPT } from "./components/mode/script";
+import "./room/room.css";
 import { site } from "./data/site";
-import { listPosts } from "./lib/posts";
 
 /** The professional site is a printed page with notes in pen: Anybody (wide,
  *  heavy) shouts, Familjen Grotesk talks, Martian Mono labels, and Nanum Pen
- *  Script is the blue ballpoint. Newsreader stays for SHREY-OS's documents.
+ *  Script is the blue ballpoint. Newsreader sets long-form posts.
  *  All OFL, in app/fonts. */
 const serif = localFont({
   src: [
@@ -97,13 +89,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ebe8df",
-  colorScheme: "light",
+  themeColor: "#07080c",
 };
 
-export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  // SHREY-OS's Writing app lists the same posts; it can't read the disk itself.
-  const posts = (await listPosts()).filter((p) => p.status !== "template");
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
       lang="en"
@@ -112,74 +101,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
       className={`${sans.variable} ${serif.variable} ${display.variable} ${mono.variable} ${hand.variable}`}
     >
       <head>
-        <script dangerouslySetInnerHTML={{ __html: MODE_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: ROOM_SCRIPT }} />
       </head>
       <body>
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(personLd) }} />
         <a href="#content" className="skip">
           Skip to content
         </a>
-        <div id="pro">
-          <SiteNav />
-          <main id="content" tabIndex={-1}>
-            {children}
-          </main>
-          <footer className="foot">
-            <div className="foot-in">
-              <p className="foot-big" aria-hidden>
-                Shrey Singh
-              </p>
-              <div className="foot-cols">
-                <p>
-                  <span className="foot-k">Contact</span>
-                  <a href={`mailto:${site.email}`}>{site.email}</a>
-                  <a href={site.links.github} target="_blank" rel="noopener">
-                    GitHub
-                  </a>
-                  <a href={site.links.linkedin} target="_blank" rel="noopener">
-                    LinkedIn
-                  </a>
-                </p>
-                <p>
-                  <span className="foot-k">Pages</span>
-                  <Link href="/#work">Work</Link>
-                  <Link href="/writing">Writing</Link>
-                  <Link href="/now">Now</Link>
-                  <Link href="/cv">One-page CV</Link>
-                </p>
-                <p>
-                  <span className="foot-k">Colophon</span>
-                  <span>Set in Anybody, Familjen Grotesk, Martian Mono and a blue ballpoint.</span>
-                  <span>Every figure on this site traces to a public repo.</span>
-                </p>
-                <p>
-                  <span className="foot-k">Elsewhere</span>
-                  <span>
-                    Press <kbd>/</kbd> to jump anywhere.
-                  </span>
-                  <span>© {new Date().getFullYear()} {site.name}, Bengaluru.</span>
-                </p>
-              </div>
-            </div>
-          </footer>
-          <Motion />
-          <Palette
-            projects={projects.map((p) => ({ slug: p.slug, name: split(p.title)[0], area: p.area }))}
-            email={site.email}
-            resume={site.resume}
-            github={site.links.github}
-            linkedin={site.links.linkedin}
-          />
-        </div>
-        <div className="os-booting">
-          <span aria-hidden>SHREY-OS</span>
-          {/* Only appears if SHREY-OS fails to load; works without JS. */}
-          <a href="?mode=pro" className="os-booting-out">
-            Taking too long? Back to the professional site →
-          </a>
-        </div>
-        <FunRoot posts={posts} />
-        <FieldRoot />
+        {children}
         <VisitBeacon />
       </body>
     </html>

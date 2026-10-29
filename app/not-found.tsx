@@ -3,6 +3,7 @@ import { Note } from "./components/pro/Pen";
 
 export default function NotFound() {
   return (
+    <div id="pro">
     <div className="page lost">
       <p className="folio" aria-hidden>
         <span>Error</span>
@@ -16,12 +17,13 @@ export default function NotFound() {
       <p className="page-lede">That page doesn&apos;t exist, or it moved when the site was rebuilt.</p>
       <p className="acts">
         <Link className="act act-ink" href="/">
-          Back to the start <span aria-hidden>→</span>
+          Back to the room <span aria-hidden>→</span>
         </Link>
         <Link className="act" href="/#work">
           See the work <span aria-hidden>→</span>
         </Link>
       </p>
+    </div>
     </div>
   );
 }
