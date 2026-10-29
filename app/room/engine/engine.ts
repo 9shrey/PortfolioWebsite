@@ -691,11 +691,25 @@ export class RoomEngine {
         m.onBeforeCompile = (sh: THREE.WebGLProgramParametersWithUniforms) => {
           sh.uniforms.mapOff = { value: mapOff }; sh.uniforms.lampOff = lamp;
           sh.fragmentShader = "uniform sampler2D mapOff;\nuniform float lampOff;\n" + sh.fragmentShader;
-          if (which === "map") sh.fragmentShader = sh.fragmentShader.replace("texture2D( map, vMapUv )", "mix( texture2D( map, vMapUv ), texture2D( mapOff, vMapUv ), lampOff )");
-          if (which === "emissive") sh.fragmentShader = sh.fragmentShader.replace("texture2D( emissiveMap, vEmissiveMapUv )", "mix( texture2D( emissiveMap, vEmissiveMapUv ), texture2D( mapOff, vEmissiveMapUv ), lampOff )");
+          // three expands its #include chunks after this hook, so the chunks are replaced whole
+          if (which === "map") sh.fragmentShader = sh.fragmentShader.replace("#include <map_fragment>", `
+            #ifdef USE_MAP
+              diffuseColor *= mix( texture2D( map, vMapUv ), texture2D( mapOff, vMapUv ), lampOff );
+            #endif`);
+          if (which === "emissive") sh.fragmentShader = sh.fragmentShader.replace("#include <emissivemap_fragment>", `
+            #ifdef USE_EMISSIVEMAP
+              vec4 emOn = texture2D( emissiveMap, vEmissiveMapUv );
+              vec3 em = mix( emOn.rgb, texture2D( mapOff, vEmissiveMapUv ).rgb, lampOff );
+              ${m.userData.bulb
+                // the lamp itself: the off bake still has the window's fill light up inside the shade, so what
+                // was blown out with the lamp on (the bulb, the shade's inside) goes dark with it
+                ? "em *= 1.0 - 0.82 * smoothstep( 0.8, 1.0, dot( emOn.rgb, vec3( 0.3333 ) ) ) * lampOff;"
+                : ""}
+              totalEmissiveRadiance *= em;
+            #endif`);
           if (which === "light") sh.fragmentShader = sh.fragmentShader.replace("texture2D( lightMap, vLightMapUv )", "mix( texture2D( lightMap, vLightMapUv ), texture2D( mapOff, vLightMapUv ), lampOff )");
         };
-        m.customProgramCacheKey = () => `lamp-${which}`;
+        m.customProgramCacheKey = () => `lamp-${which}${m.userData.bulb ? "-bulb" : ""}`;
         m.needsUpdate = true;
       }
     });
@@ -764,6 +778,7 @@ export class RoomEngine {
           clearcoat: sp.coat ?? 0, clearcoatRoughness: 0.15, envMapIntensity: sp.amt,
         });
         m.name = `gloss:${name}`;
+        if (name === "lamp") m.userData.bulb = true;   // its blown-out bulb and shade dim with the lamp (see loadLampOff)
         c.material = m; this.gloss.push(m);
       });
     }
