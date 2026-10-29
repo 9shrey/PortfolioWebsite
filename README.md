@@ -1,26 +1,24 @@
 # Shrey Singh — portfolio
 
-A desk at night by a rainy window in New York, in the browser. Everything on the desk is a page:
+A desk at night by a rainy window in New York, in the browser. Nothing is labelled; things open what
+they hold:
 
-| Object | Opens |
+| Object | Holds |
 | --- | --- |
-| GPU cards in the stepped rack | Work: click one and it moves into the test bench; the projector shows its slide, with links to the case study and GitHub and the next/previous card drawn on it |
-| ID badge | About |
-| Notebook | Writing |
-| Phone | Contact |
+| GPU cards in the stepped rack | Work: one moves into the test bench and the projector shows its slide (case study, GitHub and next/previous are on the slide) |
+| The laptop | About, Writing (posts open right on the screen) and Online: real HTML on the lid (`app/room/LaptopScreen.tsx`) |
+| The phone | A lock screen on the desk; picked up, how to reach me |
+| Paper tray | The résumé: the page is the link to the PDF |
+| Books on the eye-level shelf | `assets/room/books.json`, read off the spines |
 | Wall planner | This year's goals (`app/data/goals.ts`) |
-| Paper tray | Résumé |
-| Books on the eye-level shelf | Books (`assets/room/books.json`) |
 
-There are no side panels: About, Writing, Contact, Résumé and Books are paper cards that float up off
-the desk (`app/room/engine/cards.ts`), and their links are clickable on the card itself.
-
-Rest the pointer near an edge of the screen (or drag) to look around the room, all the way round.
-Typing on your keyboard presses the same keys on the desk. The wall clock keeps your local time; click
-it and the battery falls out. The mug, plant, posters and bench fan respond to clicks too. Settings
-(quality, glow, grain, camera sway, frame rate) are remembered per browser. The hash in the URL mirrors the view
-(`/#work/inferbench`, `/#about`, ...). Sound (rain and an original music-box waltz, both synthesised) is
-off until the visitor turns it on. To use a recording instead, put it in `public/room/` and set `MUSIC_URL` in `app/room/engine/audio.ts`.
+The top bar has three titles (Work, Writing, About) and two icons (sound, settings). Rest the pointer
+near an edge, or drag, to look around: as far as the projector and the shelves, never the back wall.
+Typing presses the keys on the desk; the wall clock keeps your time (click it and the battery falls
+out). The mug, plant, posters and bench fan respond to clicks. Settings are remembered per browser. The
+URL hash mirrors the view (`/#work/inferbench`, `/#writing`, ...). Sound (rain and an original
+music-box waltz, both synthesised) is off until the visitor turns it on; to use a recording instead,
+put it in `public/room/` and set `MUSIC_URL` in `app/room/engine/audio.ts`.
 
 Built with Next.js 16, React 19, three.js and TypeScript. Inspired by felixrieseberg.com.
 
@@ -49,7 +47,9 @@ baked into the atlases. Each gets a small *shade* map instead: a bake of a white
 draws the picture and multiplies it by that shade, so it stays sharp up close and can change without
 a rebake.
 
-On top of the bake (`app/room/engine/fx.ts`): a glow on the brightest things (lamp, projected slide,
+Glossy things (mug, phone, laptop, lamp, desk, frames) keep the baked light and add real reflections
+from an environment map taken inside the room at load; the window and posters get a faint glass
+reflection. On top of that (`app/room/engine/fx.ts`): a glow on the brightest things (lamp, projected slide,
 lit windows), a vignette and fine grain, and the projector's beam with dust in it. On slow machines the
 glow is the first thing dropped, then resolution.
 

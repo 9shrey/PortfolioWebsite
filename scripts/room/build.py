@@ -419,7 +419,7 @@ for i, c in enumerate(CARDS):
 lamp = import_model("desk_lamp_arm_01", (-0.88, 1.9, TOP), rot_z=150, name="lamp")["main"]
 decimate(lamp, 0.4); STATIC_PROPS.append(lamp)
 bulb = material_centroid(lamp, "_light")
-notebook = import_model("binder_notebook", (0.42, 1.80, TOP), rot_z=184, drop=("_closed",), name="notebook")["main"]
+notebook = import_model("binder_notebook", (0.80, 1.66, TOP), rot_z=196, drop=("_closed",), name="notebook")["main"]
 decimate(notebook, 0.4); MOVERS.append(notebook)
 
 plant = import_model("potted_plant_02", (1.95, 1.45, 0), rot_z=30, scale=1.15, name="plant")
@@ -521,7 +521,7 @@ def badge():
     cu.extrude = 0.008; cu.resolution_u = 16
     rib = link(bpy.data.objects.new("lanyard", cu)); rib.data.materials.append(M["lanyard"])
     o = join("badge", [card, rib]); return o
-b = badge(); b.location = (0.72, 1.70, TOP); b.rotation_euler.z = math.radians(-14); MOVERS.append(b)
+b = badge(); b.location = (0.62, 1.40, TOP); b.rotation_euler.z = math.radians(-24); MOVERS.append(b)
 bpy.context.view_layer.update()
 bf = plane("badge_face", 0.052, 0.084, (0, 0, 0), rot=(0, 0, 0), mat=principled("badge_white", (0.8, 0.8, 0.8), 0.35))
 bf.matrix_world = b.matrix_world @ Matrix.Translation((0, 0, 0.0019)); bf["image"] = "badge.png"; parent_keep(bf, b); DYN.append(bf)
@@ -542,6 +542,31 @@ STATIC_PROPS.append(t); MOVERS.append(r)
 
 phone = box("phone", (0.074, 0.155, 0.008), (-0.42, 1.40, TOP + 0.004), M["phone"], rot=(0, 0, 11), bevel=0.006)
 MOVERS.append(phone)
+bpy.context.view_layer.update()
+ps = plane("phone_screen", 0.066, 0.145, (0, 0, 0), rot=(0, 0, 0), mat=principled("phone_glass", (0.02, 0.02, 0.025), 0.15))
+ps.matrix_world = phone.matrix_world @ Matrix.Translation((0, 0, 0.0042)); parent_keep(ps, phone); DYN.append(ps)
+
+# ------------------------------------------------------------------ the laptop, open behind the keyboard
+def laptop(cx, cy, open_deg=108):
+    L = Matrix.Translation((cx, cy, TOP)) @ Matrix.Rotation(math.radians(-3), 4, "Z")
+    W, D, T2 = 0.304, 0.212, 0.011
+    alu = principled("laptop_alu", srgb("#a9abb0"), 0.32, 0.9)
+    dark = principled("laptop_keys", srgb("#1a1a1c"), 0.6)
+    base = box("laptop", (W, D, T2), (0, 0, T2 / 2), alu, bevel=0.003)
+    deck = span("deck", -W / 2 + 0.02, W / 2 - 0.02, -0.02, D / 2 - 0.015, T2, T2 + 0.0006, dark)
+    pad = span("pad", -0.055, 0.055, -D / 2 + 0.012, -0.03, T2, T2 + 0.0004, principled("trackpad", srgb("#8f9196"), 0.25, 0.8))
+    b = join("laptop", [base, deck, pad]); b.matrix_world = L @ b.matrix_world
+    # the lid hinges at the back edge and leans back a little past upright
+    hinge = L @ Matrix.Translation((0, D / 2 - 0.004, T2)) @ Matrix.Rotation(math.radians(open_deg - 90), 4, "X")
+    lid = box("laptop_lid", (W, 0.006, D), (0, 0.003, D / 2), alu, bevel=0.003)
+    bezel = span("bezel", -W / 2 + 0.003, W / 2 - 0.003, -0.0012, 0.0, 0.003, D - 0.003, principled("bezel", srgb("#0b0b0d"), 0.2))
+    lid = join("laptop_lid", [lid, bezel]); lid.matrix_world = hinge @ lid.matrix_world
+    # the screen: a live surface (the page puts real HTML on it); bright in the bake, so it lights the desk
+    sw, sh = W - 0.024, (W - 0.024) / 1.6
+    scr = plane("laptop_screen", sw, sh, (0, 0, 0), mat=principled("laptop_glow", (0, 0, 0), emit=(0.75, 0.82, 1.0), strength=2.2))
+    scr.matrix_world = hinge @ Matrix.Translation((0, -0.0014, 0.012 + sh / 2)) @ Matrix.Rotation(math.radians(90), 4, "X")
+    STATIC_PROPS.extend([b, lid]); DYN.append(scr)
+laptop(0.30, 1.76)
 
 # ------------------------------------------------------------------ live surfaces: calendar, projector screen, posters
 cal_x0, cal_x1, cal_z0, cal_z1 = 0.80, 1.80, 1.10, 2.20
@@ -572,6 +597,22 @@ def poster(i, path, loc, rot_z, height):
     art.matrix_world = Matrix.Translation(loc) @ Matrix.Rotation(math.radians(rot_z), 4, "Z") @ Matrix.Translation((0, -0.0125, 0)) @ Matrix.Rotation(math.radians(90), 4, "X")
     art["image"] = os.path.basename(path)
     STATIC_PROPS.append(fr); DYN.append(art)
+    # a brass picture light on a short arm above it, and its light
+    brass = M.setdefault("brass", principled("brass", (0.62, 0.42, 0.18), 0.3, 1.0))
+    pw = height * aspect * 0.9
+    R_ = Matrix.Translation(loc) @ Matrix.Rotation(math.radians(rot_z), 4, "Z")
+    top = height / 2 + 0.07
+    bar = cyl(f"picture_light_{i}", 0.014, pw * 0.75, (0, 0, 0), brass, rot=(0, 90, 0), seg=20)
+    bar.matrix_world = R_ @ Matrix.Translation((0, -0.11, top)) @ Matrix.Rotation(math.radians(90), 4, "Y")
+    arm = cyl("arm", 0.004, 0.11, (0, 0, 0), brass, seg=10)
+    arm.matrix_world = R_ @ Matrix.Translation((0, -0.055, top + 0.012)) @ Matrix.Rotation(math.radians(90), 4, "X")
+    base_ = cyl("rose", 0.016, 0.01, (0, 0, 0), brass, seg=16)
+    base_.matrix_world = R_ @ Matrix.Translation((0, -0.005, top + 0.012)) @ Matrix.Rotation(math.radians(90), 4, "X")
+    STATIC_PROPS.append(join(f"picture_light_{i}", [bar, arm, base_]))
+    ld = bpy.data.lights.new(f"pl_{i}", "AREA"); ld.shape = "RECTANGLE"; ld.size = pw * 0.7; ld.size_y = 0.02
+    ld.energy = 9 * pw; ld.color = (1.0, 0.78, 0.55)
+    lo = link(bpy.data.objects.new(f"pl_{i}", ld))
+    lo.matrix_world = R_ @ Matrix.Translation((0, -0.1, top - 0.02)) @ Matrix.Rotation(math.radians(35), 4, "X")
 # right wall above the shelves, left wall over the projector table
 P = posters
 spots = [((X1 - 0.005, -0.45, 2.12), -90, 0.52), ((X1 - 0.005, 0.25, 2.18), -90, 0.62), ((X1 - 0.005, 0.95, 2.12), -90, 0.52),

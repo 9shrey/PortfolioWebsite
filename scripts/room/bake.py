@@ -146,6 +146,9 @@ for name, objs, size, angle in GROUPS:
 
 # live surfaces: a shade map each, over their own 0..1 UVs
 shade = {}
+# things that move across a live surface must not leave a frozen shadow on it (the clock's hands)
+ghosts = [o for o in scene.objects if o.name.startswith(("clock_hour", "clock_minute", "clock_second"))]
+for g in ghosts: g.hide_render = True
 for o in DYN:
     o.data.uv_layers.active = o.data.uv_layers["UVMap"]
     w, h = max(o.dimensions.x, 0.01), max(o.dimensions.y, 0.01)   # plane's own width and height
@@ -153,8 +156,9 @@ for o in DYN:
     px = (side, max(16, round(side * h / w))) if w >= h else (max(16, round(side * w / h)), side)
     img = bpy.data.images.new(f"shade_{o.name}", *px, float_buffer=True)
     bake([o], img)
-    img.save_render(os.path.abspath(f"{OUT}/shade_{o.name}.webp"), scene=scene)
+    denoise_and_save(img, f"{OUT}/shade_{o.name}.webp")     # soft light only: noise shows on paper
     shade[o.name] = o.get("image")
+for g in ghosts: g.hide_render = False
 log("baked", len(DYN), "live surfaces")
 
 # ---------------------------------------------------------------- export

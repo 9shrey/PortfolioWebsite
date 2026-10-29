@@ -3,6 +3,7 @@
 export const ROOM_SCRIPT = `(function(){try{
 try{var th=localStorage.getItem('plain.theme');if(th==='light'||th==='dark')document.documentElement.setAttribute('data-theme',th);}catch(e){}
 var q=location.search,d=document.documentElement;
+if(/[?&]embed=1/.test(q))d.classList.add('embed');
 if(location.pathname!=='/'||/[?&]plain=1/.test(q))return;
 var c=document.createElement('canvas'),g=c.getContext('webgl2');if(!g)return;
 if(!/[?&]room=1/.test(q)){var e=g.getExtension('WEBGL_debug_renderer_info'),r=String(g.getParameter(e?e.UNMASKED_RENDERER_WEBGL:g.RENDERER)||'');

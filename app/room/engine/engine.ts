@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
+import { CSS3DObject, CSS3DRenderer } from "three/addons/renderers/CSS3DRenderer.js";
 import { buildCity } from "./city";
 import { buildBeam, buildPost } from "./fx";
 import type { Drawn, Region } from "./cards";
@@ -40,6 +41,9 @@ export interface EngineEvents {
 
 type Pose = { pos: THREE.Vector3; look: THREE.Vector3; fov: number };
 
+/** how far the visitor can turn from the desk: enough for the projector and the shelves, never the back wall */
+const YAW = 1.2;
+
 const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 export class RoomEngine {
@@ -75,7 +79,8 @@ export class RoomEngine {
   private post?: ReturnType<typeof buildPost>;
   private beam?: ReturnType<typeof buildBeam>;
   /** hover glow per clickable thing: its own copies of its materials, and how lit up it is */
-  private glow = new Map<THREE.Object3D, { mats: THREE.MeshBasicMaterial[]; k: number }>();
+  private glow = new Map<THREE.Object3D, { mats: THREE.Material[]; k: number }>();
+  private gloss: (THREE.MeshPhysicalMaterial)[] = [];
   private hoverRoot: THREE.Object3D | null = null;
   private moving = new Set<THREE.Object3D>();
   /** looking around from the home spot: radians off the home direction, and how fast it's turning */
@@ -86,12 +91,11 @@ export class RoomEngine {
   private keyBase = new Map<string, number>();
   private pressed = new Set<string>();
   private frames = 0; private fpsT = 0;
-  /** the paper card that floats up in front of the camera */
-  private card!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
-  private cardK = 0; private cardOn = false;
-  private cardFrom = new THREE.Vector3();
-  private dim!: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   private regions = new Map<string, { regions: Region[]; w: number; h: number; flipY: boolean }>();
+  /** the laptop's screen: real HTML, placed on the lid with a CSS 3D transform */
+  private css?: CSS3DRenderer;
+  private cssScene = new THREE.Scene();
+  private cssScreen?: CSS3DObject;
 
   /** Makes its own canvas inside `host`: two engines must never share a WebGL context
    *  (React mounts twice in development, and the first one may still be loading). */
@@ -147,6 +151,10 @@ export class RoomEngine {
         const name = mname.slice(5);
         const m = new THREE.MeshBasicMaterial({ color: 0xffffff, lightMapIntensity: 1.25 });
         o.material = m; this.live.set(name, m);
+        if (name.endsWith("_screen") && name !== "screen") {   // the phone and the laptop give off their own light
+          if (name === "laptop_screen") m.color.set("#1b2233");
+          return;
+        }
         liveLoads.push((async () => {
           const shade = await tex(`${BASE}shade_${name}.webp`);
           shade.channel = 0;
@@ -172,15 +180,11 @@ export class RoomEngine {
       new THREE.Vector3(...scr.normal).normalize(), scr.size[0], scr.size[1]);
     this.scene.add(this.beam.group);
     this.post = buildPost(this.renderer, this.scene, this.camera);
-
     this.scene.add(this.camera);
-    this.card = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.86, 0.85, 0.83), transparent: true, opacity: 0 }));
-    this.card.visible = false; this.card.renderOrder = 10;
-    this.camera.add(this.card);
-    // the room dims a little behind a card
-    this.dim = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0, depthTest: false, depthWrite: false }));
-    this.dim.position.z = -0.62; this.dim.renderOrder = 9; this.dim.visible = false;
-    this.camera.add(this.dim);
+
+
+    // glossy things keep their baked look and gain real reflections (Felix's trick: lightmap + env map)
+    this.glossify();
 
     // pickables: the things that do something
     const pick = (name: string, hit: Hit) => {
@@ -189,10 +193,10 @@ export class RoomEngine {
       const mats: THREE.MeshBasicMaterial[] = [];
       n.traverse((c) => {
         c.userData.hit = hit; c.userData.root = n;
-        if (c instanceof THREE.Mesh && c.material instanceof THREE.MeshBasicMaterial) {
-          // atlas materials are shared: copy one so only this thing lights up. Live ones are already its own.
-          const isLive = [...this.live.values()].includes(c.material);
-          if (!isLive && !c.material.name.startsWith("own:")) { c.material = c.material.clone(); c.material.name = "own:" + c.material.name; }
+        if (c instanceof THREE.Mesh && (c.material instanceof THREE.MeshBasicMaterial || c.material instanceof THREE.MeshPhysicalMaterial)) {
+          // atlas materials are shared: copy one so only this thing lights up. Live and glossy ones are already its own.
+          const own = [...this.live.values()].includes(c.material as THREE.MeshBasicMaterial) || c.material instanceof THREE.MeshPhysicalMaterial;
+          if (!own && !c.material.name.startsWith("own:")) { c.material = c.material.clone(); c.material.name = "own:" + c.material.name; }
           mats.push(c.material);
         }
       });
@@ -210,6 +214,8 @@ export class RoomEngine {
     pick("badge", { kind: "view", view: { kind: "about" }, label: "About me" });
     pick("notebook", { kind: "view", view: { kind: "writing" }, label: "Writing" });
     pick("phone", { kind: "view", view: { kind: "contact" }, label: "Contact" });
+    pick("laptop", { kind: "view", view: { kind: "about" }, label: "" });
+    pick("laptop_lid", { kind: "view", view: { kind: "about" }, label: "" });
     pick("calendar", { kind: "view", view: { kind: "year" }, label: "This year" });
     pick("resume", { kind: "view", view: { kind: "resume" }, label: "Résumé" });
     pick("tray", { kind: "view", view: { kind: "resume" }, label: "Résumé" });
@@ -236,6 +242,7 @@ export class RoomEngine {
     this.resize();
     this.ev.ready?.();
     this.raf = requestAnimationFrame(this.frame);
+    setTimeout(() => !this.disposed && this.captureEnv(), 1500);
   }
 
   // ------------------------------------------------------------------ live surfaces
@@ -256,23 +263,18 @@ export class RoomEngine {
    *  fit a w x h area, with the object nudged clear of the panel: left of it on wide screens, above
    *  the bottom sheet on narrow ones. */
   private frame3(center: THREE.Vector3, n: THREE.Vector3, w: number, h: number, fov = 40): Pose {
-    const aspect = this.camera.aspect, narrow = aspect < 1;
-    const vf = THREE.MathUtils.degToRad(fov), t = Math.tan(vf / 2);
-    // on wide screens the object gets ~60% of the width; on narrow ones ~45% of the height
-    const dist = Math.max(h / 2 / t / (narrow ? 0.38 : 0.9), w / 2 / (t * aspect) / (narrow ? 0.95 : 0.6));
-    const pos = center.clone().addScaledVector(n, dist);
-    const fwd = n.clone().negate();
-    const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
-    const up = new THREE.Vector3().crossVectors(right, fwd).normalize();
-    const H = 2 * dist * t, W = H * aspect;
-    const look = center.clone();
-    if (narrow) look.addScaledVector(up, -0.2 * H); else look.addScaledVector(right, 0.2 * W);
-    return { pos: look.clone().sub(center).add(pos), look, fov };
+    const aspect = this.camera.aspect;
+    const t = Math.tan(THREE.MathUtils.degToRad(fov) / 2);
+    // the thing fills ~84% of the height, or ~92% of the width on a narrow screen
+    const dist = Math.max(h / 2 / t / 0.84, w / 2 / (t * aspect) / 0.92);
+    return { pos: center.clone().addScaledVector(n, dist), look: center.clone(), fov };
   }
 
   private faceOn(name: string, fill = 1.1): Pose {
     const s = this.info.live[name];
-    return this.frame3(new THREE.Vector3(...s.pos), new THREE.Vector3(...s.normal).normalize(), s.size[0] * fill, s.size[1] * fill);
+    const n = new THREE.Vector3(...s.normal).normalize();
+    if (n.y > 0.9) n.add(new THREE.Vector3(0, 0, 0.32)).normalize();   // lying on the desk: lean back a little, as a head does
+    return this.frame3(new THREE.Vector3(...s.pos), n, s.size[0] * fill, s.size[1] * fill);
   }
 
   /** Looking down at something on the desk from above and in front. */
@@ -289,10 +291,9 @@ export class RoomEngine {
       case "home": return { pos: new THREE.Vector3(...h.pos), look: new THREE.Vector3(...h.look), fov: h.fov };
       case "work": return this.faceOn("screen", 1.08);
       case "year": return this.faceOn("calendar", 1.05);
-      case "about": return this.desk("badge_face", 0.16, 0.5);
-      case "writing": return this.desk("notebook", 0.42, 0.6);
-      case "contact": return this.desk("phone", 0.2, 0.5);
-      case "resume": return this.desk("resume_page", 0.34, 0.5);
+      case "about": case "writing": case "online": return this.faceOn("laptop_screen", 1.08);
+      case "contact": return this.faceOn("phone_screen", 1.25);
+      case "resume": return this.faceOn("resume_page", 1.08);
       case "books": {
         const sp = Object.entries(this.info.live).filter(([k]) => k.startsWith("spine_")).map(([, v]) => v);
         const c = sp.reduce((a, v) => a.add(new THREE.Vector3(...v.pos)), new THREE.Vector3()).divideScalar(Math.max(sp.length, 1));
@@ -371,7 +372,7 @@ export class RoomEngine {
     if (!this.dragging || !this.atHome()) return;
     const dx = e.clientX - this.dragging.x, dy = e.clientY - this.dragging.y;
     if (Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > 8) this.dragging.moved = true;
-    this.look.yaw += dx * 0.0045; this.look.pitch = THREE.MathUtils.clamp(this.look.pitch + dy * 0.003, -0.6, 0.5);
+    this.look.yaw = THREE.MathUtils.clamp(this.look.yaw + dx * 0.0045, -YAW, YAW); this.look.pitch = THREE.MathUtils.clamp(this.look.pitch + dy * 0.003, -0.6, 0.5);
     this.dragging.x = e.clientX; this.dragging.y = e.clientY;
   };
   private onDragEnd = () => { this.dragging = null; };
@@ -390,8 +391,6 @@ export class RoomEngine {
     if (Math.hypot(e.clientX - this.down.x, e.clientY - this.down.y) > 8) return;
     this.onMove(e);
     const hit = this.pick();
-    if (this.cardOn && !hit) { this.ev.click?.({ kind: "view", view: { kind: "home" }, label: "" }); return; }   // outside the card
-    if (hit?.kind === "action" && !hit.action) return;                                                            // the card, not a link
     if (this.clockStopped !== null && this.lastRoot?.name === "clock_battery") { this.toys.set("clock", this.clock.elapsedTime); this.clickClock(); return; }
     if (!hit) return;
     if (hit.kind === "toy") this.toys.set(hit.name, this.clock.elapsedTime);
@@ -412,15 +411,11 @@ export class RoomEngine {
 
   private pick(): Hit | null {
     this.ray.setFromCamera(this.pointer, this.camera);
-    if (this.cardOn) {
-      const h = this.ray.intersectObject(this.card)[0];
-      this.lastRoot = null;
-      if (!h) return null;
-      return this.regionAt("card", h.uv) ?? { kind: "action", action: "", label: "" };
-    }
     const hits = this.ray.intersectObjects(this.pickables, true);
-    if (hits[0]?.object.name === "screen" && !this.atHome()) {
-      const r = this.regionAt("screen", hits[0].uv);
+    // links drawn on live surfaces work once you're looking at them
+    const on = hits[0]?.object.name;
+    if (on && this.regions.has(on) && !this.atHome()) {
+      const r = this.regionAt(on, hits[0].uv);
       if (r) { this.lastRoot = null; return r; }
     }
     this.lastRoot = (hits[0]?.object.userData.root as THREE.Object3D) ?? null;
@@ -444,6 +439,7 @@ export class RoomEngine {
     const w = this.canvas.clientWidth, h = this.canvas.clientHeight;
     this.renderer.setSize(w, h, false);
     this.post?.setSize(w, h, this.dpr);
+    this.css?.setSize(w, h);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   };
@@ -454,6 +450,8 @@ export class RoomEngine {
     const narrow = THREE.MathUtils.clamp((1.5 - this.camera.aspect) / 1.0, 0, 1);
     this.camera.fov = p.fov + narrow * 18 * (this.tween >= 1 && this.isHome() ? 1 : 0);
     this.camera.position.copy(p.pos);
+    const down = new THREE.Vector3().subVectors(p.look, p.pos).normalize().y < -0.97;
+    this.camera.up.set(0, down ? 0 : 1, down ? -1 : 0);
     this.camera.lookAt(p.look);
     this.camera.updateProjectionMatrix();
   }
@@ -469,18 +467,19 @@ export class RoomEngine {
     // camera: tween between views, then a little sway toward the pointer
     if (this.tween < 1) {
       this.tween = Math.min(1, this.tween + dt / this.tweenDur);
-      const k = ease(this.tween);
+      // the look turns first, as a head does, then the body follows, rising a little on the way
+      const kl = ease(Math.min(1, this.tween * 1.6));
+      const k = ease(Math.max(0, (this.tween - 0.12) / 0.88));
       this.pose.pos.lerpVectors(this.from.pos, this.to.pos, k);
-      // arc a little, so a long move doesn't clip through the desk
-      this.pose.pos.y += Math.sin(Math.PI * k) * Math.min(0.25, this.from.pos.distanceTo(this.to.pos) * 0.12);
-      this.pose.look.lerpVectors(this.from.look, this.to.look, k);
+      this.pose.pos.y += Math.sin(Math.PI * k) * Math.min(0.08, this.from.pos.distanceTo(this.to.pos) * 0.05);
+      this.pose.look.lerpVectors(this.from.look, this.to.look, kl);
       this.pose.fov = THREE.MathUtils.lerp(this.from.fov, this.to.fov, k);
     }
     // looking around from the home spot: drag, or rest the pointer near an edge and the view turns
     if (this.atHome()) {
       if (!this.dragging && !this.hovered && Math.abs(this.pointer.x) <= 1) {
         const edge = (v: number, from = 0.62) => Math.sign(v) * Math.pow(Math.max(0, (Math.abs(v) - from) / (1 - from)), 2);
-        this.look.yaw -= edge(this.pointer.x) * dt * 1.5;
+        this.look.yaw = THREE.MathUtils.clamp(this.look.yaw - edge(this.pointer.x) * dt * 1.5, -YAW, YAW);
         this.look.pitch = THREE.MathUtils.clamp(this.look.pitch + edge(this.pointer.y, 0.7) * dt * 0.8, -0.6, 0.5);
       }
       const h = this.info.home;
@@ -538,8 +537,11 @@ export class RoomEngine {
     for (const [root, g] of this.glow) {
       const target = root === this.hoverRoot ? 1 : 0;
       g.k += (target - g.k) * Math.min(1, dt * 10);
-      if (g.k < 0.002 && target === 0) { if (g.k !== 0) { g.k = 0; for (const m of g.mats) m.color.setScalar(1); } continue; }
-      for (const m of g.mats) m.color.setScalar(1 + 0.28 * g.k);
+      const lift = (m: THREE.Material, v: number) => {
+        if (m instanceof THREE.MeshPhysicalMaterial) m.emissiveIntensity = v; else (m as THREE.MeshBasicMaterial).color.setScalar(v);
+      };
+      if (g.k < 0.002 && target === 0) { if (g.k !== 0) { g.k = 0; for (const m of g.mats) lift(m, 1); } continue; }
+      for (const m of g.mats) lift(m, 1 + 0.16 * g.k);
       const id = root.name.startsWith("gpu_") ? root.name.slice(4) : null;
       if (id && id !== this.installedId && !this.moving.has(root)) {
         const home = this.cardHome.get(id)!;
@@ -548,7 +550,6 @@ export class RoomEngine {
     }
 
     this.tickClock();
-    this.tickCard(dt);
     for (const [code, y0] of this.keyBase) {
       const n = this.nodes.get(`key_${code}`)!;
       const target = y0 - (this.pressed.has(code) ? 0.0035 : 0);
@@ -558,6 +559,7 @@ export class RoomEngine {
     this.city?.tick(t);
     this.beam?.tick(t, this.renderer.getPixelRatio() * this.canvas.clientHeight * 0.0016);
     if (this.post) this.post.render(t); else this.renderer.render(this.scene, this.camera);
+    if (this.css) this.css.render(this.cssScene, this.camera);
     this.frames++;
     if (t - this.fpsT > 0.5) { if (this.settings.fps) this.ev.fps?.(Math.round(this.frames / (t - this.fpsT))); this.frames = 0; this.fpsT = t; }
     if (this.settings.quality === "auto") this.adapt(dt);
@@ -584,43 +586,101 @@ export class RoomEngine {
     return url;
   }
 
+  // ------------------------------------------------------------------ reflections
+  private glossify() {
+    const spec: [RegExp, { rough: number; metal?: number; tint?: string; amt: number; coat?: number }][] = [
+      [/^mug$/, { rough: 0.12, amt: 1.0, coat: 1 }],
+      [/^phone$/, { rough: 0.08, amt: 1.0, coat: 1 }],
+      [/^laptop(_lid)?$/, { rough: 0.32, metal: 1, tint: "#8d9096", amt: 0.55 }],
+      [/^lamp$/, { rough: 0.28, amt: 0.7, coat: 0.6 }],
+      [/^desk$/, { rough: 0.42, amt: 0.35, coat: 0.3 }],
+      [/^window_frame$/, { rough: 0.35, amt: 0.4 }],
+      [/^gpu_/, { rough: 0.38, amt: 0.5, coat: 0.4 }],
+      [/^poster_frame_/, { rough: 0.25, amt: 0.4 }],
+    ];
+    for (const [name, root] of this.nodes) {
+      const sp = spec.find(([re]) => re.test(name))?.[1];
+      if (!sp) continue;
+      root.traverse((c) => {
+        if (!(c instanceof THREE.Mesh) || !(c.material instanceof THREE.MeshBasicMaterial) || !c.material.map) return;
+        if ([...this.live.values()].includes(c.material)) return;
+        // the export leaves normals out (the baked look never needed them); reflections do
+        if (!c.geometry.attributes.normal) c.geometry.computeVertexNormals();
+        const m = new THREE.MeshPhysicalMaterial({
+          color: sp.metal ? new THREE.Color(sp.tint ?? "#888") : new THREE.Color(0, 0, 0),
+          emissive: 0xffffff, emissiveMap: c.material.map, roughness: sp.rough, metalness: sp.metal ?? 0,
+          clearcoat: sp.coat ?? 0, clearcoatRoughness: 0.15, envMapIntensity: sp.amt,
+        });
+        m.name = `gloss:${name}`;
+        c.material = m; this.gloss.push(m);
+      });
+    }
+    // glass: only its reflection shows (added on top), over the window and every poster
+    const glass = (amt: number) => new THREE.MeshPhysicalMaterial({
+      color: 0x000000, roughness: 0.06, metalness: 0, envMapIntensity: amt,
+      transparent: true, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const w = this.info.window;
+    const pane = new THREE.Mesh(new THREE.PlaneGeometry(w.x1 - w.x0, w.z1 - w.z0), glass(0.9));
+    pane.position.set((w.x0 + w.x1) / 2, (w.z0 + w.z1) / 2, -w.back - 0.05);
+    pane.renderOrder = 3; this.scene.add(pane); this.gloss.push(pane.material);
+    for (const [name, n] of this.nodes) {
+      if (!/^poster_\d$/.test(name) || !(n instanceof THREE.Mesh)) continue;
+      if (!n.geometry.attributes.normal) n.geometry.computeVertexNormals();
+      const g = new THREE.Mesh(n.geometry, glass(0.7));
+      n.updateWorldMatrix(true, false);
+      g.matrixAutoUpdate = false; g.matrix.copy(n.matrixWorld);
+      const nrm = new THREE.Vector3(...this.info.live[name].normal).multiplyScalar(0.003);
+      g.matrix.premultiply(new THREE.Matrix4().makeTranslation(nrm.x, nrm.y, nrm.z));
+      g.renderOrder = 3; this.scene.add(g); this.gloss.push(g.material);
+    }
+  }
+
+  /** The room, seen from the middle, as the thing every glossy surface reflects. Taken once the
+   *  window's photo is in. */
+  private captureEnv() {
+    const rt = new THREE.WebGLCubeRenderTarget(256, { type: THREE.HalfFloatType });
+    const cam = new THREE.CubeCamera(0.05, 60, rt);
+    cam.position.set(0.1, 1.25, -0.7);
+    this.scene.add(cam);
+    const hide = this.gloss.length ? [this.beam?.group] : [];
+    for (const h of hide) if (h) h.visible = false;
+    cam.update(this.renderer, this.scene);
+    for (const h of hide) if (h) h.visible = true;
+    this.scene.remove(cam);
+    const pm = new THREE.PMREMGenerator(this.renderer);
+    const env = pm.fromCubemap(rt.texture).texture;
+    pm.dispose(); rt.dispose();
+    for (const m of this.gloss) { m.envMap = env; m.needsUpdate = true; }
+  }
+
+  // ------------------------------------------------------------------ the laptop's screen
+  /** Puts `el` (px wide, 16:10) on the laptop's screen. It takes the pointer only when `active`. */
+  attachScreen(host: HTMLElement, el: HTMLElement, px = 1280) {
+    const s = this.info.live.laptop_screen;
+    if (!s) return;
+    if (!this.css) {
+      this.css = new CSS3DRenderer();
+      this.css.domElement.className = "room-css";
+      host.insertBefore(this.css.domElement, this.canvas.nextSibling);
+      this.resize();
+    }
+    if (this.cssScreen) this.cssScene.remove(this.cssScreen);
+    el.style.width = `${px}px`; el.style.height = `${Math.round(px / 1.6)}px`;
+    const o = new CSS3DObject(el);
+    const pos = new THREE.Vector3(...s.pos), n = new THREE.Vector3(...s.normal).normalize();
+    o.position.copy(pos).addScaledVector(n, 0.0008);
+    o.lookAt(pos.clone().add(n));
+    o.scale.setScalar(s.size[0] / px);
+    this.cssScene.add(o); this.cssScreen = o;
+  }
+  setScreenActive(on: boolean) { this.cssScreen?.element.classList.toggle("is-active", on); }
+
   // ------------------------------------------------------------------ drawn surfaces
   /** Clickable regions on a live surface ("screen"); glTF surfaces have v running down. */
-  setRegions(name: string, d: Drawn) {
+  setRegions(name: string, d: Drawn | null) {
+    if (!d) { this.regions.delete(name); return; }
     this.regions.set(name, { regions: d.regions, w: d.canvas.width, h: d.canvas.height, flipY: false });
-  }
-
-  /** A paper card floats up from `from` (a node name) to just in front of the camera. */
-  showCard(d: Drawn, from?: string) {
-    const t = new THREE.CanvasTexture(d.canvas);
-    t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = this.renderer.capabilities.getMaxAnisotropy();
-    this.card.material.map?.dispose(); this.card.material.map = t; this.card.material.needsUpdate = true;
-    this.card.userData.aspect = d.canvas.height / d.canvas.width;
-    this.regions.set("card", { regions: d.regions, w: d.canvas.width, h: d.canvas.height, flipY: true });
-    const n = from ? this.nodes.get(from) : null;
-    this.camera.updateMatrixWorld();
-    const wp = n ? new THREE.Box3().setFromObject(n).getCenter(new THREE.Vector3()) : new THREE.Vector3(0, 0.6, -2);
-    if (!this.cardOn) { this.cardFrom.copy(this.camera.worldToLocal(wp.clone())); this.cardK = this.reduced ? 1 : 0; }
-    this.cardOn = true; this.card.visible = true;
-  }
-  hideCard() { this.cardOn = false; this.regions.delete("card"); }
-
-  private tickCard(dt: number) {
-    const c = this.card;
-    this.cardK += ((this.cardOn ? 1 : 0) - this.cardK) * Math.min(1, dt * (this.cardOn ? 4.5 : 7));
-    this.dim.visible = c.visible = this.cardK > 0.01 || this.cardOn;
-    if (!this.cardOn && this.cardK < 0.01) { this.cardK = 0; return; }
-    // fit between the header and the back button: 74% of the view's height, or 92% of its width
-    const d = 0.6, vh = 2 * d * Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)), vw = vh * this.camera.aspect;
-    const a = c.userData.aspect ?? 1.4;
-    const s = Math.min(vh * 0.74 / a, vw * 0.92);
-    const k = ease(Math.min(1, this.cardK));
-    const narrow = this.camera.aspect < 1;
-    c.position.lerpVectors(this.cardFrom, new THREE.Vector3(0, -vh * (narrow ? 0.05 : 0.015), -d), k);
-    this.dim.material.opacity = 0.42 * k;
-    c.scale.set(s * (0.15 + 0.85 * k), s * a * (0.15 + 0.85 * k), 1);
-    c.rotation.set((1 - k) * -1.1, 0, (1 - k) * 0.25);
-    c.material.opacity = Math.min(1, k * 2.5);
   }
 
   // ------------------------------------------------------------------ clock, keys, settings
