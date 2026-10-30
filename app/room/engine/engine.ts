@@ -230,8 +230,8 @@ export class RoomEngine {
       this.cardHome.set(id, n.matrix.clone());
       pick(`gpu_${id}`, { kind: "card", id });
     }
-    pick("screen", { kind: "view", view: { kind: "work", card: "" }, label: "Projector" });
-    pick("screen_stand", { kind: "view", view: { kind: "work", card: "" }, label: "Projector" });
+    pick("screen", { kind: "view", view: { kind: "projector" }, label: "Projector" });
+    pick("screen_stand", { kind: "view", view: { kind: "projector" }, label: "Projector" });
     pick("badge", { kind: "view", view: { kind: "about" }, label: "About me" });
     pick("notebook", { kind: "action", action: "href:/writing", label: "Writing" });
     pick("phone", { kind: "view", view: { kind: "contact" }, label: "Contact" });
@@ -331,9 +331,9 @@ export class RoomEngine {
   poseFor(v: View): Pose {
     switch (v.kind) {
       case "home": case "poster": return this.homePose();
-      case "work": return this.faceOn("screen", 1.08);
+      case "projector": return this.faceOn("screen", 1.08);
       case "year": return this.faceOn("calendar", 1.05);
-      case "about": case "writing": case "online": case "terminal": return this.faceOn("crt_screen", 1.6);
+      case "about": case "work": case "writing": case "online": case "terminal": return this.faceOn("crt_screen", 1.6);
       case "contact": return this.faceOn("phone_screen", 1.25);
       case "resume": return this.faceOn("resume_page", 1.08);
       case "books": {

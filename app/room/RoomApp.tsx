@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_SETTINGS, RoomEngine, type Hit, type Settings } from "./engine/engine";
 import { RoomAudio } from "./engine/audio";
 import { drawCalendar } from "./engine/surfaces";
-import { drawPhone, drawSlide } from "./engine/cards";
+import { drawPhone } from "./engine/cards";
+import { Reel } from "./engine/reel";
 import { Terminal, type TermPage } from "./engine/terminal";
 import type { RoomContent, View } from "./types";
 
 /* The page around the room: loading, three titles and two small controls. Everything else is in the
-   room, to be found: work on the projector, the old monitor (about, writing, online), the phone (contact),
+   room, to be found: the old monitor (about, work, writing, online; the GPU cards on the bench open
+   their project there), the projector looping visuals, the phone (contact),
    the résumé in its tray, the books on the shelf, the year on the wall. Nothing is labelled. The URL
    hash mirrors the view (#work/inferbench, #writing, ...). */
 
@@ -19,7 +21,7 @@ const NAV: { view: View | null; href: string; label: string }[] = [
   { view: null, href: "/writing", label: "Writing" },
   { view: { kind: "about" }, href: "#about", label: "About" },
 ];
-const TERM: View["kind"][] = ["about", "writing", "online", "terminal"];
+const TERM: View["kind"][] = ["about", "work", "writing", "online", "terminal"];
 const LOADING = ["Opening the curtains", "Switching on the lamp", "Slotting the cards", "Pouring the chai", "Warming up the tube"];
 
 const SETTINGS_KEY = "room.settings";
@@ -39,7 +41,7 @@ function fromHash(h: string, content: RoomContent): View {
   if (k === "work") return { kind: "work", card: content.cards.some((c) => c.id === id) ? id : "" };
   if (k === "books") return { kind: "books" };
   if (k === "poster" && Number(id) >= 0 && Number(id) < 6) return { kind: "poster", i: Number(id) };
-  if (["about", "writing", "online", "terminal", "contact", "year", "resume"].includes(k)) return { kind: k } as View;
+  if (["about", "writing", "online", "terminal", "contact", "year", "resume", "projector"].includes(k)) return { kind: k } as View;
   return { kind: "home" };
 }
 
@@ -63,20 +65,17 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   // on a phone 48 columns on a tube across the room would be unreadable: the terminal fills the screen instead
   const [narrow] = useState(() => matchMedia("(max-width: 760px)").matches);
 
-  const ci = content.cards.findIndex((c) => c.id === installed);
-  const card = content.cards[ci] ?? null;
-
   const navigate = useCallback((v: View, push = true) => {
     const e = engine.current;
     if (v.kind === "work") {
-      const id = v.card || installed;
-      v = { kind: "work", card: id };
-      e?.install(id);
+      v = { kind: "work", card: v.card ?? "" };
+      if (v.card) e?.install(v.card);
     }
     const t = term.current;
     if (t && TERM.includes(v.kind)) {
       t.boot(performance.now() / 1000);
-      if (v.kind !== "terminal") t.go(v.kind as TermPage);
+      if (v.kind === "work") t.open(v.card);
+      else if (v.kind !== "terminal") t.go(v.kind as TermPage);
     }
     setView(v);
     if (v.kind === "poster") e?.showPoster(v.i); else { e?.hidePoster(); e?.go(v); }
@@ -84,12 +83,14 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     setHint(false);
     const h = toHash(v);
     if (push && location.hash !== h) history.pushState(null, "", h || location.pathname + location.search);
-  }, [installed]);
+  }, []);
 
   const step = useCallback((dir: 1 | -1) => {
-    const next = content.cards[(ci + dir + content.cards.length) % content.cards.length];
+    const cur = view.kind === "work" && view.card ? view.card : installed;
+    const i = content.cards.findIndex((c) => c.id === cur);
+    const next = content.cards[(i + dir + content.cards.length) % content.cards.length];
     navigate({ kind: "work", card: next.id });
-  }, [ci, content, navigate]);
+  }, [view, installed, content, navigate]);
 
   // what a link drawn in the room does
   const act = useCallback((action: string) => {
@@ -99,7 +100,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     else if (kind === "ext") { if (arg.startsWith("mailto:")) location.href = arg; else window.open(arg, "_blank", "noopener"); }
     else if (kind === "copy") { navigator.clipboard?.writeText(arg); setToast("Copied"); setTimeout(() => setToast(""), 1600); }
     else if (kind === "card") step(arg === "next" ? 1 : -1);
-    else if (kind === "term") navigate({ kind: arg === "menu" ? "terminal" : arg } as View);
+    else if (kind === "work") navigate({ kind: "work", card: arg });
+    else if (kind === "term") navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" ? "terminal" : arg }) as View);
   }, [step, navigate]);
   useEffect(() => { actRef.current = act; }, [act]);
 
@@ -139,6 +141,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     if (!ready) return;
     const t = new Terminal(content, (a) => actRef.current(a));
     term.current = t;
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __term: Terminal }).__term = t;
     let raf = 0;
     const paint = () => {
       raf = requestAnimationFrame(paint);
@@ -155,20 +158,27 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   }, [ready, content]);
   const actRef = useRef<(a: string) => void>(() => {});
 
-  // the planner once fonts are in; the slide whenever the card changes
+  // the planner once fonts are in
   useEffect(() => {
     if (!ready) return;
     document.fonts.ready.then(() => engine.current?.setSurface("calendar", drawCalendar(document.createElement("canvas"), content.year, content.goals)));
   }, [ready, content]);
+  // the projector: a reel of generative pieces on a loop, at 30 frames a second (slowed right down for reduced motion)
   useEffect(() => {
     if (!ready) return;
-    const n = content.cards.length;
-    document.fonts.ready.then(() => {
-      const d = drawSlide(card, content.cards[(ci - 1 + n) % n], content.cards[(ci + 1) % n], ci, n);
-      engine.current?.setSurface("screen", d.canvas);
-      engine.current?.setRegions("screen", d);
-    });
-  }, [ready, card, ci, content]);
+    const reel = new Reel();
+    const slow = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0.08 : 1;
+    let raf = 0, last = 0;
+    const paint = (now: number) => {
+      raf = requestAnimationFrame(paint);
+      if (now - last < 1000 / 30) return;
+      last = now;
+      reel.draw((now / 1000) * slow);
+      engine.current?.setSurface("screen", reel.canvas);
+    };
+    raf = requestAnimationFrame(paint);
+    return () => cancelAnimationFrame(raf);
+  }, [ready]);
 
   // the phone: a lock screen lying on the desk, the contact card when it's picked up
   useEffect(() => {
@@ -205,7 +215,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
 
-  // keys: Esc goes back, arrows step through the work
+  // keys: Esc goes back; at the monitor they go to its terminal
   useEffect(() => {
     const onKey = (ev: KeyboardEvent) => {
       if (ev.target instanceof HTMLInputElement || ev.metaKey || ev.ctrlKey) return;
@@ -215,17 +225,23 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       if (t && TERM.includes(view.kind)) {
         if ((ev.key === "q" || ev.key === "Q") && t.page === "menu") { navigate({ kind: "home" }); return; }
         if (t.key(ev)) { ev.preventDefault(); audio.current?.click("key"); }
-        const k: Record<TermPage, View["kind"]> = { boot: "terminal", menu: "terminal", about: "about", writing: "writing", online: "online" };
-        if (k[t.page] !== view.kind) { setView({ kind: k[t.page] } as View); history.replaceState(null, "", `#${k[t.page]}`); }
+        const k: Record<TermPage, View> = {
+          boot: { kind: "terminal" }, menu: { kind: "terminal" }, about: { kind: "about" }, writing: { kind: "writing" }, online: { kind: "online" },
+          work: { kind: "work", card: "" }, project: { kind: "work", card: t.card },
+        };
+        const want = k[t.page];
+        if (toHash(want) !== toHash(view)) {
+          if (want.kind === "work" && want.card) engine.current?.install(want.card);
+          setView(want); history.replaceState(null, "", toHash(want) || location.pathname + location.search);
+        }
         return;
       }
-      if (view.kind === "work" && (ev.key === "ArrowRight" || ev.key === "ArrowLeft")) step(ev.key === "ArrowRight" ? 1 : -1);
     };
     const onWheel = (ev: WheelEvent) => { if (TERM.includes(view.kind) && !(ev.target as Element).closest?.(".room-settings")) term.current?.wheel(ev.deltaY); };
     addEventListener("keydown", onKey);
     addEventListener("wheel", onWheel, { passive: true });
     return () => { removeEventListener("keydown", onKey); removeEventListener("wheel", onWheel); };
-  }, [navigate, step, view]);
+  }, [navigate, view]);
 
   // settings: remembered in this browser
   useEffect(() => {
@@ -243,7 +259,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   };
 
   const atHome = view.kind === "home";
-  const navOn = (k: View["kind"]) => k === view.kind || (k === "about" && TERM.includes(view.kind));
+  const navOn = (k: View["kind"]) => k === view.kind || (k === "about" && TERM.includes(view.kind) && view.kind !== "work");
 
   return (
     <div ref={host} className={`room ${ready ? "is-ready" : ""} view-${view.kind}`}>

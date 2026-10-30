@@ -84,4 +84,5 @@ export type View =
   | { kind: "books"; book?: number }
   | { kind: "online" }
   | { kind: "terminal" }
+  | { kind: "projector" }
   | { kind: "poster"; i: number };

@@ -1,6 +1,6 @@
 import type { Goal } from "../types";
 
-/* The two surfaces drawn live: the year planner on the wall and the slide the projector throws.
+/* A surface drawn live: the year planner on the wall.
    Fonts come from the page's CSS variables (next/font gives them hashed family names). */
 
 function fam(v: string, fallback: string) {

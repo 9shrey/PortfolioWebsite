@@ -3,11 +3,12 @@ import type { Drawn, Region } from "./cards";
 import { fonts } from "./surfaces";
 
 /* The old monitor's terminal: amber phosphor, VT323, 48 columns by 18 rows on a 4:3 tube. It boots the
-   first time you sit at it, then shows a menu: about.txt (a pager, like `less`), writing/ (the posts;
+   first time you sit at it, then shows a menu: about.txt (a pager, like `less`), work/ (the projects, each
+   with a page of its own), writing/ (the posts;
    each opens as its own page), online, and the résumé. Keys you type go to it (the desk keyboard presses
    them too); the lines you can click are regions the engine maps clicks onto. */
 
-export type TermPage = "boot" | "menu" | "about" | "writing" | "online";
+export type TermPage = "boot" | "menu" | "about" | "work" | "project" | "writing" | "online";
 
 interface Line { text: string; kind?: "h" | "dim" | "link" | "big" | "gap"; action?: string }
 
@@ -18,6 +19,8 @@ const AMBER = "#ffb54a", DIM = "#a8702e", DARK = "#130b03", BG = "#0d0803";
 export class Terminal {
   canvas = document.createElement("canvas");
   page: TermPage = "menu";
+  /** the project open on the "project" page */
+  card = "";
   private scroll = 0;
   private sel = 0;
   private booted = false;
@@ -35,6 +38,16 @@ export class Terminal {
     this.booted = true; this.page = "boot"; this.bootAt = now; this.dirty = true;
   }
 
+  /** Opens a project's page (or the work/ list when the id is empty). */
+  open(id: string) {
+    if (!id) return this.go("work");
+    this.card = id; this.go("project");
+  }
+  private step(dir: 1 | -1) {
+    const cs = this.c.cards, i = cs.findIndex((c) => c.id === this.card);
+    this.open(cs[(i + dir + cs.length) % cs.length].id);
+  }
+
   go(p: TermPage) {
     if (this.page === "boot") this.bootAt = -99;
     this.page = p; this.scroll = 0; this.sel = 0; this.dirty = true;
@@ -45,12 +58,15 @@ export class Terminal {
     const k = e.key;
     if (this.page === "boot") { this.go("menu"); return true; }
     const links = this.lines().filter((l) => l.action);
-    const pager = this.page === "about";
+    const pager = this.pager();
+    if (this.page === "project" && (k === "n" || k === "N" || k === "ArrowRight")) return this.step(1), true;
+    if (this.page === "project" && (k === "p" || k === "P" || k === "ArrowLeft")) return this.step(-1), true;
     if (k === "1") return this.go("about"), true;
-    if (k === "2") return this.go("writing"), true;
-    if (k === "3") return this.go("online"), true;
-    if (k === "4" && this.page === "menu") return this.act(`ext:${this.c.resume}`), true;
-    if (k === "q" || k === "Q" || k === "Backspace") return this.go("menu"), true;
+    if (k === "2") return this.go("work"), true;
+    if (k === "3") return this.go("writing"), true;
+    if (k === "4") return this.go("online"), true;
+    if (k === "5" && this.page === "menu") return this.act(`ext:${this.c.resume}`), true;
+    if (k === "q" || k === "Q" || k === "Backspace") return this.go(this.page === "project" ? "work" : "menu"), true;
     if (k === "ArrowDown" || k === "j") { if (pager) this.scrollBy(1); else this.sel = Math.min(links.length - 1, this.sel + 1); this.dirty = true; return true; }
     if (k === "ArrowUp" || k === "k") { if (pager) this.scrollBy(-1); else this.sel = Math.max(0, this.sel - 1); this.dirty = true; return true; }
     if (k === " " || k === "PageDown") { this.scrollBy(ROWS - 4); return true; }
@@ -64,11 +80,7 @@ export class Terminal {
     const max = Math.max(0, this.wrapped().length - (ROWS - 3));
     this.scroll = Math.max(0, Math.min(max, this.scroll + n)); this.dirty = true;
   }
-  /** A click on a line: either its own action, or (menu) the page it names. */
-  click(action: string) {
-    if (action.startsWith("term:")) this.go(action.slice(5) as TermPage);
-    else this.act(action);
-  }
+  private pager() { return this.page === "about" || this.page === "project"; }
 
   // ------------------------------------------------------------------ content
   private lines(): Line[] {
@@ -82,9 +94,10 @@ export class Terminal {
         { text: `${c.title}. ${c.location.split(",")[0]}.`, kind: "dim" },
         { text: "", kind: "gap" },
         { text: "[1] about.txt", kind: "link", action: "term:about" },
-        { text: `[2] writing/          ${c.posts.length} posts`, kind: "link", action: "term:writing" },
-        { text: "[3] online", kind: "link", action: "term:online" },
-        { text: "[4] resume.pdf", kind: "link", action: `ext:${c.resume}` },
+        { text: `[2] work/             ${c.cards.length} projects`, kind: "link", action: "term:work" },
+        { text: `[3] writing/          ${c.posts.length} posts`, kind: "link", action: "term:writing" },
+        { text: "[4] online", kind: "link", action: "term:online" },
+        { text: "[5] resume.pdf", kind: "link", action: `ext:${c.resume}` },
         { text: "", kind: "gap" },
         { text: "Type a number, or click.", kind: "dim" },
       ];
@@ -95,6 +108,32 @@ export class Terminal {
         { text: "Tools", kind: "h" },
         ...c.about.skills.map((s) => ({ text: `${s.group}: ${s.items.join(", ")}`, kind: "dim" as const })),
       ];
+      case "work": return [
+        { text: "What I have built. Or slot a card from the rack on the bench.", kind: "dim" },
+        { text: "", kind: "gap" },
+        ...c.cards.flatMap((k) => [
+          { text: `${k.label.padEnd(18)} ${k.years}`, kind: "link" as const, action: `work:${k.id}` },
+          { text: `   ${k.area}`, kind: "dim" as const },
+        ]),
+      ];
+      case "project": {
+        const k = c.cards.find((x) => x.id === this.card) ?? c.cards[0];
+        return [
+          { text: k.title, kind: "h" },
+          { text: `${k.area}, ${k.years}`, kind: "dim" },
+          { text: "", kind: "gap" },
+          { text: k.blurb },
+          { text: "", kind: "gap" },
+          ...k.metrics.map((m) => ({ text: `${m.value.padEnd(10)} ${m.label}`, kind: "h" as const })),
+          ...(k.metrics.length ? [{ text: "", kind: "gap" as const }] : []),
+          ...k.body.flatMap((b) => [{ text: b.k, kind: "h" as const }, { text: b.v }, { text: "", kind: "gap" as const }]),
+          ...k.links.map((l) => ({ text: `-> ${l.href.startsWith("/") ? "Read the case study" : l.label}`, kind: "link" as const,
+            action: l.href.startsWith("http") ? `ext:${l.href}` : `href:${l.href}` })),
+          { text: "", kind: "gap" },
+          { text: "<- previous project", kind: "link", action: "card:prev" },
+          { text: "-> next project", kind: "link", action: "card:next" },
+        ];
+      }
       case "writing": return [
         { text: "Notes from the projects: what I measured, and what fooled me first.", kind: "dim" },
         { text: "", kind: "gap" },
@@ -166,10 +205,11 @@ export class Terminal {
       return true;
     }
 
-    const names: Record<TermPage, string> = { boot: "", menu: "SS-26", about: "about.txt", writing: "writing/", online: "online" };
+    const proj = this.c.cards.find((x) => x.id === this.card);
+    const names: Record<TermPage, string> = { boot: "", menu: "SS-26", about: "about.txt", work: "work/", project: `work/${proj?.id ?? ""}`, writing: "writing/", online: "online" };
     const rows = this.wrapped();
     const body = ROWS - 3;
-    const pager = this.page === "about";
+    const pager = this.pager();
     const pct = rows.length <= body ? 100 : Math.round(((this.scroll + body) / rows.length) * 100);
     const clock = new Date().toTimeString().slice(0, 5);
     bar(0, ` ${names[this.page]}`, pager ? `${Math.min(100, pct)}%  ${this.scroll + 1}-${Math.min(rows.length, this.scroll + body)}/${rows.length} ` : `${clock} `);
@@ -192,7 +232,8 @@ export class Terminal {
       if (isLink) { regions.push({ x: 0, y: y(row) - lh * 0.82, w: W, h: lh, action: r.action!, label: r.text }); li++; }
     });
     const hints: Record<TermPage, string> = {
-      boot: "", menu: " 1-4 open   Q leave the desk", about: " ↑↓ Space scroll   1-3 pages   Q menu",
+      boot: "", menu: " 1-5 open   Q leave the desk", about: " ↑↓ Space scroll   1-4 pages   Q menu",
+      work: " ↑↓ choose   Enter open   Q menu", project: " ↑↓ scroll   N/P next, prev   Q work/",
       writing: " ↑↓ choose   Enter open   Q menu", online: " ↑↓ choose   Enter open   C copy   Q menu",
     };
     bar(ROWS, hints[this.page], "");
