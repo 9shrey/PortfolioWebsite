@@ -190,6 +190,82 @@ export const projects: Project[] = [
     github: "https://github.com/9shrey/rl-statistical-arbitrage",
     codeStatus: "public",
   },
+  {
+    slug: "rag-knowledge-assistant",
+    title: "RAG Knowledge Assistant: chat with your documents",
+    shortTitle: "RAG Assistant",
+    area: "Retrieval · LLM apps",
+    year: "2026",
+    featured: false,
+    testCount: 65,
+    stack: ["Python", "FastAPI", "PostgreSQL", "pgvector", "LangChain", "OpenAI", "Next.js", "Docker"],
+    blurb:
+      "Upload PDFs, ask questions, and get answers drawn only from the retrieved passages, with citations, cost and latency logged for every query.",
+    headline: [
+      { value: "65", label: "tests" },
+      { value: "70 / 30", label: "vector / keyword fusion weights" },
+    ],
+    tldr: {
+      problem:
+        "A chat-over-documents demo is easy to build and hard to trust: answers drift from the source, and without per-query logs there is no way to tell a retrieval miss from a generation miss.",
+      approach:
+        "Page-aware PDF extraction, recursive chunking, embeddings stored in PostgreSQL with pgvector, and hybrid retrieval that fuses cosine similarity with keyword matching. The model is told to answer only from the retrieved passages and to cite them, and to refuse when they don't cover the question.",
+      result:
+        "A Dockerised FastAPI + Next.js app where every query logs its latency, token usage, cost and retrieved chunks, and an evaluation page scores retrieval relevance, citation coverage and faithfulness.",
+    },
+    evidence:
+      "65 backend tests across models, PDF upload, chunking, embeddings, retrieval, answer generation, observability and the eval metrics. Embeddings and the LLM sit behind a provider interface with a mock, so the whole pipeline is tested without an API key.",
+    system:
+      "PDF upload → page-aware text extraction → recursive chunking → embeddings → PostgreSQL + pgvector → hybrid vector + keyword retrieval → cited answer from the LLM → query log (latency, tokens, cost, chunks) → eval page.",
+    technicalInterest:
+      "The query log is what makes it debuggable: when an answer is wrong you can see whether the right chunk was ever retrieved, which decides whether to fix retrieval or the prompt.",
+    challenges:
+      "Fusing two scores on different scales into one ranking, and making citation-only answering hold up: the refusal path matters as much as the answer path.",
+    retrospect:
+      "Faithfulness is enforced by the prompt, not checked against the source after generation. Streaming responses, query rewriting and more document types are the obvious next steps.",
+    resumeBullet:
+      "Built a document Q&A app: PDFs are chunked, embedded and stored in PostgreSQL with pgvector, and an LLM answers only from the retrieved passages, with citations. Hybrid vector + keyword retrieval, per-query latency and token-cost logging, and an evaluation page for faithfulness and citation coverage; 65 tests.",
+    github: "https://github.com/9shrey/rag-knowledge-assistant",
+    codeStatus: "public",
+  },
+  {
+    slug: "email-campaign-scheduler",
+    title: "Email Campaign Scheduler: delayed jobs that survive restarts",
+    shortTitle: "Scheduler",
+    area: "Backend systems",
+    year: "2026",
+    featured: false,
+    testCount: 0,
+    stack: ["TypeScript", "Node.js", "Express", "BullMQ", "Redis", "PostgreSQL", "Prisma", "Next.js"],
+    blurb:
+      "A bulk email scheduler where every email is a delayed job in a Redis-backed queue, with per-sender hourly limits and no lost or duplicate sends across restarts.",
+    headline: [
+      { value: "3", label: "independent duplicate-send guards" },
+      { value: "0", label: "cron jobs" },
+    ],
+    tldr: {
+      problem:
+        "Scheduled sending has to stay correct when the server restarts mid-campaign, when a request is retried, and when a sender hits its hourly cap. Dropping an email and sending it twice are both failures.",
+      approach:
+        "Postgres is the source of truth; each email becomes a BullMQ delayed job keyed by its row id, run by a separate worker process. Hourly limits use atomic Redis counters, and over-limit jobs are moved to the next hour rather than dropped. Retried schedule requests are deduplicated with an Idempotency-Key.",
+      result:
+        "Checked by hand against the four failure cases: staggered sends kept their spacing, a repeated request was deduplicated, a 2-per-hour sender pushed its third email to the next hour, and killing both processes mid-run left nothing lost or sent twice.",
+    },
+    evidence:
+      "No automated test suite: it was built in a 48-hour window, and every behaviour above was verified by hand with curl and log inspection. The repo's build log records each run.",
+    system:
+      "Next.js dashboard with Google sign-in → CSV recipient upload → Express schedule API → Postgres rows → BullMQ delayed jobs (jobId = email id) → worker with concurrency and a send-rate floor → Redis hourly counter per sender → SMTP send → status back to the dashboard.",
+    technicalInterest:
+      "Idempotency in three layers that each cover a different failure: queue-level job-id dedup, an atomic status claim before sending, and an idempotency key on the API. On worker boot, any email still marked scheduled is re-enqueued from Postgres, so the queue can be rebuilt even if Redis loses its data.",
+    challenges:
+      "Rescheduling an over-limit job without failing or reordering it, and keeping the dashboard's scheduled time in step with the queue when it moves.",
+    retrospect:
+      "The hourly limit is a fixed window, so a burst across an hour boundary can reach close to twice the limit; a sliding window would fix it. The Express API trusts the dashboard and has no auth of its own, and it needs a real test suite.",
+    resumeBullet:
+      "Built a bulk email scheduler where each email is a delayed job in a Redis-backed BullMQ queue, sent by a separate worker, with a Next.js dashboard and Google sign-in. Per-sender hourly limits via Redis counters and idempotency keys so emails are never lost or sent twice, even across restarts.",
+    github: "https://github.com/9shrey/reachinbox-email-scheduler",
+    codeStatus: "public",
+  },
 ];
 
 /** "Inferbench: a Triton kernel…" -> ["Inferbench", "a Triton kernel…"] */
