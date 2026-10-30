@@ -44,7 +44,7 @@ d.text((40, 48), "SHREY SINGH", font=fit("anybody-var", "SHREY SINGH", 58, W - 8
 d.rounded_rectangle([W // 2 - 44, 178, W // 2 + 44, 194], 8, fill=(200, 196, 186))   # lanyard slot
 p = Image.open("assets/portrait-128.png").convert("L").resize((300, 300), Image.LANCZOS)
 im.paste(Image.merge("RGB", (p, p, p)), (120, 230))
-d.text((40, 570), "ML Systems Engineer", font=font("familjen-grotesk-var", 44, weight=700), fill=(20, 20, 22))
+d.text((40, 570), "Software Engineer", font=font("familjen-grotesk-var", 44, weight=700), fill=(20, 20, 22))
 d.text((40, 630), "Agneyas Labs · Bengaluru", font=font("familjen-grotesk-var", 34), fill=(70, 70, 74))
 for i, w in enumerate([3, 1, 2, 1, 3, 2, 1, 1, 3, 1, 2, 3, 1, 2, 1, 3, 1, 1, 2, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1]):
     x = 40 + sum([3, 1, 2, 1, 3, 2, 1, 1, 3, 1, 2, 3, 1, 2, 1, 3, 1, 1, 2, 3, 1, 2, 1, 3, 2, 1, 1, 2, 3, 1][:i]) * 6 + i * 6

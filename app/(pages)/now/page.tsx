@@ -14,7 +14,7 @@ export default function NowPage() {
       <p className="folio" aria-hidden>
         <span>Now</span>
         <span>Updated {updated}</span>
-        <span>Shrey Singh · ML Systems</span>
+        <span>Shrey Singh · Software Engineer</span>
       </p>
       <header className="page-head">
         <h1 className="big">Now</h1>

@@ -36,6 +36,159 @@ export interface Project {
 
 export const projects: Project[] = [
   {
+    slug: "argus-fraud-detection",
+    title: "Argus: real-time fraud scoring with explanations",
+    shortTitle: "Argus",
+    area: "Real-time ML",
+    year: "2026",
+    featured: true,
+    testCount: 52,
+    stack: ["Python", "XGBoost", "Scikit-learn", "SHAP", "FastAPI", "Next.js", "Docker"],
+    blurb:
+      "A streaming fraud scorer that combines XGBoost and Isolation Forest into one risk score and shows the analyst why, per transaction.",
+    headline: [
+      { value: "0.99", label: "ROC-AUC, synthetic chronological holdout" },
+      { value: "5", label: "simulated fraud scenarios" },
+      { value: "52", label: "tests" },
+    ],
+    tldr: {
+      problem:
+        "Fraud models are easy to fake offline and hard to trust live. Random-split evaluation leaks the future, and a bare score gives an analyst no reason to act on a flag.",
+      approach:
+        "One causal feature function shared identically by training and online scoring; a chronological holdout instead of a random split; a supervised + unsupervised ensemble calibrated onto one 0–100 score; SHAP attributions streamed over WebSocket into the analyst UI.",
+      result:
+        "ROC-AUC ≈0.99 on a chronological holdout of five synthetic fraud scenarios. That number says the pipeline is correct end to end, not that it would hold at a bank: synthetic fraud is more separable than real fraud, and the repo says so.",
+    },
+    evidence:
+      "52 backend tests covering feature engineering, each fraud scenario, and the scorer's separation guarantee. GitHub Actions CI on every push. The shared feature function is the train/serve-parity guarantee; the chronological split is the leakage guarantee.",
+    system:
+      "Async simulation engine (account takeover, impossible travel, card-testing bursts, structuring, merchant-category anomaly) → causal feature engineering → XGBoost + Isolation Forest → 0–100 risk score with SHAP breakdown → WebSocket → Next.js dashboard with per-transaction drill-down.",
+    technicalInterest:
+      "Train/serve parity by construction rather than by convention, and explainability wired into the product instead of left in a notebook.",
+    challenges:
+      "The two models score on different scales, so combining them without either drowning the other took several iterations. The chronological holdout costs more to set up and makes offline metrics look worse, which is exactly why it's the right default.",
+    retrospect:
+      "SHAP runs synchronously per request; at higher throughput it belongs in a background worker with a cache. A drift monitor comparing live feature distributions to the training window is the missing piece: the holdout proves the model wasn't leaked, not that it stays valid.",
+    resumeBullet:
+      "Built a real-time fraud scoring engine (XGBoost + Isolation Forest) with per-transaction SHAP attributions in the analyst UI; one causal feature function shared between training and serving, chronological holdout evaluation, WebSocket streaming to a Next.js dashboard; 52 tests, CI.",
+    github: "https://github.com/9shrey/argus-fraud-detection",
+    codeStatus: "public",
+  },
+  {
+    slug: "rag-knowledge-assistant",
+    title: "RAG Knowledge Assistant: chat with your documents",
+    shortTitle: "RAG Assistant",
+    area: "Retrieval · LLM apps",
+    year: "2026",
+    featured: true,
+    testCount: 65,
+    stack: ["Python", "FastAPI", "PostgreSQL", "pgvector", "LangChain", "OpenAI", "Next.js", "Docker"],
+    blurb:
+      "Upload PDFs, ask questions, and get answers drawn only from the retrieved passages, with citations, cost and latency logged for every query.",
+    headline: [
+      { value: "65", label: "tests" },
+      { value: "70 / 30", label: "vector / keyword fusion weights" },
+    ],
+    tldr: {
+      problem:
+        "A chat-over-documents demo is easy to build and hard to trust: answers drift from the source, and without per-query logs there is no way to tell a retrieval miss from a generation miss.",
+      approach:
+        "Page-aware PDF extraction, recursive chunking, embeddings stored in PostgreSQL with pgvector, and hybrid retrieval that fuses cosine similarity with keyword matching. The model is told to answer only from the retrieved passages and to cite them, and to refuse when they don't cover the question.",
+      result:
+        "A Dockerised FastAPI + Next.js app where every query logs its latency, token usage, cost and retrieved chunks, and an evaluation page scores retrieval relevance, citation coverage and faithfulness.",
+    },
+    evidence:
+      "65 backend tests across models, PDF upload, chunking, embeddings, retrieval, answer generation, observability and the eval metrics. Embeddings and the LLM sit behind a provider interface with a mock, so the whole pipeline is tested without an API key.",
+    system:
+      "PDF upload → page-aware text extraction → recursive chunking → embeddings → PostgreSQL + pgvector → hybrid vector + keyword retrieval → cited answer from the LLM → query log (latency, tokens, cost, chunks) → eval page.",
+    technicalInterest:
+      "The query log is what makes it debuggable: when an answer is wrong you can see whether the right chunk was ever retrieved, which decides whether to fix retrieval or the prompt.",
+    challenges:
+      "Fusing two scores on different scales into one ranking, and making citation-only answering hold up: the refusal path matters as much as the answer path.",
+    retrospect:
+      "Faithfulness is enforced by the prompt, not checked against the source after generation. Streaming responses, query rewriting and more document types are the obvious next steps.",
+    resumeBullet:
+      "Built a document Q&A app: PDFs are chunked, embedded and stored in PostgreSQL with pgvector, and an LLM answers only from the retrieved passages, with citations. Hybrid vector + keyword retrieval, per-query latency and token-cost logging, and an evaluation page for faithfulness and citation coverage; 65 tests.",
+    github: "https://github.com/9shrey/rag-knowledge-assistant",
+    codeStatus: "public",
+  },
+  {
+    slug: "email-campaign-scheduler",
+    title: "Email Campaign Scheduler: delayed jobs that survive restarts",
+    shortTitle: "Scheduler",
+    area: "Backend systems",
+    year: "2026",
+    featured: true,
+    testCount: 0,
+    stack: ["TypeScript", "Node.js", "Express", "BullMQ", "Redis", "PostgreSQL", "Prisma", "Next.js"],
+    blurb:
+      "A bulk email scheduler where every email is a delayed job in a Redis-backed queue, with per-sender hourly limits and no lost or duplicate sends across restarts.",
+    headline: [
+      { value: "3", label: "independent duplicate-send guards" },
+      { value: "0", label: "cron jobs" },
+    ],
+    tldr: {
+      problem:
+        "Scheduled sending has to stay correct when the server restarts mid-campaign, when a request is retried, and when a sender hits its hourly cap. Dropping an email and sending it twice are both failures.",
+      approach:
+        "Postgres is the source of truth; each email becomes a BullMQ delayed job keyed by its row id, run by a separate worker process. Hourly limits use atomic Redis counters, and over-limit jobs are moved to the next hour rather than dropped. Retried schedule requests are deduplicated with an Idempotency-Key.",
+      result:
+        "Checked by hand against the four failure cases: staggered sends kept their spacing, a repeated request was deduplicated, a 2-per-hour sender pushed its third email to the next hour, and killing both processes mid-run left nothing lost or sent twice.",
+    },
+    evidence:
+      "No automated test suite: it was built in a 48-hour window, and every behaviour above was verified by hand with curl and log inspection. The repo's build log records each run.",
+    system:
+      "Next.js dashboard with Google sign-in → CSV recipient upload → Express schedule API → Postgres rows → BullMQ delayed jobs (jobId = email id) → worker with concurrency and a send-rate floor → Redis hourly counter per sender → SMTP send → status back to the dashboard.",
+    technicalInterest:
+      "Idempotency in three layers that each cover a different failure: queue-level job-id dedup, an atomic status claim before sending, and an idempotency key on the API. On worker boot, any email still marked scheduled is re-enqueued from Postgres, so the queue can be rebuilt even if Redis loses its data.",
+    challenges:
+      "Rescheduling an over-limit job without failing or reordering it, and keeping the dashboard's scheduled time in step with the queue when it moves.",
+    retrospect:
+      "The hourly limit is a fixed window, so a burst across an hour boundary can reach close to twice the limit; a sliding window would fix it. The Express API trusts the dashboard and has no auth of its own, and it needs a real test suite.",
+    resumeBullet:
+      "Built a bulk email scheduler where each email is a delayed job in a Redis-backed BullMQ queue, sent by a separate worker, with a Next.js dashboard and Google sign-in. Per-sender hourly limits via Redis counters and idempotency keys so emails are never lost or sent twice, even across restarts.",
+    github: "https://github.com/9shrey/reachinbox-email-scheduler",
+    codeStatus: "public",
+  },
+  {
+    slug: "rl-statistical-arbitrage",
+    title: "Walk-forward RL for statistical arbitrage",
+    shortTitle: "RL Arbitrage",
+    area: "Quant research",
+    year: "2026",
+    featured: true,
+    testCount: 94,
+    stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
+    blurb:
+      "A bias-controlled research framework for pairs trading, where PPO and SAC agents have to beat a z-score baseline walk-forward, after costs.",
+    headline: [
+      { value: "94", label: "tests" },
+      { value: "0", label: "lookahead, by construction" },
+    ],
+    tldr: {
+      problem:
+        "Quant backtests can look strong while hiding lookahead bias, stale universes and regime blindness. A policy trained once rarely survives walk-forward.",
+      approach:
+        "Point-in-time universe filtering, Engle-Granger/Johansen pair selection inside each training window only, HMM regime features fit on train folds, PPO (discrete) and SAC (continuous sizing) retrained per fold, transaction-cost-adjusted backtests, MLflow tracking.",
+      result:
+        "A framework where the RL agents are held to a simple z-score baseline, with the result reported either way. On the committed demo run the baseline edges out the RL policy, and the report says so instead of assuming outperformance.",
+    },
+    evidence:
+      "94 tests including seed-determinism checks, a written bias checklist, and a leaderboard of return, Sharpe, Sortino, Calmar, drawdown, turnover and cost for every policy.",
+    system:
+      "Bars + point-in-time universe → per-window cointegration pair selection → HMM regime features → Gymnasium environment → PPO / SAC retrained per walk-forward fold → cost-adjusted backtest → MLflow leaderboard.",
+    technicalInterest:
+      "Walk-forward retraining multiplies both compute and the surface for a one-bar leak, which only ever shows up as inexplicably good performance. Getting the universe filtering exactly point-in-time took more care than the policies.",
+    challenges:
+      "RL policies are unstable across seeds and overfit small windows; seed-determinism tests exist because a single run hides that.",
+    retrospect:
+      "Regimes are fit once per fold; an online regime model would react to breaks without waiting for the retrain. Transaction-cost models are still an approximation of slippage, and paper trading is the only honest next check.",
+    resumeBullet:
+      "Built a walk-forward pairs-trading research framework with per-window cointegration selection, HMM regime features, PPO/SAC agents held to a z-score baseline after costs, MLflow tracking and 94 tests including seed-determinism checks.",
+    github: "https://github.com/9shrey/rl-statistical-arbitrage",
+    codeStatus: "public",
+  },
+  {
     slug: "inferbench",
     title: "Inferbench: a Triton kernel for batched LLM decode",
     shortTitle: "Inferbench",
@@ -111,159 +264,6 @@ export const projects: Project[] = [
     resumeBullet:
       "Built a benchmark measuring whether LLMs fabricate facts to satisfy JSON Schema contracts across prompt-only, tool-call and strict response_format modes, graded mechanically (no LLM judge) with exact McNemar paired contrasts; cache-first harness under a 50-request/day cap; 175 tests.",
     github: "https://github.com/9shrey/schemabench",
-    codeStatus: "public",
-  },
-  {
-    slug: "argus-fraud-detection",
-    title: "Argus: real-time fraud scoring with explanations",
-    shortTitle: "Argus",
-    area: "Real-time ML",
-    year: "2026",
-    featured: true,
-    testCount: 52,
-    stack: ["Python", "XGBoost", "Scikit-learn", "SHAP", "FastAPI", "Next.js", "Docker"],
-    blurb:
-      "A streaming fraud scorer that combines XGBoost and Isolation Forest into one risk score and shows the analyst why, per transaction.",
-    headline: [
-      { value: "0.99", label: "ROC-AUC, synthetic chronological holdout" },
-      { value: "5", label: "simulated fraud scenarios" },
-      { value: "52", label: "tests" },
-    ],
-    tldr: {
-      problem:
-        "Fraud models are easy to fake offline and hard to trust live. Random-split evaluation leaks the future, and a bare score gives an analyst no reason to act on a flag.",
-      approach:
-        "One causal feature function shared identically by training and online scoring; a chronological holdout instead of a random split; a supervised + unsupervised ensemble calibrated onto one 0–100 score; SHAP attributions streamed over WebSocket into the analyst UI.",
-      result:
-        "ROC-AUC ≈0.99 on a chronological holdout of five synthetic fraud scenarios. That number says the pipeline is correct end to end, not that it would hold at a bank: synthetic fraud is more separable than real fraud, and the repo says so.",
-    },
-    evidence:
-      "52 backend tests covering feature engineering, each fraud scenario, and the scorer's separation guarantee. GitHub Actions CI on every push. The shared feature function is the train/serve-parity guarantee; the chronological split is the leakage guarantee.",
-    system:
-      "Async simulation engine (account takeover, impossible travel, card-testing bursts, structuring, merchant-category anomaly) → causal feature engineering → XGBoost + Isolation Forest → 0–100 risk score with SHAP breakdown → WebSocket → Next.js dashboard with per-transaction drill-down.",
-    technicalInterest:
-      "Train/serve parity by construction rather than by convention, and explainability wired into the product instead of left in a notebook.",
-    challenges:
-      "The two models score on different scales, so combining them without either drowning the other took several iterations. The chronological holdout costs more to set up and makes offline metrics look worse, which is exactly why it's the right default.",
-    retrospect:
-      "SHAP runs synchronously per request; at higher throughput it belongs in a background worker with a cache. A drift monitor comparing live feature distributions to the training window is the missing piece: the holdout proves the model wasn't leaked, not that it stays valid.",
-    resumeBullet:
-      "Built a real-time fraud scoring engine (XGBoost + Isolation Forest) with per-transaction SHAP attributions in the analyst UI; one causal feature function shared between training and serving, chronological holdout evaluation, WebSocket streaming to a Next.js dashboard; 52 tests, CI.",
-    github: "https://github.com/9shrey/argus-fraud-detection",
-    codeStatus: "public",
-  },
-  {
-    slug: "rl-statistical-arbitrage",
-    title: "Walk-forward RL for statistical arbitrage",
-    shortTitle: "RL Arbitrage",
-    area: "Quant research",
-    year: "2026",
-    featured: false,
-    testCount: 94,
-    stack: ["Python", "Stable-Baselines3", "Gymnasium", "statsmodels", "hmmlearn", "MLflow"],
-    blurb:
-      "A bias-controlled research framework for pairs trading, where PPO and SAC agents have to beat a z-score baseline walk-forward, after costs.",
-    headline: [
-      { value: "94", label: "tests" },
-      { value: "0", label: "lookahead, by construction" },
-    ],
-    tldr: {
-      problem:
-        "Quant backtests can look strong while hiding lookahead bias, stale universes and regime blindness. A policy trained once rarely survives walk-forward.",
-      approach:
-        "Point-in-time universe filtering, Engle-Granger/Johansen pair selection inside each training window only, HMM regime features fit on train folds, PPO (discrete) and SAC (continuous sizing) retrained per fold, transaction-cost-adjusted backtests, MLflow tracking.",
-      result:
-        "A framework where the RL agents are held to a simple z-score baseline, with the result reported either way. On the committed demo run the baseline edges out the RL policy, and the report says so instead of assuming outperformance.",
-    },
-    evidence:
-      "94 tests including seed-determinism checks, a written bias checklist, and a leaderboard of return, Sharpe, Sortino, Calmar, drawdown, turnover and cost for every policy.",
-    system:
-      "Bars + point-in-time universe → per-window cointegration pair selection → HMM regime features → Gymnasium environment → PPO / SAC retrained per walk-forward fold → cost-adjusted backtest → MLflow leaderboard.",
-    technicalInterest:
-      "Walk-forward retraining multiplies both compute and the surface for a one-bar leak, which only ever shows up as inexplicably good performance. Getting the universe filtering exactly point-in-time took more care than the policies.",
-    challenges:
-      "RL policies are unstable across seeds and overfit small windows; seed-determinism tests exist because a single run hides that.",
-    retrospect:
-      "Regimes are fit once per fold; an online regime model would react to breaks without waiting for the retrain. Transaction-cost models are still an approximation of slippage, and paper trading is the only honest next check.",
-    resumeBullet:
-      "Built a walk-forward pairs-trading research framework with per-window cointegration selection, HMM regime features, PPO/SAC agents held to a z-score baseline after costs, MLflow tracking and 94 tests including seed-determinism checks.",
-    github: "https://github.com/9shrey/rl-statistical-arbitrage",
-    codeStatus: "public",
-  },
-  {
-    slug: "rag-knowledge-assistant",
-    title: "RAG Knowledge Assistant: chat with your documents",
-    shortTitle: "RAG Assistant",
-    area: "Retrieval · LLM apps",
-    year: "2026",
-    featured: false,
-    testCount: 65,
-    stack: ["Python", "FastAPI", "PostgreSQL", "pgvector", "LangChain", "OpenAI", "Next.js", "Docker"],
-    blurb:
-      "Upload PDFs, ask questions, and get answers drawn only from the retrieved passages, with citations, cost and latency logged for every query.",
-    headline: [
-      { value: "65", label: "tests" },
-      { value: "70 / 30", label: "vector / keyword fusion weights" },
-    ],
-    tldr: {
-      problem:
-        "A chat-over-documents demo is easy to build and hard to trust: answers drift from the source, and without per-query logs there is no way to tell a retrieval miss from a generation miss.",
-      approach:
-        "Page-aware PDF extraction, recursive chunking, embeddings stored in PostgreSQL with pgvector, and hybrid retrieval that fuses cosine similarity with keyword matching. The model is told to answer only from the retrieved passages and to cite them, and to refuse when they don't cover the question.",
-      result:
-        "A Dockerised FastAPI + Next.js app where every query logs its latency, token usage, cost and retrieved chunks, and an evaluation page scores retrieval relevance, citation coverage and faithfulness.",
-    },
-    evidence:
-      "65 backend tests across models, PDF upload, chunking, embeddings, retrieval, answer generation, observability and the eval metrics. Embeddings and the LLM sit behind a provider interface with a mock, so the whole pipeline is tested without an API key.",
-    system:
-      "PDF upload → page-aware text extraction → recursive chunking → embeddings → PostgreSQL + pgvector → hybrid vector + keyword retrieval → cited answer from the LLM → query log (latency, tokens, cost, chunks) → eval page.",
-    technicalInterest:
-      "The query log is what makes it debuggable: when an answer is wrong you can see whether the right chunk was ever retrieved, which decides whether to fix retrieval or the prompt.",
-    challenges:
-      "Fusing two scores on different scales into one ranking, and making citation-only answering hold up: the refusal path matters as much as the answer path.",
-    retrospect:
-      "Faithfulness is enforced by the prompt, not checked against the source after generation. Streaming responses, query rewriting and more document types are the obvious next steps.",
-    resumeBullet:
-      "Built a document Q&A app: PDFs are chunked, embedded and stored in PostgreSQL with pgvector, and an LLM answers only from the retrieved passages, with citations. Hybrid vector + keyword retrieval, per-query latency and token-cost logging, and an evaluation page for faithfulness and citation coverage; 65 tests.",
-    github: "https://github.com/9shrey/rag-knowledge-assistant",
-    codeStatus: "public",
-  },
-  {
-    slug: "email-campaign-scheduler",
-    title: "Email Campaign Scheduler: delayed jobs that survive restarts",
-    shortTitle: "Scheduler",
-    area: "Backend systems",
-    year: "2026",
-    featured: false,
-    testCount: 0,
-    stack: ["TypeScript", "Node.js", "Express", "BullMQ", "Redis", "PostgreSQL", "Prisma", "Next.js"],
-    blurb:
-      "A bulk email scheduler where every email is a delayed job in a Redis-backed queue, with per-sender hourly limits and no lost or duplicate sends across restarts.",
-    headline: [
-      { value: "3", label: "independent duplicate-send guards" },
-      { value: "0", label: "cron jobs" },
-    ],
-    tldr: {
-      problem:
-        "Scheduled sending has to stay correct when the server restarts mid-campaign, when a request is retried, and when a sender hits its hourly cap. Dropping an email and sending it twice are both failures.",
-      approach:
-        "Postgres is the source of truth; each email becomes a BullMQ delayed job keyed by its row id, run by a separate worker process. Hourly limits use atomic Redis counters, and over-limit jobs are moved to the next hour rather than dropped. Retried schedule requests are deduplicated with an Idempotency-Key.",
-      result:
-        "Checked by hand against the four failure cases: staggered sends kept their spacing, a repeated request was deduplicated, a 2-per-hour sender pushed its third email to the next hour, and killing both processes mid-run left nothing lost or sent twice.",
-    },
-    evidence:
-      "No automated test suite: it was built in a 48-hour window, and every behaviour above was verified by hand with curl and log inspection. The repo's build log records each run.",
-    system:
-      "Next.js dashboard with Google sign-in → CSV recipient upload → Express schedule API → Postgres rows → BullMQ delayed jobs (jobId = email id) → worker with concurrency and a send-rate floor → Redis hourly counter per sender → SMTP send → status back to the dashboard.",
-    technicalInterest:
-      "Idempotency in three layers that each cover a different failure: queue-level job-id dedup, an atomic status claim before sending, and an idempotency key on the API. On worker boot, any email still marked scheduled is re-enqueued from Postgres, so the queue can be rebuilt even if Redis loses its data.",
-    challenges:
-      "Rescheduling an over-limit job without failing or reordering it, and keeping the dashboard's scheduled time in step with the queue when it moves.",
-    retrospect:
-      "The hourly limit is a fixed window, so a burst across an hour boundary can reach close to twice the limit; a sliding window would fix it. The Express API trusts the dashboard and has no auth of its own, and it needs a real test suite.",
-    resumeBullet:
-      "Built a bulk email scheduler where each email is a delayed job in a Redis-backed BullMQ queue, sent by a separate worker, with a Next.js dashboard and Google sign-in. Per-sender hourly limits via Redis counters and idempotency keys so emails are never lost or sent twice, even across restarts.",
-    github: "https://github.com/9shrey/reachinbox-email-scheduler",
     codeStatus: "public",
   },
 ];

@@ -64,7 +64,7 @@ const personLd = {
   sameAs: [site.links.linkedin, site.links.github],
 };
 
-const description = `${site.name} is an ${site.title.toLowerCase()} in ${site.location}. ${site.tagline} ${site.pitch}`;
+const description = `${site.name} is a ${site.title.toLowerCase()} in ${site.location}. ${site.tagline} ${site.pitch}`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),

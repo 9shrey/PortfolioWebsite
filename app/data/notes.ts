@@ -90,7 +90,7 @@ export interface Faq {
 export const faqs: Faq[] = [
   {
     q: "What do you want to work on?",
-    a: "Inference, evals and ML platforms. Anywhere a measured number decides what ships.",
+    a: "Software engineering, full stack or backend, ideally on a product with machine learning in it.",
   },
   {
     q: "Why should I believe your numbers?",

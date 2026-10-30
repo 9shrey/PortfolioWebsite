@@ -23,11 +23,11 @@ export async function roomContent(): Promise<RoomContent> {
       { label: "X", href: "https://x.com/9shrey", handle: "@9shrey" },
     ],
     about: {
-      lead: `I'm Shrey, an ML systems engineer in ${site.location.split(",")[0]}. ${site.tagline}`,
+      lead: `I'm Shrey, a software engineer in ${site.location.split(",")[0]}. ${site.tagline}`,
       paragraphs: [
         site.pitch,
         "Right now I'm an ML Ops engineer at Agneyas Labs, building an internal AutoML platform and a hybrid battery digital twin that pairs an equivalent-circuit model with a learned residual network.",
-        "I'm looking for work in inference, evals and ML platforms: the places where a number has to be measured before anyone gets to believe it.",
+        "I'm looking for software engineering roles, full stack or backend, ideally where machine learning is part of the product.",
       ],
       education: `${education.degree}, ${education.school}, ${education.from.slice(-4)}–${education.to.slice(-4)} · ${education.grade}`,
       skills: skillGroups.map((g) => ({ group: g.label, items: g.items })),

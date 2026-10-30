@@ -4,7 +4,7 @@
 
 export const site = {
   name: "Shrey Singh",
-  title: "ML Systems Engineer",
+  title: "Software Engineer",
   location: "Bengaluru, India",
   url: "https://9shrey.vercel.app",
   email: "9shrey@gmail.com",
@@ -15,18 +15,21 @@ export const site = {
   },
   /** The first sentence a recruiter reads. Every number in it is measured
    *  and appears in a case study or role below. */
-  tagline: "I make models fast and measurable.",
+  tagline: "I build complete products, with machine learning inside them.",
   pitch:
-    "A Triton kernel that took batched LLM decode from 87 to 451 tok/s, a benchmark that grades structured-output contracts without an LLM judge, and forecasting pipelines behind $150M+ in quarterly planning at NetApp.",
+    "Forecasting pipelines behind $150M+ in quarterly planning at NetApp, an AutoML platform in use by a team of 10–12 at Agneyas Labs, and side projects built end to end: a real-time fraud scorer, a document Q&A app that cites its sources, and an email scheduler that survives restarts.",
   knowsAbout: [
-    "GPU kernels",
-    "Triton",
-    "CUDA",
-    "LLM inference",
-    "LLM evaluation",
+    "Full-stack development",
+    "React",
+    "Next.js",
+    "Node.js",
+    "FastAPI",
+    "PostgreSQL",
+    "Redis",
+    "Machine learning",
     "MLOps",
-    "PyTorch",
     "XGBoost",
     "time-series forecasting",
+    "retrieval-augmented generation",
   ],
 } as const;

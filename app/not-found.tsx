@@ -8,7 +8,7 @@ export default function NotFound() {
       <p className="folio" aria-hidden>
         <span>Error</span>
         <span>Below the roof</span>
-        <span>Shrey Singh · ML Systems</span>
+        <span>Shrey Singh · Software Engineer</span>
       </p>
       <h1 className="lost-big">404</h1>
       <Note className="page-note" tilt={-5}>
