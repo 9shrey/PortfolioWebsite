@@ -2,6 +2,7 @@
 title: Why batched decode got slower
 date: 2026-10-20
 summary: On a GPU without tensor cores, batch 2 decoded 4.7× slower than batch 1. How I found the cuBLAS dispatch behind it, and the Triton kernel that fixed it.
+topics: gpu, inference, triton
 ---
 
 On a GTX 1650 Mobile, fp16 decode of Qwen2.5-0.5B ran at **53.9 tok/s** at batch 1 and **11.4 tok/s** at batch 2. Adding a second sequence made throughput 4.7× worse, and stock PyTorch didn't get back to single-sequence speed until batch 16.

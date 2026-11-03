@@ -2,6 +2,7 @@
 title: Why the iPhone Duo sucks
 date: 2026-10-30
 summary: Apple waited for foldables to mature, then launched one with the same unfinished app ecosystem and first-generation compromises it was supposed to have outgrown.
+topics: apple, opinion
 ---
 
 Apple has finally made a foldable iPhone. That should have been good news for people who wanted a pocket-sized iPad without having to buy an Android phone.

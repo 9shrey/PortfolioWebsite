@@ -2,6 +2,7 @@
 title: Strict mode guarantees a shape, not the truth
 date: 2026-10-25
 summary: When a schema demands a fact the document doesn't contain, a model must break the contract or invent the fact. Measuring which, without an LLM judge.
+topics: evals, llm
 ---
 
 Ask a model to extract a field whose fact isn't in the document. If the schema allows `null`, it can say so. If the schema forbids `null`, it has two options: break the contract, or make something up.

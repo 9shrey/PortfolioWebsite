@@ -9,6 +9,7 @@ import { marked } from "marked";
      title: Why batched decode got slower
      date: 2026-10-20
      summary: One sentence for the list and for link previews.
+     topics: gpu, inference   (optional, comma separated)
      draft: true        (optional: shows in `npm run dev` only)
      ---
 */
@@ -18,6 +19,7 @@ export interface Post {
   title: string;
   date: string;
   summary: string;
+  topics: string[];
   draft: boolean;
   readingTime: string;
 }
@@ -40,6 +42,7 @@ function parse(raw: string, slug: string) {
     title: fields.title ?? slug,
     date: fields.date ?? "",
     summary: fields.summary ?? "",
+    topics: (fields.topics ?? "").split(",").map((t) => t.trim()).filter(Boolean),
     draft: fields.draft === "true",
     readingTime: `${Math.max(1, Math.round(words / 230))} min read`,
   };
@@ -67,5 +70,19 @@ export async function loadPost(slug: string) {
   if (!(await slugs()).includes(slug)) return null;
   const { post, body } = parse(await readFile(join(DIR, `${slug}.md`), "utf8"), slug);
   if (post.draft && !showDrafts) return null;
-  return { post, html: await marked.parse(body) };
+  // Give every ## heading an id so the contents list can link to it.
+  const sections: { id: string; title: string }[] = [];
+  const html = (await marked.parse(body)).replace(/<h2>(.*?)<\/h2>/g, (_, inner: string) => {
+    const title = inner
+      .replace(/<[^>]+>/g, "")
+      .replace(/&#39;/g, "'")
+      .replace(/&quot;/g, '"')
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">");
+    const id = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    sections.push({ id, title });
+    return `<h2 id="${id}">${inner}</h2>`;
+  });
+  return { post, html, sections };
 }
