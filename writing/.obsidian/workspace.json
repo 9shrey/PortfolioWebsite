@@ -4,21 +4,21 @@
     "type": "split",
     "children": [
       {
-        "id": "41080ed92f40b610",
+        "id": "0fdd461376bdab0a",
         "type": "tabs",
         "children": [
           {
-            "id": "d783cde4b0a25abf",
+            "id": "d25d15356e0b4a5a",
             "type": "leaf",
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Friends-matter-more-than-family.md",
-                "mode": "preview",
+                "file": "friends-matter-more-than-family.md",
+                "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "Friends-matter-more-than-family"
+              "title": "friends-matter-more-than-family"
             }
           }
         ]
@@ -185,10 +185,10 @@
       "bases:Create new base": false
     }
   },
-  "active": "d783cde4b0a25abf",
+  "active": "d25d15356e0b4a5a",
   "lastOpenFiles": [
+    "friends-matter-more-than-family.md",
     "why-the-iphone-duo-sucks.md",
-    "Friends-matter-more-than-family.md",
     "strict-mode-guarantees-a-shape.md",
     "images/Pasted image 20261103141738.png",
     "images/Pasted image 20261103141645.png",

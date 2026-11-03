@@ -72,7 +72,12 @@ export async function loadPost(slug: string) {
   if (post.draft && !showDrafts) return null;
   // Give every ## heading an id so the contents list can link to it.
   const sections: { id: string; title: string }[] = [];
-  const html = (await marked.parse(body)).replace(/<h2>(.*?)<\/h2>/g, (_, inner: string) => {
+  // Obsidian embeds (![[file.png]]) become plain images served from /writing-images.
+  const md = body.replace(
+    /!\[\[([^\]|]+?)(?:\|[^\]]*)?\]\]/g,
+    (_, file: string) => `![](/writing-images/${encodeURIComponent(file.trim())})`
+  );
+  const html = (await marked.parse(md)).replace(/<h2>(.*?)<\/h2>/g, (_, inner: string) => {
     const title = inner
       .replace(/<[^>]+>/g, "")
       .replace(/&#39;/g, "'")
