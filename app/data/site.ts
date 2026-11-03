@@ -17,7 +17,7 @@ export const site = {
    *  and appears in a case study or role below. */
   tagline: "I build complete products, with machine learning inside them.",
   pitch:
-    "Building things that matter.",
+    ",Building things that matter.",
   knowsAbout: [
     "Full-stack development",
     "React",
