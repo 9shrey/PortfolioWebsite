@@ -1,0 +1,98 @@
+---
+title: Friends matter more than family, so choose wisely
+date: 2026-11-03
+summary:
+topics:
+---
+
+Apple has finally made a foldable iPhone. That should have been good news for people who wanted a pocket-sized iPad without having to buy an Android phone.
+
+Instead, the iPhone Duo feels like Apple took a category it had spent years studying, polished the outside, and shipped the inside before the ecosystem was ready.
+
+The hardware is impressive. The problem is that a $2,000 phone is not a technology demo. It is a product people have to live with.
+
+## The Apple strategy is not a secret
+
+Apple rarely invents a category from nothing. It watches other companies experiment, waits for the rough edges to become obvious, and then enters with a version that is easier to understand and nicer to use.
+
+That is often a good strategy. The original iPhone was not the first smartphone, the Apple Watch was not the first smartwatch, and AirPods were not the first truly wireless earbuds. Apple is very good at turning an awkward product category into a mainstream one.
+
+But the strategy creates a very specific expectation: if Apple arrives late, it should arrive finished.
+
+That is what makes the Duo frustrating. Apple has had years to observe the problems with foldables—creases, fragile inner screens, awkward aspect ratios, software that treats a tablet like a stretched phone—and it still shipped a device with several of the same problems.
+
+| Apple-marketed feature | It existed before Apple | Apple’s version |
+| --- | --- | --- |
+| Widgets on iPhone | Android home-screen widgets since 2008 | iOS 14 (2020) |
+| Always-On Display | Nokia, Samsung and other manufacturers | iPhone 14 Pro (2022) |
+| 120Hz ProMotion | Razer Phone, OnePlus and Samsung | iPhone 13 Pro (2021) |
+| Satellite emergency messaging | Garmin inReach and other communicators | iPhone 14 (2022) |
+| USB-C on iPhone | Android phones for years | iPhone 15 (2023) |
+| Large-screen iPhone | Samsung Galaxy Note | iPhone 6 Plus (2014) |
+| Foldable iPhone | Samsung Galaxy Fold, Huawei Mate X and others | iPhone Duo (2026) |
+
+The point is not that Apple is forbidden from improving an existing idea. Improvement is the whole point of competition. The point is that Apple’s premium is supposed to buy the final, considered version—not the same beta test everyone else already ran.
+
+> **The standard Apple set for itself.** If you arrive late to a category, you do not get to charge early-adopter prices and ask customers to finish the product for you.
+
+## A foldable is only as good as its apps
+
+The Duo’s most embarrassing problem is not the crease. It is the software around it.
+
+An app can technically run on the inner display and still feel completely broken. Some apps appear as a small phone-shaped window surrounded by empty space. Others stretch badly, waste the extra screen, or fail to understand that the device has changed shape. Even apps that work acceptably in portrait mode can become awkward when you open the phone and expect a useful tablet layout.
+
+This is not a minor launch inconvenience. The larger screen is the reason to buy the Duo in the first place.
+
+Apple’s own apps are, unsurprisingly, prepared. A number of third-party developers are updating their apps too, and Apple has started highlighting software built for the Duo. But launch-day compatibility is uneven: early coverage found that many popular apps still had not been properly adapted, while some app makers were openly acknowledging that their layouts needed more work. [Current app testing has found the same split between apps that fill the inner screen and apps that merely run on it.](https://foldcheck.org/)
+
+The App Store is a particularly strange example. Apple can sell a phone with a new screen shape, but it cannot make the entire software industry redesign its apps overnight. That is understandable from a developer’s perspective. It is less understandable from the customer’s perspective when the phone costs as much as a laptop.
+
+The result is a device whose best feature is conditional: the Duo is excellent when an app has been updated, ordinary when it has not, and actively awkward when it assumes it is still running on a normal iPhone.
+
+## The screen problem Apple was supposed to solve
+
+I am not claiming that every iPhone Duo is going to fail. That would be irresponsible after a week of availability. But early complaints are already pointing at the exact weaknesses foldables have been dealing with for years.
+
+Owners and testers have reported visible creasing, hinge and dust concerns, and line-like defects after stressing the inner display. One widely shared stress test produced a permanent line after the screen was bent; that is not the same thing as normal use, but it is still an uncomfortable demonstration for a phone with a flexible screen. [Other testing has found that the Duo’s inner display is impressively crease-resistant under ordinary handling.](https://www.wired.com/review/apple-iphone-duo/)
+
+Both things can be true. The display can be excellent in normal use and still be less forgiving than the glass on a conventional iPhone. A foldable has more moving parts, more layers, and more ways for a small defect to become an expensive repair.
+
+That trade-off is acceptable when the device is meaningfully cheaper, unusually capable, or aimed at people who knowingly want the form factor. It is harder to accept when the product is marketed as the perfected version of a category Apple deliberately waited to enter.
+
+## The compromise is everywhere
+
+The Duo is heavy. The outer display is narrow. The inner display is large enough to promise tablet-like work but not always large enough to make phone apps comfortable. Multitasking is useful, but Apple gives users less control over split-screen layouts than Android foldables do. The hinge is beautifully engineered, but it is still a hinge that has to survive being opened and closed every day.
+
+None of these problems is fatal on its own. That is how first-generation products survive criticism: every compromise can be explained separately.
+
+The problem is the pile-up.
+
+You pay laptop money. You carry a heavy phone. You open it and find a stretched app. You notice the crease. You wonder whether the inner screen can tolerate the same abuse as a normal iPhone. Then you close it and return to a narrow outer display that is less pleasant for ordinary phone tasks.
+
+The product keeps asking you to appreciate the engineering instead of simply enjoying the result.
+
+## I am not against Apple—or foldables
+
+I own an iPhone 17. I am not annoyed that people like Apple products, and I am not pretending that Android manufacturers have solved every foldable problem. Samsung, Google and others have all shipped devices with their own compromises.
+
+What bothers me is the price of Apple’s mistakes. Apple has built some genuinely excellent products by waiting, learning from competitors and refusing to ship until the experience feels coherent. That history is exactly why customers expect more from the Duo.
+
+Some people absolutely want a tablet-sized screen that fits in a pocket. That is a legitimate use case. A foldable can be a brilliant device when its software understands the shape and its hardware is durable enough to make the convenience worth the risk.
+
+But the Duo currently feels like a luxury version of an unfinished idea. Apple has made the hinge feel premium, but it has not made the product feel inevitable.
+
+## What Apple needs to fix
+
+The next version does not need another keynote trick. It needs the boring work:
+
+- A clear, public durability standard for the hinge and inner display.
+- Better protection against dust and screen damage, with repairs that do not cost a second phone.
+- A real compatibility push for third-party apps before launch, not after customers have paid.
+- More flexible multitasking and window management.
+- A way for users to know whether an app is designed for the inner display or merely allowed to open on it.
+
+Most importantly, Apple needs to stop treating the Duo’s form factor as the product. The folding animation is not the experience. The experience is what happens after the animation, when you open the phone to do something useful.
+
+Apple did not need to be first. That was its advantage. It had time to watch every other company make the obvious mistakes.
+
+Taking that time and still shipping a $2,000 foldable with unfinished apps and first-generation fragility is the part that sucks.
