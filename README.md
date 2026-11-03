@@ -72,7 +72,7 @@ glass (`app/room/engine/city.ts`).
 | `app/room/script.ts` | Head script: WebGL 2 on a real GPU gets the room; software renderers get the plain page |
 | `app/(pages)/` | Case studies, posts, CV, /now: the printed pages (styles in `app/art.css`) |
 | `app/data/` | Content: projects, experience, skills, goals, site identity |
-| `content/writing/` | Posts (MDX) |
+| `writing/` | Posts (plain Markdown, one file each) |
 
 `?plain=1` shows the reading view; `?room=1` forces the room.
 

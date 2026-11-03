@@ -1,64 +1,71 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { ComponentType } from "react";
+import { marked } from "marked";
 
-/* Posts are MDX files in content/writing/<slug>.mdx, each exporting `meta`.
-   status: "published" posts are built and listed everywhere. "draft" and
-   "template" posts render in `next dev` (or with SHOW_DRAFTS=1) so you can
-   write them in place; in production, drafts are listed as in progress and
-   the template never appears. */
+/* Posts are plain Markdown files in writing/<slug>.md. The file name is the URL.
+   A block of `key: value` lines between two `---` lines starts the file:
 
-export type PostStatus = "published" | "draft" | "template";
+     ---
+     title: Why batched decode got slower
+     date: 2026-10-20
+     summary: One sentence for the list and for link previews.
+     draft: true        (optional: shows in `npm run dev` only)
+     ---
+*/
 
-export interface PostMeta {
-  title: string;
-  excerpt: string;
-  date: string;
-  status: PostStatus;
-  tags?: string[];
-}
-
-export interface Post extends PostMeta {
+export interface Post {
   slug: string;
+  title: string;
+  date: string;
+  summary: string;
+  draft: boolean;
   readingTime: string;
 }
 
-const DIR = join(process.cwd(), "content/writing");
+const DIR = join(process.cwd(), "writing");
 
 export const showDrafts = process.env.NODE_ENV !== "production" || process.env.SHOW_DRAFTS === "1";
 
-export async function loadPost(slug: string) {
-  const mod = (await import(`@/content/writing/${slug}.mdx`)) as { default: ComponentType; meta: PostMeta };
-  return mod;
+function parse(raw: string, slug: string) {
+  const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
+  const fields: Record<string, string> = {};
+  for (const line of (m?.[1] ?? "").split(/\r?\n/)) {
+    const i = line.indexOf(":");
+    if (i > 0) fields[line.slice(0, i).trim()] = line.slice(i + 1).trim();
+  }
+  const body = m ? raw.slice(m[0].length) : raw;
+  const words = body.split(/\s+/).filter(Boolean).length;
+  const post: Post = {
+    slug,
+    title: fields.title ?? slug,
+    date: fields.date ?? "",
+    summary: fields.summary ?? "",
+    draft: fields.draft === "true",
+    readingTime: `${Math.max(1, Math.round(words / 230))} min read`,
+  };
+  return { post, body };
 }
 
-async function readingTime(slug: string) {
-  const src = await readFile(join(DIR, `${slug}.mdx`), "utf8");
-  const words = src.replace(/export const meta[\s\S]*?\n};?\n/, "").split(/\s+/).filter(Boolean).length;
-  return `${Math.max(1, Math.round(words / 230))} min read`;
-}
-
-/** Every post, newest first. Templates only when drafts are visible. */
-export async function listPosts(): Promise<Post[]> {
-  let files: string[] = [];
+async function slugs() {
   try {
-    files = (await readdir(DIR)).filter((f) => f.endsWith(".mdx"));
+    return (await readdir(DIR)).filter((f) => f.endsWith(".md")).map((f) => f.slice(0, -3));
   } catch {
     return [];
   }
-  const posts = await Promise.all(
-    files.map(async (f) => {
-      const slug = f.replace(/\.mdx$/, "");
-      const { meta } = await loadPost(slug);
-      return { ...meta, slug, readingTime: await readingTime(slug) };
-    })
-  );
-  return posts
-    .filter((p) => p.status !== "template" || showDrafts)
-    .sort((a, b) => (a.status === "template" ? 1 : 0) - (b.status === "template" ? 1 : 0) || b.date.localeCompare(a.date));
 }
 
-/** Posts that get their own page in this build. */
-export async function routablePosts() {
-  return (await listPosts()).filter((p) => p.status === "published" || showDrafts);
+/** Every post that should be visible in this build, newest first. */
+export async function listPosts(): Promise<Post[]> {
+  const posts = await Promise.all(
+    (await slugs()).map(async (s) => parse(await readFile(join(DIR, `${s}.md`), "utf8"), s).post)
+  );
+  return posts.filter((p) => !p.draft || showDrafts).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+/** One post with its body rendered to HTML, or null if it doesn't exist. */
+export async function loadPost(slug: string) {
+  if (!(await slugs()).includes(slug)) return null;
+  const { post, body } = parse(await readFile(join(DIR, `${slug}.md`), "utf8"), slug);
+  if (post.draft && !showDrafts) return null;
+  return { post, html: await marked.parse(body) };
 }

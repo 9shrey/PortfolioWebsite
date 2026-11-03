@@ -1,8 +1,6 @@
 import type { NextConfig } from "next";
-import createMDX from "@next/mdx";
 
 const nextConfig: NextConfig = {
-  pageExtensions: ["ts", "tsx", "md", "mdx"],
   // Old single-page anchors and the chip site's section routes stay alive.
   async redirects() {
     return [
@@ -14,9 +12,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Plugins by name so Turbopack can pass them to the Rust side.
-const withMDX = createMDX({
-  options: { remarkPlugins: ["remark-gfm"] },
-});
-
-export default withMDX(nextConfig);
+export default nextConfig;

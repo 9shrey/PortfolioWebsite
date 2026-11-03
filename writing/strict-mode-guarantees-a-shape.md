@@ -1,22 +1,12 @@
-export const meta = {
-  title: "Strict mode guarantees a shape, not the truth",
-  excerpt: "When a schema demands a fact the document doesn't contain, a model must break the contract or invent the fact. Measuring which, without an LLM judge.",
-  date: "2026-10-25",
-  status: "published",
-  tags: ["evals", "llm", "structured-output"],
-};
-
-{/* Every number here is from github.com/9shrey/schemabench (README, findings.md, data/results/*). */}
+---
+title: Strict mode guarantees a shape, not the truth
+date: 2026-10-25
+summary: When a schema demands a fact the document doesn't contain, a model must break the contract or invent the fact. Measuring which, without an LLM judge.
+---
 
 Ask a model to extract a field whose fact isn't in the document. If the schema allows `null`, it can say so. If the schema forbids `null`, it has two options: break the contract, or make something up.
 
 Strict structured output is sold as a correctness feature. It guarantees a *shape*. I wanted to know what it does to the *truth*, and I wanted to measure it without asking another LLM to grade the answers.
-
-<Stat value="0" label="LLM judges" />
-<Stat value="11" label="violation classes" />
-<Stat value="175" label="tests on the grader" />
-
-<PlateFigure slug="schemabench" />
 
 ## The trap split
 
@@ -33,9 +23,7 @@ Four schema tiers extract the *same* facts in different shapes: flat; constraine
 
 Each schema goes out three ways: in the prompt only, as a forced tool call, and as a native `response_format: json_schema`. The schema is in the prompt in all three, so the only thing that changes is the mechanism.
 
-<Callout label="stated limitation">
-Real deployments using strict mode often leave the schema out of the prompt. Keeping it in isolates the mechanism, but it probably understates how much the native modes help in practice.
-</Callout>
+> **stated limitation.** Real deployments using strict mode often leave the schema out of the prompt. Keeping it in isolates the mechanism, but it probably understates how much the native modes help in practice.
 
 ## Grading without a judge
 

@@ -1,20 +1,14 @@
-export const meta = {
-  title: "Why the iPhone Duo sucks",
-  excerpt: "Apple waited for foldables to mature, then launched one with the same unfinished app ecosystem and first-generation compromises it was supposed to have outgrown.",
-  date: "2026-10-30",
-  status: "published",
-  tags: ["apple", "design", "opinion"],
-};
+---
+title: Why the iPhone Duo sucks
+date: 2026-10-30
+summary: Apple waited for foldables to mature, then launched one with the same unfinished app ecosystem and first-generation compromises it was supposed to have outgrown.
+---
 
 Apple has finally made a foldable iPhone. That should have been good news for people who wanted a pocket-sized iPad without having to buy an Android phone.
 
 Instead, the iPhone Duo feels like Apple took a category it had spent years studying, polished the outside, and shipped the inside before the ecosystem was ready.
 
 The hardware is impressive. The problem is that a $2,000 phone is not a technology demo. It is a product people have to live with.
-
-<Stat value="$1,999" label="starting price" />
-<Stat value={'7.6"'} label="inner display" />
-<Stat value="1st gen" label="foldable iPhone" />
 
 ## The Apple strategy is not a secret
 
@@ -38,9 +32,7 @@ That is what makes the Duo frustrating. Apple has had years to observe the probl
 
 The point is not that Apple is forbidden from improving an existing idea. Improvement is the whole point of competition. The point is that Apple’s premium is supposed to buy the final, considered version—not the same beta test everyone else already ran.
 
-<Callout label="The standard Apple set for itself">
-If you arrive late to a category, you do not get to charge early-adopter prices and ask customers to finish the product for you.
-</Callout>
+> **The standard Apple set for itself.** If you arrive late to a category, you do not get to charge early-adopter prices and ask customers to finish the product for you.
 
 ## A foldable is only as good as its apps
 

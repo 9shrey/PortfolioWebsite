@@ -4,7 +4,7 @@ import { projects } from "./data/projects";
 import { listPosts } from "./lib/posts";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const posts = (await listPosts()).filter((p) => p.status === "published");
+  const posts = (await listPosts()).filter((p) => !p.draft);
   const u = (p: string) => `${site.url}${p}`;
   return [
     { url: u("/"), priority: 1 },

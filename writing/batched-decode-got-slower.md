@@ -1,22 +1,12 @@
-export const meta = {
-  title: "Why batched decode got slower",
-  excerpt: "On a GPU without tensor cores, batch 2 decoded 4.7× slower than batch 1. How I found the cuBLAS dispatch behind it, and the Triton kernel that fixed it.",
-  date: "2026-10-20",
-  status: "published",
-  tags: ["gpu", "triton", "inference"],
-};
-
-{/* Every number here is from github.com/9shrey/inferbench (README, findings.md, data/*.json). */}
+---
+title: Why batched decode got slower
+date: 2026-10-20
+summary: On a GPU without tensor cores, batch 2 decoded 4.7× slower than batch 1. How I found the cuBLAS dispatch behind it, and the Triton kernel that fixed it.
+---
 
 On a GTX 1650 Mobile, fp16 decode of Qwen2.5-0.5B ran at **53.9 tok/s** at batch 1 and **11.4 tok/s** at batch 2. Adding a second sequence made throughput 4.7× worse, and stock PyTorch didn't get back to single-sequence speed until batch 16.
 
 The cause turned out to be one kernel-selection decision inside cuBLAS. The fix is a Triton kernel that takes batched decode from 87 to 451 tok/s at batch 16, with the same tokens out.
-
-<Stat value="5.2×" label="end-to-end decode, batch 16" />
-<Stat value="8.9×" label="on the projection kernel" />
-<Stat value="52%" label="of the memory roof" />
-
-<RooflineFigure caption="The measured roofline. cuBLAS falls off at batch 2, to 6% of the memory roof; the split-K kernel climbs back to 52%." />
 
 ## The symptom, and why nobody notices it
 
@@ -50,9 +40,7 @@ The card ramps to 1425 MHz the moment work arrives. The 345 MHz reading I'd take
 
 The cliff sits exactly at M = 2. At M = 1, cuBLAS uses a GEMV kernel that runs at about 85% of achieved memory bandwidth, which is exactly what bandwidth-bound theory says it should. At M ≥ 2 it switches to a GEMM kernel that costs a fixed ~1.3 ms no matter what M is. `mm`, `matmul`, `F.linear` and `bmm` are all affected the same way, so this is cuBLAS dispatch, not a PyTorch quirk.
 
-<Callout label="credit where it's due">
-The diagnosis isn't mine. vllm-sm75-throughput reports the same cliff on the same GPU and model, and runs the control I can't (a Tesla T4: same sm_75, with tensor cores, and no collapse). pytorch#121957 reports the fp16 slowdown on a GTX 1660 SUPER. My measurements replicate theirs. The fix is what's new.
-</Callout>
+> **credit where it's due.** The diagnosis isn't mine. vllm-sm75-throughput reports the same cliff on the same GPU and model, and runs the control I can't (a Tesla T4: same sm_75, with tensor cores, and no collapse). pytorch#121957 reports the fp16 slowdown on a GTX 1660 SUPER. My measurements replicate theirs. The fix is what's new.
 
 One more correction to my own reasoning: TU117 isn't "Turing minus tensor cores". It has dedicated fp16 units, and at M = 1 fp16 is 1.7× faster than fp32, as it should be. The silicon is fine. cuBLAS picks a GEMM kernel that assumes tensor cores exist. That's a software failure on capable hardware, which is what makes it fixable.
 

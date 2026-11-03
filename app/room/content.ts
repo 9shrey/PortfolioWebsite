@@ -10,7 +10,7 @@ import type { CardContent, RoomContent } from "./types";
 
 /** Gathers the room's content on the server from the site's data files. */
 export async function roomContent(): Promise<RoomContent> {
-  const posts = (await listPosts()).filter((p) => p.status !== "template");
+  const posts = await listPosts();
   return {
     name: site.name,
     title: site.title,
@@ -61,7 +61,7 @@ export async function roomContent(): Promise<RoomContent> {
         links: [{ label: "Read the case study", href: `/work/${p.slug}` }, ...(p.github ? [{ label: "GitHub", href: p.github }] : [])],
       };
     }),
-    posts: posts.map((p) => ({ slug: p.slug, title: p.title, excerpt: p.excerpt, date: p.date, readingTime: p.readingTime, status: p.status })),
+    posts: posts.map((p) => ({ slug: p.slug, title: p.title, excerpt: p.summary, date: p.date, readingTime: p.readingTime, status: p.draft ? "draft" : "published" })),
     year: goalsYear,
     goals,
     books: books.books,

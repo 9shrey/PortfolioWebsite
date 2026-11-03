@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { listPosts, showDrafts } from "@/app/lib/posts";
+import { listPosts } from "@/app/lib/posts";
 
 export const metadata: Metadata = {
   title: "Writing",
@@ -8,35 +8,22 @@ export const metadata: Metadata = {
   alternates: { canonical: "/writing" },
 };
 
-const fmt = (d: string) => new Date(d).toISOString().slice(0, 10);
+const fmt = (d: string) => new Date(d).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
 export default async function WritingPage() {
   const posts = await listPosts();
   return (
     <div className="wx-col">
-      <p className="wx-back"><Link href="/">◂ The desk</Link></p>
+      <p className="wx-back"><Link href="/">◂ Home</Link></p>
       <h1 className="wx-h">Writing</h1>
-      <p className="wx-lede">
-        Long-form notes from the work: what broke, how I found out, and what the fix was worth. Every number links back to a repo.
-      </p>
-      <ol className="wx-list">
-        {posts.map((p) => {
-          const open = p.status === "published" || showDrafts;
-          const when = p.status === "published" ? fmt(p.date) : p.status === "template" ? "template" : showDrafts ? "draft" : "soon";
-          const inner = (
-            <>
-              <span className="wx-date">{when}</span>
-              <span className="wx-title">{p.title}</span>
-              <span className="wx-ex">{p.excerpt} <span className="wx-rt">{p.readingTime}</span></span>
-            </>
-          );
-          return (
-            <li key={p.slug}>
-              {open ? <Link href={`/writing/${p.slug}`} className="wx-row">{inner}</Link> : <span className="wx-row" data-closed>{inner}</span>}
-            </li>
-          );
-        })}
-      </ol>
+      <ul className="wx-list">
+        {posts.map((p) => (
+          <li key={p.slug}>
+            <Link href={`/writing/${p.slug}`}>{p.title}</Link>
+            <time dateTime={p.date}>{fmt(p.date)}</time>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
