@@ -17,7 +17,7 @@ export const site = {
    *  and appears in a case study or role below. */
   tagline: "I build complete products, with machine learning inside them.",
   pitch:
-    "Forecasting pipelines behind $150M+ in quarterly planning at NetApp, an AutoML platform in use by a team of 10–12 at Agneyas Labs, and side projects built end to end: a real-time fraud scorer, a document Q&A app that cites its sources, and an email scheduler that survives restarts.",
+    "Building things that matter.",
   knowsAbout: [
     "Full-stack development",
     "React",
