@@ -9,6 +9,7 @@ import { marked } from "marked";
      title: Why batched decode got slower
      date: 2026-10-20
      summary: One sentence for the list and for link previews.
+              (optional: left out, the first paragraph's opening is used)
      topics: gpu, inference   (optional, comma separated)
      draft: true        (optional: shows in `npm run dev` only)
      ---
@@ -28,6 +29,23 @@ const DIR = join(process.cwd(), "writing");
 
 export const showDrafts = process.env.NODE_ENV !== "production" || process.env.SHOW_DRAFTS === "1";
 
+/** For a post with no `summary:` (link previews and search need one): its first paragraph of prose,
+ *  cut at a sentence end, or failing that a word, by about 160 characters. */
+function excerpt(body: string) {
+  const para = body
+    .split(/\r?\n\s*\r?\n/)
+    .map((p) => p.trim())
+    .find((p) => p && !/^(#|!|\||>|```|[-*+] |\d+\. |<)/.test(p)) ?? "";
+  const text = para
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, "")
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`~]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (text.length <= 160) return text;
+  return text.match(/^.{60,160}?[.!?](?=\s)/)?.[0] ?? `${text.slice(0, 157).replace(/\s+\S*$/, "")}…`;
+}
+
 function parse(raw: string, slug: string) {
   const m = raw.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n?/);
   const fields: Record<string, string> = {};
@@ -41,7 +59,7 @@ function parse(raw: string, slug: string) {
     slug,
     title: fields.title ?? slug,
     date: fields.date ?? "",
-    summary: fields.summary ?? "",
+    summary: fields.summary || excerpt(body),
     topics: (fields.topics ?? "").split(",").map((t) => t.trim()).filter(Boolean),
     draft: fields.draft === "true",
     readingTime: `${Math.max(1, Math.round(words / 230))} min read`,

@@ -3,9 +3,11 @@ import type { Goal } from "../types";
 /* A surface drawn live: the year planner on the wall.
    Fonts come from the page's CSS variables (next/font gives them hashed family names). */
 
+// Always end on a generic family: a canvas with no match falls back to its default, a serif, and the
+// terminal's columns stop lining up.
 function fam(v: string, fallback: string) {
   const f = getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-  return f || fallback;
+  return f ? `${f}, ${fallback}` : fallback;
 }
 export const fonts = () => ({
   display: fam("--font-display", "sans-serif"),
@@ -15,6 +17,14 @@ export const fonts = () => ({
   pixel: fam("--font-pixel", "monospace"),
   serif: fam("--font-serif", "serif"),
 });
+
+/** Resolves once the faces the live surfaces draw with have loaded (or failed). `document.fonts.ready`
+ *  alone isn't enough: it only waits for faces the page has already asked for. */
+export function fontsLoaded(): Promise<void> {
+  const F = fonts();
+  const faces = [F.pixel, F.display, F.sans, F.mono, F.hand].map((f) => document.fonts.load(`16px ${f}`).catch(() => []));
+  return Promise.all(faces).then(() => document.fonts.ready).then(() => undefined);
+}
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 const INK = "#16161a", PEN = "#2442d8", PAPER = "#f3efe6", RED = "#c8412d";

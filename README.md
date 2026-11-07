@@ -5,8 +5,9 @@ they hold:
 
 | Object | Holds |
 | --- | --- |
-| GPU cards in the stepped rack | Work: one moves into the test bench and the white projector throws its slide (case study, GitHub and next/previous are on the slide's band) |
-| The old beige monitor | An amber VT323 terminal (`app/room/engine/terminal.ts`): it boots, then a menu of about.txt (a pager), writing/, online and the résumé. Keys and clicks drive it; the tube is a shader (curve, scanlines, warm-up). On a phone it fills the screen |
+| GPU cards in the stepped rack | Work: the card moves into the test bench and its page opens on the monitor |
+| The old beige monitor | An amber VT323 terminal (`app/room/engine/terminal.ts`): it boots, then a menu of about.txt (a pager), work/ (every job and project in résumé order, including ones with no card in the rack), writing/, online and the résumé. Keys and clicks drive it; the tube is a shader (curve, scanlines, warm-up). On a phone it fills the screen |
+| The white projector | A loop of generative pieces (`app/room/engine/reel.ts`) |
 | The Polaroid on the monitor | About |
 | The phone | A lock screen on the desk; picked up, how to reach me |
 | Paper tray | The résumé: the page is the link to the PDF |

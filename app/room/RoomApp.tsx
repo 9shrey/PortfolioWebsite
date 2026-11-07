@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DEFAULT_SETTINGS, RoomEngine, type Hit, type Settings } from "./engine/engine";
 import { RoomAudio } from "./engine/audio";
-import { drawCalendar } from "./engine/surfaces";
+import { drawCalendar, fontsLoaded } from "./engine/surfaces";
 import { drawPhone } from "./engine/cards";
 import { Reel } from "./engine/reel";
 import { Terminal, type TermPage } from "./engine/terminal";
@@ -54,7 +54,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<View>({ kind: "home" });
-  const [installed, setInstalled] = useState<string>(content.cards[0].id);
+  const [installed, setInstalled] = useState<string>(content.bench);
   const [sound, setSound] = useState(false);
   const [hint, setHint] = useState(true);
   const [settings, setSettings] = useState<Settings>(loadSettings);   // client-only component: localStorage is there
@@ -142,7 +142,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     const t = new Terminal(content, (a) => actRef.current(a));
     term.current = t;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __term: Terminal }).__term = t;
-    let raf = 0;
+    let raf = 0, alive = true;
     const paint = () => {
       raf = requestAnimationFrame(paint);
       if (!t.draw(performance.now() / 1000)) return;
@@ -151,17 +151,20 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       const v = termView.current;
       if (v) { v.width = t.canvas.width; v.height = t.canvas.height; v.getContext("2d")!.drawImage(t.canvas, 0, 0); }
     };
-    document.fonts.ready.then(() => { t.dirty = true; paint(); });
+    fontsLoaded().then(() => { if (!alive) return; t.dirty = true; paint(); });
+    // a face that turns up later (a slow network) repaints the tube in it
+    const late = () => { t.dirty = true; };
+    document.fonts.addEventListener("loadingdone", late);
     const tick = setInterval(() => { t.dirty = true; }, 20000);   // the clock in its status bar
     engine.current?.setCrtPower(false);
-    return () => { cancelAnimationFrame(raf); clearInterval(tick); term.current = null; };
+    return () => { alive = false; cancelAnimationFrame(raf); clearInterval(tick); document.fonts.removeEventListener("loadingdone", late); term.current = null; };
   }, [ready, content]);
   const actRef = useRef<(a: string) => void>(() => {});
 
   // the planner once fonts are in
   useEffect(() => {
     if (!ready) return;
-    document.fonts.ready.then(() => engine.current?.setSurface("calendar", drawCalendar(document.createElement("canvas"), content.year, content.goals)));
+    fontsLoaded().then(() => engine.current?.setSurface("calendar", drawCalendar(document.createElement("canvas"), content.year, content.goals)));
   }, [ready, content]);
   // the projector: a reel of generative pieces on a loop, at 30 frames a second (slowed right down for reduced motion)
   useEffect(() => {
@@ -188,7 +191,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   useEffect(() => {
     if (!ready) return;
     const open = view.kind === "contact";
-    document.fonts.ready.then(() => {
+    fontsLoaded().then(() => {
       const d = drawPhone(content, open);
       engine.current?.setSurface("phone_screen", d.canvas);
       engine.current?.setRegions("phone_screen", open ? d : null);

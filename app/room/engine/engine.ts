@@ -359,9 +359,10 @@ export class RoomEngine {
   }
 
   // ------------------------------------------------------------------ cards
-  /** Moves a card from the rack into the bench slot (and the one there back to the rack). */
+  /** Moves a card from the rack into the bench slot (and the one there back to the rack). A project
+   *  with no card in the rack leaves the bench as it is. */
   install(id: string, instant = false) {
-    if (id === this.installedId) return;
+    if (id === this.installedId || !this.nodes.has(`gpu_${id}`)) return;
     const prev = this.installedId;
     this.installedId = id;
     const slot = new THREE.Matrix4().makeTranslation(...(this.info.slot as [number, number, number]));

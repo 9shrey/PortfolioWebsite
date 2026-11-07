@@ -11,7 +11,7 @@ export default function Plain({ c }: { c: RoomContent }) {
         {/* a still of the room, like the one Felix's static page opens with */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img className="pl-still" src="/room/still.webp" width={1600} height={1000}
-          alt="A desk at night by a rainy window in New York: a lamp, GPU cards in a rack, a keyboard, a mug, and a 2026 planner on the wall." />
+          alt="A desk at night by a rainy window in New York: a lamp, GPU cards in a rack, a keyboard, a mug, and a year planner on the wall." />
         <div className="pl-top"><h1>{c.name}</h1><ThemeToggle /></div>
         <p className="pl-lead">{c.about.lead}</p>
         <nav className="pl-nav" aria-label="Sections">

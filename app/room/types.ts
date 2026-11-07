@@ -16,6 +16,8 @@ export interface CardContent {
   /** Two to three short paragraphs for the projected slide. */
   body: { k: string; v: string }[];
   links: { label: string; href: string }[];
+  /** Whether a GPU card for it stands in the rack (projects written up after the bake have none). */
+  inRack: boolean;
 }
 
 export interface PostContent {
@@ -54,7 +56,10 @@ export interface RoomContent {
   resume: string;
   links: { label: string; href: string; handle: string }[];
   about: { lead: string; paragraphs: string[]; education: string; skills: { group: string; items: string[] }[] };
+  /** The work/ list, in résumé order. */
   cards: CardContent[];
+  /** The card standing on the test bench when the room opens. */
+  bench: string;
   posts: PostContent[];
   year: number;
   goals: Goal[];

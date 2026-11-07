@@ -62,7 +62,7 @@ export default async function PostPage({ params }: Params) {
         <p className="wx-endmark" aria-hidden>— End —</p>
         <aside className="wx-author">
           <p>
-            <b>{site.name}</b> {site.pitch}
+            <b>{site.name}</b>, {site.pitch.charAt(0).toLowerCase() + site.pitch.slice(1)}
           </p>
           <p className="wx-author-links">
             <a href={`mailto:${site.email}`}>Email</a>

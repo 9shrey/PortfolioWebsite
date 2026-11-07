@@ -16,8 +16,9 @@ export const site = {
   /** The first sentence a recruiter reads. Every number in it is measured
    *  and appears in a case study or role below. */
   tagline: "I build complete products, with machine learning inside them.",
-  pitch:
-    ",Building things that matter.",
+  /** A full sentence: it follows the tagline in the meta description and on /cv. The byline under
+   *  each post joins it to the name with a comma itself. */
+  pitch: "Building things that matter.",
   knowsAbout: [
     "Full-stack development",
     "React",

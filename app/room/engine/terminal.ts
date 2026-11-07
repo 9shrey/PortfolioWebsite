@@ -10,11 +10,20 @@ import { fonts } from "./surfaces";
 
 export type TermPage = "boot" | "menu" | "about" | "work" | "project" | "writing" | "online";
 
-interface Line { text: string; kind?: "h" | "dim" | "link" | "big" | "gap"; action?: string }
+interface Line {
+  text: string;
+  kind?: "h" | "dim" | "link" | "big" | "gap";
+  action?: string;
+  /** Indent of the rows after the first when the line wraps (defaults to its own leading spaces). */
+  hang?: number;
+  /** Set by wrapped(): a row that carries on the line above, so a link that wraps is still one link. */
+  cont?: boolean;
+}
 
 const COLS = 48, ROWS = 18;
 const W = 1024, H = 768;
 const AMBER = "#ffb54a", DIM = "#a8702e", DARK = "#130b03", BG = "#0d0803";
+const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 
 export class Terminal {
   canvas = document.createElement("canvas");
@@ -67,8 +76,8 @@ export class Terminal {
     if (k === "4") return this.go("online"), true;
     if (k === "5" && this.page === "menu") return this.act(`ext:${this.c.resume}`), true;
     if (k === "q" || k === "Q" || k === "Backspace") return this.go(this.page === "project" ? "work" : "menu"), true;
-    if (k === "ArrowDown" || k === "j") { if (pager) this.scrollBy(1); else this.sel = Math.min(links.length - 1, this.sel + 1); this.dirty = true; return true; }
-    if (k === "ArrowUp" || k === "k") { if (pager) this.scrollBy(-1); else this.sel = Math.max(0, this.sel - 1); this.dirty = true; return true; }
+    if (k === "ArrowDown" || k === "j") { if (pager) this.scrollBy(1); else { this.sel = Math.min(links.length - 1, this.sel + 1); this.reveal(); } this.dirty = true; return true; }
+    if (k === "ArrowUp" || k === "k") { if (pager) this.scrollBy(-1); else { this.sel = Math.max(0, this.sel - 1); this.reveal(); } this.dirty = true; return true; }
     if (k === " " || k === "PageDown") { this.scrollBy(ROWS - 4); return true; }
     if (k === "PageUp") { this.scrollBy(-(ROWS - 4)); return true; }
     if (k === "Enter" && links[this.sel]?.action) { this.act(links[this.sel].action!); return true; }
@@ -77,8 +86,25 @@ export class Terminal {
   }
   wheel(dy: number) { this.scrollBy(Math.sign(dy) * 2); }
   private scrollBy(n: number) {
-    const max = Math.max(0, this.wrapped().length - (ROWS - 3));
+    const rows = this.wrapped(), body = ROWS - 3;
+    const max = Math.max(0, rows.length - body);
     this.scroll = Math.max(0, Math.min(max, this.scroll + n)); this.dirty = true;
+    if (this.pager()) return;
+    // on a list, keep the selection on screen so Enter never opens something out of sight
+    const heads = this.heads(rows), seen = (i: number) => i >= this.scroll && i < this.scroll + body;
+    if (seen(heads[this.sel])) return;
+    const onScreen = heads.map((row, k) => ({ row, k })).filter((h) => seen(h.row));
+    if (onScreen.length) this.sel = (n > 0 ? onScreen[0] : onScreen[onScreen.length - 1]).k;
+  }
+  /** The row each link starts on. */
+  private heads(rows: Line[]) { return rows.flatMap((r, i) => (r.action && !r.cont ? [i] : [])); }
+  /** Scrolls a list just enough to show the selected link and the lines under it, up to the next link. */
+  private reveal() {
+    const rows = this.wrapped(), body = ROWS - 3, heads = this.heads(rows);
+    if (this.sel === 0) { this.scroll = 0; return; }   // the first link: show the page's intro above it too
+    const start = heads[this.sel], end = Math.min((heads[this.sel + 1] ?? rows.length) - 1, start + body - 1);
+    if (start < this.scroll) this.scroll = start;
+    else if (end >= this.scroll + body) this.scroll = end - body + 1;
   }
   private pager() { return this.page === "about" || this.page === "project"; }
 
@@ -94,8 +120,8 @@ export class Terminal {
         { text: `${c.title}. ${c.location.split(",")[0]}.`, kind: "dim" },
         { text: "", kind: "gap" },
         { text: "[1] about.txt", kind: "link", action: "term:about" },
-        { text: `[2] work/             ${c.cards.length} projects`, kind: "link", action: "term:work" },
-        { text: `[3] writing/          ${c.posts.length} posts`, kind: "link", action: "term:writing" },
+        { text: `[2] work/             ${count(c.cards.filter((k) => k.kind === "project").length, "project")}, ${count(c.cards.filter((k) => k.kind === "role").length, "job")}`, kind: "link", action: "term:work" },
+        { text: `[3] writing/          ${count(c.posts.length, "post")}`, kind: "link", action: "term:writing" },
         { text: "[4] online", kind: "link", action: "term:online" },
         { text: "[5] resume.pdf", kind: "link", action: `ext:${c.resume}` },
         { text: "", kind: "gap" },
@@ -135,10 +161,10 @@ export class Terminal {
         ];
       }
       case "writing": return [
-        { text: "Notes from the projects: what I measured, and what fooled me first.", kind: "dim" },
+        { text: "What I think about, written down.", kind: "dim" },
         { text: "", kind: "gap" },
         ...c.posts.flatMap((p) => [
-          { text: `${date(p.date)}  ${p.title}`, kind: "link" as const, action: `href:/writing/${p.slug}` },
+          { text: `${date(p.date)}  ${p.title}`, kind: "link" as const, action: `href:/writing/${p.slug}`, hang: 12 },
           { text: `            ${p.readingTime}. ${p.excerpt}`, kind: "dim" as const },
           { text: "", kind: "gap" as const },
         ]),
@@ -162,12 +188,15 @@ export class Terminal {
     const out: Line[] = [];
     for (const l of this.lines()) {
       if (l.kind === "big" || l.kind === "gap" || l.text.length <= COLS - 2) { out.push(l); continue; }
-      const words = l.text.split(" "); let cur = "";
-      for (const w of words) {
-        if ((cur + " " + w).trim().length > COLS - 2) { out.push({ ...l, text: cur, action: out.length && cur ? l.action : l.action }); cur = w; }
-        else cur = (cur + " " + w).trim();
+      const lead = l.text.length - l.text.trimStart().length;
+      const hang = " ".repeat(l.hang ?? lead);
+      let cur = " ".repeat(lead), cont = false;
+      for (const w of l.text.trim().split(/\s+/)) {
+        const fresh = !cur.trim();
+        if (!fresh && cur.length + 1 + w.length > COLS - 2) { out.push({ ...l, text: cur, cont }); cur = hang + w; cont = true; }
+        else cur = fresh ? cur + w : `${cur} ${w}`;
       }
-      if (cur) out.push({ ...l, text: cur });
+      if (cur.trim()) out.push({ ...l, text: cur, cont });
     }
     return out;
   }
@@ -195,7 +224,7 @@ export class Terminal {
     if (booting) {
       const t = now - this.bootAt;
       const boot = ["SS-26 BIOS v2.6   (C) 2026 Shrey Singh", "", "CPU  i7-9750H ............................. OK", "GPU  GTX 1650, 4 GB ....................... OK",
-        "MEM  16384 MB ............................. OK", "", "Loading SHREY.SYS", "Mounting /writing ......................... 2", "", "Ready."];
+        "MEM  16384 MB ............................. OK", "", "Loading SHREY.SYS", `${"Mounting /writing ".padEnd(43, ".")} ${this.c.posts.length}`, "", "Ready."];
       const n = Math.min(boot.length, Math.floor(t / 0.13));
       g.fillStyle = AMBER;
       boot.slice(0, n).forEach((l, i) => g.fillText(l, x0, y(i + 1)));
@@ -214,29 +243,36 @@ export class Terminal {
     const clock = new Date().toTimeString().slice(0, 5);
     bar(0, ` ${names[this.page]}`, pager ? `${Math.min(100, pct)}%  ${this.scroll + 1}-${Math.min(rows.length, this.scroll + body)}/${rows.length} ` : `${clock} `);
 
-    let li = 0;   // which link this is, for the keyboard selection
-    const visible = pager ? rows.slice(this.scroll, this.scroll + body) : rows.slice(0, body);
-    // links before the visible window still count for the selection index
-    if (pager) li = rows.slice(0, this.scroll).filter((r) => r.action).length;
+    const visible = rows.slice(this.scroll, this.scroll + body);
+    // which link a row belongs to, for the keyboard selection; links above the window still count
+    let li = this.heads(rows).filter((h) => h < this.scroll).length - 1;
     visible.forEach((r, i) => {
       const row = i + 2;
       if (r.kind === "big") {
         g.save(); g.font = `${fs * 2}px ${F.pixel}`; g.fillStyle = AMBER; g.fillText(r.text, x0, y(row + 0.6)); g.restore();
         return;
       }
-      const isLink = !!r.action, on = isLink && li === this.sel && !pager;
+      const isLink = !!r.action;
+      if (isLink && !r.cont) li++;
+      const on = isLink && li === this.sel && !pager;
       if (on) { g.shadowBlur = 0; g.fillStyle = AMBER; g.fillRect(x0 - cw * 0.4, y(row) - lh * 0.8, W - x0 * 2 + cw * 0.8, lh * 0.98); g.shadowBlur = 10; }
       g.fillStyle = on ? DARK : r.kind === "dim" ? DIM : AMBER;
       g.fillText(r.text, x0, y(row));
-      if (isLink && !on) { g.fillRect(x0, y(row) + 4, g.measureText(r.text).width, 2); }
-      if (isLink) { regions.push({ x: 0, y: y(row) - lh * 0.82, w: W, h: lh, action: r.action!, label: r.text }); li++; }
+      if (isLink && !on) {
+        const indent = r.text.length - r.text.trimStart().length;   // underline the words, not the indent
+        const from = g.measureText(r.text.slice(0, indent)).width;
+        g.fillRect(x0 + from, y(row) + 4, g.measureText(r.text).width - from, 2);
+      }
+      if (isLink) regions.push({ x: 0, y: y(row) - lh * 0.82, w: W, h: lh, action: r.action!, label: r.text.trim() });
     });
+    // a list longer than the screen says so (a pager shows its place in the top bar instead)
+    const more = pager ? "" : rows.length > this.scroll + body ? "more ↓ " : this.scroll > 0 ? "more ↑ " : "";
     const hints: Record<TermPage, string> = {
       boot: "", menu: " 1-5 open   Q leave the desk", about: " ↑↓ Space scroll   1-4 pages   Q menu",
       work: " ↑↓ choose   Enter open   Q menu", project: " ↑↓ scroll   N/P next, prev   Q work/",
       writing: " ↑↓ choose   Enter open   Q menu", online: " ↑↓ choose   Enter open   C copy   Q menu",
     };
-    bar(ROWS, hints[this.page], "");
+    bar(ROWS, hints[this.page], more);
     this.regionsNow = regions;
     return true;
   }
