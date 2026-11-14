@@ -53,6 +53,14 @@ export const PLATE_KIND: Record<string, { kind: "data" | "schematic"; caption: s
     kind: "schematic",
     caption: "Schematic of walk-forward validation: expanding train windows, fixed test windows, retrained each fold.",
   },
+  "rag-knowledge-assistant": {
+    kind: "schematic",
+    caption: "Schematic: document chunks ranked by a fused vector + keyword score; the top few go to the model, and the answer cites them.",
+  },
+  "email-campaign-scheduler": {
+    kind: "schematic",
+    caption: "Schematic: three senders' delayed jobs, hour by hour. A sender over its hourly limit has the extra email moved to the next hour, not dropped.",
+  },
   "jev-voice-nav": {
     kind: "schematic",
     caption: "Schematic: speech in, most commands resolved locally, a classifier only for the rest.",
@@ -183,6 +191,75 @@ function RlPlate(C: Palette) {
   );
 }
 
+function RagPlate(C: Palette) {
+  const r = rng("rag");
+  const hits = [1, 4, 5, 8];
+  const ax = 262; // the answer card
+  const lineY = (k: number) => 92 + k * 22;
+  const rows = Array.from({ length: 10 }, (_, i) => {
+    const y = 40 + i * 20;
+    const w = 60 + r() * 70;
+    const k = hits.indexOf(i);
+    if (k < 0) return <rect key={i} x={34} y={y - 1} width={w} height={2} rx={1} fill={C.dim} />;
+    const x = 34 + w + 10;
+    const ty = lineY(k);
+    return (
+      <g key={i}>
+        <rect x={30} y={y - 7} width={w + 8} height={14} rx={7} fill={C.amber} fillOpacity={0.16} />
+        <rect x={34} y={y - 2} width={w} height={4} rx={2} fill={C.amber} />
+        <path d={`M ${x} ${y} C ${ax - 50} ${y}, ${ax - 50} ${ty}, ${ax} ${ty}`} fill="none" stroke={C.amber} strokeOpacity={0.45} strokeWidth={1.5} />
+      </g>
+    );
+  });
+  const answer = [62, 70, 48, 58].map((w, k) => (
+    <g key={k}>
+      <rect x={ax + 14} y={lineY(k) - 2} width={w} height={4} rx={2} fill={C.cyan} />
+      <circle cx={ax + 14 + w + 9} cy={lineY(k)} r={3.5} fill={C.amber} />
+    </g>
+  ));
+  return (
+    <g>
+      {rows}
+      <rect x={ax} y={70} width={104} height={110} rx={6} fill="none" stroke={C.dim} strokeWidth={1.5} />
+      {answer}
+    </g>
+  );
+}
+
+function SchedulerPlate(C: Palette) {
+  const x0 = 40;
+  const hw = 80; // one hour
+  const rowY = [76, 130, 184];
+  // [sender, hour, position within the hour]. Two an hour per sender; the
+  // middle sender's third email in the first hour is moved to the next.
+  const jobs: [number, number, number][] = [
+    [0, 0, 0.25], [0, 0, 0.7], [0, 1, 0.4], [0, 2, 0.2], [0, 2, 0.6], [0, 3, 0.5],
+    [1, 0, 0.15], [1, 0, 0.45], [1, 1, 0.3], [1, 2, 0.3], [1, 3, 0.35], [1, 3, 0.8],
+    [2, 0, 0.5], [2, 1, 0.2], [2, 1, 0.75], [2, 2, 0.45], [2, 3, 0.15], [2, 3, 0.6],
+  ];
+  const at = (h: number, f: number) => x0 + (h + f) * hw;
+  const y = rowY[1];
+  const from = at(0, 0.75);
+  const to = at(1, 0.75);
+  return (
+    <g>
+      {[0, 1, 2, 3, 4].map((h) => (
+        <line key={h} x1={x0 + h * hw} x2={x0 + h * hw} y1={40} y2={220} stroke={C.line} />
+      ))}
+      {rowY.map((ry) => (
+        <line key={ry} x1={x0} x2={x0 + 4 * hw} y1={ry} y2={ry} stroke={C.line} />
+      ))}
+      {jobs.map(([s, h, f]) => (
+        <rect key={`${s}-${h}-${f}`} x={at(h, f) - 7} y={rowY[s] - 5} width={14} height={10} rx={3} fill={C.cyan} fillOpacity={0.85} />
+      ))}
+      <rect x={from - 7} y={y - 5} width={14} height={10} rx={3} fill="none" stroke={C.dim} strokeWidth={1.5} strokeDasharray="2 3" />
+      <path d={`M ${from} ${y - 9} Q ${(from + to) / 2} ${y - 52} ${to} ${y - 9}`} fill="none" stroke={C.amber} strokeOpacity={0.7} strokeWidth={1.5} strokeDasharray="3 4" />
+      <rect x={to - 11} y={y - 9} width={22} height={18} rx={5} fill={C.amber} fillOpacity={0.18} />
+      <rect x={to - 7} y={y - 5} width={14} height={10} rx={3} fill={C.amber} />
+    </g>
+  );
+}
+
 function JevPlate(C: Palette) {
   const r = rng("jev");
   const bars = 44;
@@ -209,8 +286,13 @@ const PLATES: Record<string, (C: Palette) => React.JSX.Element> = {
   schemabench: SchemaPlate,
   "argus-fraud-detection": ArgusPlate,
   "rl-statistical-arbitrage": RlPlate,
+  "rag-knowledge-assistant": RagPlate,
+  "email-campaign-scheduler": SchedulerPlate,
   "jev-voice-nav": JevPlate,
 };
+
+/** Whether a project has a plate (the newer ones may not, yet). */
+export const hasPlate = (slug: string) => Object.hasOwn(PLATES, slug);
 
 export default function Plate({
   slug,
