@@ -13,7 +13,11 @@ import type { RoomContent, View } from "./types";
    room, to be found: the old monitor (about, work, writing, online; the GPU cards on the bench open
    their project there), the projector looping visuals, the phone (contact),
    the résumé in its tray, the books on the shelf, the year on the wall. Nothing is labelled. The URL
-   hash mirrors the view (#work/inferbench, #writing, ...). */
+   hash mirrors the view (#work/inferbench, #writing, ...).
+
+   Hidden, for whoever goes looking: the monitor has a command line (a colon opens it) that can work the
+   lamp and curtains and has a game; a certain old cheat code sets the shelf off; the ball answers the
+   seventh click; lightning now and then; and a note in the browser console. */
 
 /* Writing is the one section that leaves the room: it is its own pages, as on Felix's site. */
 const NAV: { view: View | null; href: string; label: string }[] = [
@@ -23,6 +27,9 @@ const NAV: { view: View | null; href: string; label: string }[] = [
 ];
 const TERM: View["kind"][] = ["about", "work", "writing", "online", "terminal"];
 const LOADING = ["Opening the curtains", "Switching on the lamp", "Slotting the cards", "Pouring the chai", "Warming up the tube"];
+
+const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
+let greeted = false;
 
 const SETTINGS_KEY = "room.settings";
 function loadSettings(): Settings {
@@ -62,11 +69,25 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [fps, setFps] = useState(0);
   const [toast, setToast] = useState("");
+  const toastTimer = useRef(0);
+  const cups = useRef(0);
+  const code = useRef(0);
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
   // on a phone 48 columns on a tube across the room would be unreadable: the terminal fills the screen instead
   const [narrow] = useState(() => matchMedia("(max-width: 760px)").matches);
   // a tablet keeps the tube in the room, but has no keys or wheel: it gets the tappable bar and drag to scroll
   const [coarse] = useState(() => matchMedia("(pointer: coarse)").matches);
+
+  const say = useCallback((text: string, ms = 2800) => {
+    setToast(text);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = window.setTimeout(() => setToast(""), ms);
+  }, []);
+
+  const toggleSound = useCallback(async () => {
+    const a = audio.current!;
+    if (a.on) { a.stop(); setSound(false); } else { await a.start(); setSound(true); }
+  }, []);
 
   const navigate = useCallback((v: View, push = true) => {
     const e = engine.current;
@@ -75,6 +96,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       if (v.card) e?.install(v.card);
     }
     const t = term.current;
+    t?.seat(TERM.includes(v.kind));
     if (t && TERM.includes(v.kind)) {
       t.boot(performance.now() / 1000);
       if (v.kind === "work") t.open(v.card);
@@ -95,20 +117,34 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     navigate({ kind: "work", card: next.id });
   }, [view, installed, content, navigate]);
 
+  // what the terminal's command line can do to the room; each answers with a line for it to print
+  const roomCmd = useCallback((what: string): string | void => {
+    const e = engine.current, a = audio.current;
+    if (!e) return;
+    if (what === "lamp") { const on = e.toggleLamp(); a?.click("switch"); return on ? "The lamp is on." : "The lamp is off."; }
+    if (what === "curtains") { const shut = e.toggleCurtains(); a?.click("swish"); return shut ? "Curtains drawn." : "Curtains open."; }
+    if (what === "sound") { const on = !a?.on; toggleSound(); return on ? "Sound on: rain, and a waltz." : "Sound off."; }
+    if (what === "storm") return !e.strike() ? "No flashes while reduced motion is on." : a?.on ? "Count the seconds." : "Lightning. Turn sound on to hear it land.";
+    if (what === "chai") { e.sip(); a?.click("sip"); return `Cup ${++cups.current}.`; }
+  }, [toggleSound]);
+
   // what a link drawn in the room does
-  const act = useCallback((action: string) => {
+  const act = useCallback((action: string): string | void => {
     const [kind, ...rest] = action.split(":"); const arg = rest.join(":");
+    if (kind === "sfx") return audio.current?.click(arg as "blip" | "over");
+    if (kind === "room") return roomCmd(arg);
     audio.current?.click("tick");
     if (kind === "href") location.href = arg;
     else if (kind === "ext") { if (arg.startsWith("mailto:")) location.href = arg; else window.open(arg, "_blank", "noopener"); }
-    else if (kind === "copy") { navigator.clipboard?.writeText(arg); setToast("Copied"); setTimeout(() => setToast(""), 1600); }
+    else if (kind === "copy") { navigator.clipboard?.writeText(arg); say("Copied", 1600); }
     else if (kind === "card") step(arg === "next" ? 1 : -1);
     else if (kind === "work") navigate({ kind: "work", card: arg });
+    else if (kind === "view") navigate({ kind: arg } as View);
     else if (kind === "term") {
       if (arg === "menu") term.current?.go("menu");   // navigate() opens a page; the menu is the terminal with none open
       navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" ? "terminal" : arg }) as View);
     }
-  }, [step, navigate]);
+  }, [step, navigate, roomCmd, say]);
   useEffect(() => { actRef.current = act; }, [act]);
 
   // engine
@@ -121,13 +157,21 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       installed: (id) => { setInstalled(id); audio.current?.click("card"); },
       key: () => audio.current?.click("key"),
       fps: (f) => alive && setFps(f),
+      // thunder trails the flash, further off the smaller the strike
+      thunder: (big) => setTimeout(() => alive && audio.current?.click("thunder"), big ? 350 : 900 + Math.random() * 1800),
+      secret: (name) => { if (alive && name === "wish") say("That's seven. Make a wish."); },
     });
     engine.current = e;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __room: RoomEngine }).__room = e;
     e.load().catch((err) => { console.error(err); onFail(); });
     audio.current = new RoomAudio();
+    if (!greeted) {   // for whoever opens the console
+      greeted = true;
+      console.log(`%c${content.name}%c\nYou opened the console, so: the room is three.js over lightmaps baked in Blender, and nothing in it is a video.\nThe old monitor on the desk takes commands. Sit at it and press the colon key.\n${content.links[0]?.href ?? ""}`,
+        "font: 700 22px monospace; color: #ffb54a; background: #0d0803; padding: 6px 12px", "font: 13px/1.6 monospace");
+    }
     return () => { alive = false; e.dispose(); audio.current?.dispose(); engine.current = null; };
-  }, [content, onFail]);
+  }, [content, onFail, say]);
 
   // clicks in the room
   useEffect(() => {
@@ -137,16 +181,18 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         if (hit.kind === "view") return navigate(TERM.includes(hit.view.kind) && TERM.includes(view.kind) ? view : hit.view);
         if (hit.kind === "action") return act(hit.action);
         if (hit.name.startsWith("poster_")) return navigate({ kind: "poster", i: Number(hit.name.slice(7)) });
+        if (hit.name === "mug") { const n = ++cups.current; if (n === 5) say("Five cups. Maybe some water."); else if (n === 12) say("Twelve. That was the whole pot."); }
         audio.current?.click(hit.name === "mug" ? "sip" : hit.name === "fan" ? "whirr" : hit.name === "lamp" ? "switch" : hit.name === "curtains" ? "swish" : "tick");
       },
     });
-  }, [navigate, act, ready, view]);
+  }, [navigate, act, ready, view, say]);
 
   // the old monitor's terminal: drawn when it changes (and through the boot), on the tube and, on a phone, full screen
   useEffect(() => {
     if (!ready) return;
     const t = new Terminal(content, (a) => actRef.current(a));
     t.touch = narrow || coarse; t.full = narrow;
+    t.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     term.current = t;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __term: Terminal }).__term = t;
     let raf = 0, alive = true;
@@ -166,7 +212,14 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     engine.current?.setCrtPower(false);
     return () => { alive = false; cancelAnimationFrame(raf); clearInterval(tick); document.fonts.removeEventListener("loadingdone", late); term.current = null; };
   }, [ready, content, narrow, coarse]);
-  const actRef = useRef<(a: string) => void>(() => {});
+  const actRef = useRef<(a: string) => string | void>(() => {});
+  // nobody at the desk for half a minute: the tube goes to its screensaver until someone sits down
+  const seated = TERM.includes(view.kind);
+  useEffect(() => {
+    if (!ready || seated) return;
+    const id = setTimeout(() => term.current?.sleep(), 30000);
+    return () => clearTimeout(id);
+  }, [ready, seated]);
 
   // the planner once fonts are in
   useEffect(() => {
@@ -230,6 +283,18 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     const onKey = (ev: KeyboardEvent) => {
       if (ev.target instanceof HTMLInputElement || ev.metaKey || ev.ctrlKey) return;
       if (ev.key === "Escape") { setSettingsOpen(false); navigate({ kind: "home" }); return; }
+      // the old cheat code, from anywhere but a line being typed: the shelf answers
+      const typing = TERM.includes(view.kind) && (term.current?.page === "shell" || term.current?.page === "snake");
+      if (!typing) {
+        const hit = ev.key.toLowerCase() === KONAMI[code.current].toLowerCase();
+        code.current = hit ? code.current + 1 : ev.key === "ArrowUp" ? (code.current === 2 ? 2 : 1) : 0;   // a third Up is still two Ups
+        if (code.current === KONAMI.length) {
+          code.current = 0; ev.preventDefault();
+          navigate({ kind: "books" }); engine.current?.wave(1.3);
+          audio.current?.click("win"); say("Cheat code accepted.");
+          return;
+        }
+      }
       // at the monitor, keys go to its terminal; Q on its menu gets up from the desk
       const t = term.current;
       if (t && TERM.includes(view.kind)) {
@@ -237,7 +302,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         if (t.key(ev)) { ev.preventDefault(); audio.current?.click("key"); }
         const k: Record<TermPage, View> = {
           boot: { kind: "terminal" }, menu: { kind: "terminal" }, about: { kind: "about" }, writing: { kind: "writing" }, online: { kind: "online" },
-          work: { kind: "work", card: "" }, project: { kind: "work", card: t.card },
+          work: { kind: "work", card: "" }, project: { kind: "work", card: t.card }, shell: { kind: "terminal" }, snake: { kind: "terminal" },
         };
         const want = k[t.page];
         if (toHash(want) !== toHash(view)) {
@@ -266,7 +331,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       removeEventListener("pointerdown", onTouchDown); removeEventListener("pointermove", onTouchMove);
       removeEventListener("pointerup", onTouchEnd); removeEventListener("pointercancel", onTouchEnd);
     };
-  }, [navigate, view, narrow]);
+  }, [navigate, view, narrow, say]);
 
   // settings: remembered in this browser
   useEffect(() => {
@@ -276,11 +341,6 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const changeSettings = (s: Settings) => {
     setSettings(s); engine.current?.setSettings(s);
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(s)); } catch {}
-  };
-
-  const toggleSound = async () => {
-    const a = audio.current!;
-    if (a.on) { a.stop(); setSound(false); } else { await a.start(); setSound(true); }
   };
 
   const atHome = view.kind === "home";

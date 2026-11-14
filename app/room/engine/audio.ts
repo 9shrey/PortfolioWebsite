@@ -29,6 +29,7 @@ export class RoomAudio {
   private nextBeat = 0;
   private beat = 0;
   private track: HTMLAudioElement | null = null;
+  private noise!: AudioBuffer;
   on = false;
 
   async start() {
@@ -68,6 +69,7 @@ export class RoomAudio {
       const d = buf.getChannelData(ch); let b = 0;
       for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; b = (b + 0.02 * w) / 1.02; d[i] = b * 3.5 + w * 0.08; }
     }
+    this.noise = buf;   // thunder is cut from the same cloth
     const src = c.createBufferSource(); src.buffer = buf; src.loop = true;
     const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 2400;
     const hp = c.createBiquadFilter(); hp.type = "highpass"; hp.frequency.value = 180;
@@ -132,9 +134,22 @@ export class RoomAudio {
   }
 
   // ---------------------------------------------------------------- effects
-  click(kind: "card" | "tick" | "sip" | "whirr" | "key" | "switch" | "swish") {
+  click(kind: "card" | "tick" | "sip" | "whirr" | "key" | "switch" | "swish" | "thunder" | "win" | "blip" | "over") {
     if (!this.ctx || !this.on) return;
     const c = this.ctx, t = c.currentTime;
+    if (kind === "thunder") {      // a crack, then the rumble rolling away over the river
+      const n = c.createBufferSource(); n.buffer = this.noise; n.loop = true;
+      const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.setValueAtTime(1100, t); lp.frequency.exponentialRampToValueAtTime(70, t + 2.8);
+      const ng = c.createGain();
+      ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.9, t + 0.05);
+      ng.gain.exponentialRampToValueAtTime(0.3, t + 0.6); ng.gain.exponentialRampToValueAtTime(0.0001, t + 4.6);
+      n.connect(lp).connect(ng).connect(this.master); n.start(t, Math.random() * 2); n.stop(t + 4.7);
+      return;
+    }
+    if (kind === "win") {          // four notes up, on the music box
+      [N("C5"), N("E5"), N("G5"), N("C6")].forEach((f, i) => this.bell(f, t + i * 0.09, 0.6, 0.5));
+      return;
+    }
     const o = c.createOscillator(), g = c.createGain(); o.connect(g).connect(this.master);
     if (kind === "card") {        // the card seats in its slot: a dull clunk
       o.type = "square"; o.frequency.setValueAtTime(140, t); o.frequency.exponentialRampToValueAtTime(55, t + 0.08);
@@ -163,6 +178,14 @@ export class RoomAudio {
       const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 3000; bp.Q.value = 2; o.disconnect(); o.connect(bp).connect(g);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.03, t + 0.1); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.7);
       o.start(t); o.stop(t + 0.75);
+    } else if (kind === "blip") {     // the snake eats
+      o.type = "square"; o.frequency.setValueAtTime(620, t); o.frequency.setValueAtTime(930, t + 0.04);
+      g.gain.setValueAtTime(0.035, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.09);
+      o.start(t); o.stop(t + 0.1);
+    } else if (kind === "over") {     // and runs into something
+      o.type = "sawtooth"; o.frequency.setValueAtTime(300, t); o.frequency.exponentialRampToValueAtTime(70, t + 0.45);
+      g.gain.setValueAtTime(0.05, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.5);
+      o.start(t); o.stop(t + 0.55);
     } else if (kind === "sip") {
       o.type = "sine"; o.frequency.setValueAtTime(400, t); o.frequency.linearRampToValueAtTime(260, t + 0.3);
       g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.04, t + 0.05); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);

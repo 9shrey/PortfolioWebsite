@@ -16,7 +16,7 @@ void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(p
 `;
 
 const photoFrag = /* glsl */ `
-uniform sampler2D uMap; uniform float uTime; uniform vec2 uPx; uniform vec2 uScale; uniform vec2 uShift;
+uniform sampler2D uMap; uniform float uTime; uniform float uFlash; uniform vec2 uPx; uniform vec2 uScale; uniform vec2 uShift;
 varying vec2 vUv;
 ${NOISE}
 void main(){
@@ -34,6 +34,8 @@ void main(){
   float y = fract(vUv.y * 1.6 + uTime * sp * .9 + h11(col * 1.7));
   float streak = step(.93, h11(col * 3.1)) * smoothstep(.0, .02, y) * smoothstep(.12, .02, y);
   c += vec3(.55, .62, .75) * streak * .045;
+  // lightning: the cloud lights up from behind the skyline, and the towers catch a little of it
+  c += (vec3(.21, .25, .38) * smoothstep(.36, .72, uv.y) + c * .4) * uFlash;
   c *= .9;                                                   // seen through wet glass
   gl_FragColor = vec4(c, 1.);
 }
@@ -93,7 +95,7 @@ export function buildCity(
   tex.wrapS = THREE.MirroredRepeatWrapping;
   tex.wrapT = THREE.ClampToEdgeWrapping;
   const photoU = {
-    uTime: { value: 0 }, uMap: { value: tex }, uPx: { value: new THREE.Vector2(2650, 1500) },
+    uTime: { value: 0 }, uFlash: { value: 0 }, uMap: { value: tex }, uPx: { value: new THREE.Vector2(2650, 1500) },
     uScale: { value: new THREE.Vector2(W / PW, H / PH) }, uShift: { value: new THREE.Vector2(0, 0) },
   };
   uniforms.push(photoU);
@@ -117,6 +119,7 @@ export function buildCity(
 
   return {
     group,
-    tick(t: number) { for (const u of uniforms) u.uTime.value = t; },
+    /** `flash`: how bright the lightning is this frame (0 most of the time). */
+    tick(t: number, flash = 0) { for (const u of uniforms) u.uTime.value = t; photoU.uFlash.value = flash; },
   };
 }

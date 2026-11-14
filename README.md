@@ -25,6 +25,23 @@ URL hash mirrors the view (`/#work/inferbench`, `/#writing`, ...). Sound (rain a
 music-box waltz, both synthesised) is off until the visitor turns it on; to use a recording instead,
 put it in `public/room/` and set `MUSIC_URL` in `app/room/engine/audio.ts`.
 
+Hidden things (none of them need a rebake):
+
+- **Command line.** At the monitor, `:` (or `/`) opens a prompt. `help` lists most commands: the pages
+  (`about`, `work`, `open inferbench`, `ls work`), the room (`lamp`, `curtains`, `sound`, `storm`, `chai`),
+  `snake`, `whoami`, `date`, `uptime`, `neofetch`. Unlisted: `hire`, `sudo`, `rm`, `42`, `vim`, `hello`,
+  `xyzzy`. Tab completes, Up recalls. Keyboard only, so a phone never sees it.
+- **Snake** (`app/room/engine/snake.ts`) runs on the tube; the best score stays in the browser, and the
+  game waits whenever the visitor leaves the desk.
+- **Screensaver.** Thirty seconds with nobody at the desk and the tube shows its name and the time
+  drifting about, until someone sits down.
+- **Lightning** every minute or so behind the skyline (thunder follows if sound is on). Never with
+  reduced motion.
+- **The cheat code** (Up Up Down Down Left Right Left Right B A) sends the camera to the shelf, where
+  the figurines hop in turn.
+- **The ball**, clicked seven times: a strike close by and the lamp dips for a second.
+- **The mug** counts cups (a note at five and at twelve), and there is a note in the browser console.
+
 Built with Next.js 16, React 19, three.js and TypeScript. Inspired by felixrieseberg.com.
 
 ## How it's made

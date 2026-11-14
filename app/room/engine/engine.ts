@@ -45,6 +45,10 @@ export interface EngineEvents {
   hover(hit: Hit | null, x: number, y: number): void;
   click(hit: Hit): void;
   installed(id: string): void;
+  /** Lightning struck outside: the sound follows a moment later. */
+  thunder(big: boolean): void;
+  /** Something hidden was found ("wish": the ball, seven times). */
+  secret(name: string): void;
 }
 
 type Pose = { pos: THREE.Vector3; look: THREE.Vector3; fov: number };
@@ -119,6 +123,10 @@ export class RoomEngine {
   /** the old monitor's tube: time and power for its shader (curve, scanlines, warm-up) */
   private crt = { time: { value: 0 }, power: { value: 0 } };
   private crtOn = 0;
+  /** lightning over the city: when the last strike was and how bright, and when the next is due */
+  private flash = { at: -99, amp: 1 };
+  private nextStrike = 0;
+  private ballClicks = 0;
 
   /** Makes its own canvas inside `host`: two engines must never share a WebGL context
    *  (React mounts twice in development, and the first one may still be loading). */
@@ -447,8 +455,9 @@ export class RoomEngine {
     if (!hit) return;
     if (hit.kind === "toy") this.toys.set(hit.name, this.clock.elapsedTime);
     if (hit.kind === "toy" && hit.name === "clock") return this.clickClock(), this.ev.click?.(hit);
-    if (hit.kind === "toy" && hit.name === "lamp") { this.lampTarget = 1 - this.lampTarget; this.toys.set("lamp", this.clock.elapsedTime); }
-    if (hit.kind === "toy" && hit.name === "curtains") this.curtainTarget = 1 - this.curtainTarget;
+    if (hit.kind === "toy" && hit.name === "lamp") this.toggleLamp();
+    if (hit.kind === "toy" && hit.name === "curtains") this.toggleCurtains();
+    if (hit.kind === "toy" && hit.name === "dragonball" && ++this.ballClicks % 7 === 0) this.wish();
     if (hit.kind === "toy" && hit.name === "keyboard") { for (let i = 0; i < 6; i++) setTimeout(() => this.tapRandomKey(), i * 90); }
     this.ev.click?.(hit);
   };
@@ -582,11 +591,11 @@ export class RoomEngine {
     for (const f of FIGURES) {
       const n = P(f); if (!n) continue;
       const k = since(f); n.userData.y0 ??= n.position.y;
-      const hop = k < 0.8 ? Math.sin((k / 0.8) * Math.PI) : 0;
-      n.position.y = n.userData.y0 + hop * 0.05; n.rotation.y = k < 0.8 ? (k / 0.8) * Math.PI * 2 : 0;
+      const up = k >= 0 && k < 0.8;   // a wave sets each one's turn a little ahead of now
+      n.position.y = n.userData.y0 + (up ? Math.sin((k / 0.8) * Math.PI) * 0.05 : 0); n.rotation.y = up ? (k / 0.8) * Math.PI * 2 : 0;
     }
     const ball = P("dragonball");
-    if (ball) { const k = since("dragonball"); ball.rotation.y += dt * (0.15 + (k < 3 ? 9 * Math.exp(-k * 1.5) : 0)); }
+    if (ball) { const k = since("dragonball"); ball.rotation.y += dt * (0.15 + (k >= 0 && k < 3 ? 9 * Math.exp(-k * 1.5) : 0)); }
     // curtains: gathered open, drawn shut on a click
     this.curtainK += (this.curtainTarget - this.curtainK) * Math.min(1, dt * 2.2);
     for (const c of ["curtain_l", "curtain_r"]) {
@@ -629,10 +638,17 @@ export class RoomEngine {
       n.position.y += (target - n.position.y) * Math.min(1, dt * 30);
     }
 
-    this.city?.tick(t);
+    // lightning, now and then: two quick pulses behind the skyline, and a little of it reaches the room
+    if (!this.reduced && t > this.nextStrike) {
+      if (this.nextStrike) this.strike();
+      this.nextStrike = t + (this.nextStrike ? 45 + Math.random() * 70 : 20 + Math.random() * 30);
+    }
+    const fk = t - this.flash.at;
+    const flash = fk < 1.4 ? this.flash.amp * Math.max(Math.exp(-fk * 10), fk > 0.2 ? 0.7 * Math.exp(-(fk - 0.2) * 6) : 0) : 0;
+    this.city?.tick(t, flash);
     this.beam?.tick(t, this.renderer.getPixelRatio() * this.canvas.clientHeight * 0.0016);
     this.gain += (this.gainTarget - this.gain) * (this.reduced ? 1 : Math.min(1, dt * 2.5));
-    this.post?.setGain(this.gain);
+    this.post?.setGain(this.gain * (1 + flash * 0.07));
     if (this.post) this.post.render(t); else this.renderer.render(this.scene, this.camera);
     this.frames++;
     if (t - this.fpsT > 0.5) { if (this.settings.fps) this.ev.fps?.(Math.round(this.frames / (t - this.fpsT))); this.frames = 0; this.fpsT = t; }
@@ -926,6 +942,38 @@ export class RoomEngine {
       p.quaternion.copy(p.userData.q0).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), -turns * Math.PI * 2));
     };
     set("hour", h / 12); set("minute", m / 60); set("second", s / 60);
+  }
+
+  // ------------------------------------------------------------------ things the terminal and the page can ask for
+  /** Flicks the desk lamp; returns whether it is now on. */
+  toggleLamp() {
+    this.lampTarget = 1 - this.lampTarget; this.toys.set("lamp", this.clock.elapsedTime);
+    return this.lampTarget === 0;
+  }
+  /** Draws or opens the curtains; returns whether they are now shut. */
+  toggleCurtains() { this.curtainTarget = 1 - this.curtainTarget; return this.curtainTarget === 1; }
+  /** Lifts the mug for a sip. */
+  sip() { this.toys.set("mug", this.clock.elapsedTime); }
+  /** Lightning outside. The thunder is the page's to play; with reduced motion there is no flash, and this says so. */
+  strike(big = false) {
+    this.ev.thunder?.(big);
+    if (this.reduced) return false;
+    this.flash = { at: this.clock.elapsedTime, amp: big ? 1.35 : 1 };
+    return true;
+  }
+  /** Every figurine on the shelf hops in turn, after `delay` seconds (time for the camera to get there). */
+  wave(delay = 0) {
+    const t = this.clock.elapsedTime + (this.reduced ? 0 : delay);
+    FIGURES.forEach((f, i) => this.toys.set(f, t + i * 0.13));
+    this.toys.set("dragonball", t);
+  }
+  /** The ball, clicked seven times: a strike close by, and the lamp dips for a second as the power does. */
+  private wish() {
+    this.strike(true);
+    this.ev.secret?.("wish");
+    if (this.reduced || !this.lampReady || this.lampTarget !== 0) return;
+    this.lampTarget = 1;
+    setTimeout(() => { if (!this.disposed && this.lampTarget === 1) this.toggleLamp(); }, 1400);
   }
 
   private tapRandomKey() {
