@@ -36,6 +36,10 @@ export class Terminal {
   private bootAt = 0;
   private regionsNow: Region[] = [];
   dirty = true;
+  /** On a touch screen there are no keys: the bottom bar offers the way back (and next/prev) to tap instead. */
+  touch = false;
+  /** Shown full screen (a phone) rather than on the tube, where a taped photo covers the top right corner. */
+  full = false;
 
   constructor(private c: RoomContent, private act: (action: string) => void) {
     this.canvas.width = W; this.canvas.height = H;
@@ -85,6 +89,8 @@ export class Terminal {
     return false;
   }
   wheel(dy: number) { this.scrollBy(Math.sign(dy) * 2); }
+  /** A finger dragging the page: scrolls by whole rows. */
+  drag(rows: number) { this.scrollBy(rows); }
   private scrollBy(n: number) {
     const rows = this.wrapped(), body = ROWS - 3;
     const max = Math.max(0, rows.length - body);
@@ -241,7 +247,8 @@ export class Terminal {
     const pager = this.pager();
     const pct = rows.length <= body ? 100 : Math.round(((this.scroll + body) / rows.length) * 100);
     const clock = new Date().toTimeString().slice(0, 5);
-    bar(0, ` ${names[this.page]}`, pager ? `${Math.min(100, pct)}%  ${this.scroll + 1}-${Math.min(rows.length, this.scroll + body)}/${rows.length} ` : `${clock} `);
+    // the polaroid taped to the monitor covers the bar's right end: the top bar's right side stops short of it
+    bar(0, ` ${names[this.page]}`, (pager ? `${Math.min(100, pct)}%  ${this.scroll + 1}-${Math.min(rows.length, this.scroll + body)}/${rows.length} ` : `${clock} `) + (this.full ? "" : "      "));
 
     const visible = rows.slice(this.scroll, this.scroll + body);
     // which link a row belongs to, for the keyboard selection; links above the window still count
@@ -272,7 +279,30 @@ export class Terminal {
       work: " ↑↓ choose   Enter open   Q menu", project: " ↑↓ scroll   N/P next, prev   Q work/",
       writing: " ↑↓ choose   Enter open   Q menu", online: " ↑↓ choose   Enter open   C copy   Q menu",
     };
-    bar(ROWS, hints[this.page], more);
+    if (this.touch) {
+      // no keyboard: the same bar, as things to tap
+      const taps: Record<TermPage, [string, string?][]> = {
+        boot: [], menu: [["Tap a line to open it"]],
+        about: [["< menu", "term:menu"], ["drag to scroll"]],
+        work: [["< menu", "term:menu"], ["tap to open"]],
+        project: [["< work/", "term:work"], ["< prev", "card:prev"], ["next >", "card:next"]],
+        writing: [["< menu", "term:menu"], ["tap to open"]],
+        online: [["< menu", "term:menu"], ["tap to open"]],
+      };
+      bar(ROWS, "", more);
+      g.shadowBlur = 0; g.fillStyle = DARK;
+      let x = x0;
+      for (const [text, action] of taps[this.page]) {
+        const w = g.measureText(text).width;
+        g.fillText(text, x, y(ROWS));
+        if (action) {
+          g.fillRect(x, y(ROWS) + 4, w, 2);
+          regions.push({ x: x - cw, y: y(ROWS) - lh * 1.1, w: w + cw * 2, h: lh * 1.6, action, label: text });
+        }
+        x += w + cw * 3;
+      }
+      g.shadowBlur = 10;
+    } else bar(ROWS, hints[this.page], more);
     this.regionsNow = regions;
     return true;
   }

@@ -51,6 +51,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const audio = useRef<RoomAudio | null>(null);
   const term = useRef<Terminal | null>(null);
   const termView = useRef<HTMLCanvasElement>(null);
+  const drag = useRef<{ y: number; moved: boolean } | null>(null);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<View>({ kind: "home" });
@@ -64,6 +65,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
   // on a phone 48 columns on a tube across the room would be unreadable: the terminal fills the screen instead
   const [narrow] = useState(() => matchMedia("(max-width: 760px)").matches);
+  // a tablet keeps the tube in the room, but has no keys or wheel: it gets the tappable bar and drag to scroll
+  const [coarse] = useState(() => matchMedia("(pointer: coarse)").matches);
 
   const navigate = useCallback((v: View, push = true) => {
     const e = engine.current;
@@ -101,7 +104,10 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     else if (kind === "copy") { navigator.clipboard?.writeText(arg); setToast("Copied"); setTimeout(() => setToast(""), 1600); }
     else if (kind === "card") step(arg === "next" ? 1 : -1);
     else if (kind === "work") navigate({ kind: "work", card: arg });
-    else if (kind === "term") navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" ? "terminal" : arg }) as View);
+    else if (kind === "term") {
+      if (arg === "menu") term.current?.go("menu");   // navigate() opens a page; the menu is the terminal with none open
+      navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" ? "terminal" : arg }) as View);
+    }
   }, [step, navigate]);
   useEffect(() => { actRef.current = act; }, [act]);
 
@@ -140,6 +146,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   useEffect(() => {
     if (!ready) return;
     const t = new Terminal(content, (a) => actRef.current(a));
+    t.touch = narrow || coarse; t.full = narrow;
     term.current = t;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __term: Terminal }).__term = t;
     let raf = 0, alive = true;
@@ -158,7 +165,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     const tick = setInterval(() => { t.dirty = true; }, 20000);   // the clock in its status bar
     engine.current?.setCrtPower(false);
     return () => { alive = false; cancelAnimationFrame(raf); clearInterval(tick); document.fonts.removeEventListener("loadingdone", late); term.current = null; };
-  }, [ready, content]);
+  }, [ready, content, narrow, coarse]);
   const actRef = useRef<(a: string) => void>(() => {});
 
   // the planner once fonts are in
@@ -241,10 +248,25 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       }
     };
     const onWheel = (ev: WheelEvent) => { if (TERM.includes(view.kind) && !(ev.target as Element).closest?.(".room-settings")) term.current?.wheel(ev.deltaY); };
+    // a finger dragged up or down over the room scrolls the tube (on a phone the full-screen terminal does this itself)
+    let touchY: number | null = null;
+    const onTouchDown = (ev: PointerEvent) => { touchY = ev.pointerType === "touch" && (ev.target as Element).closest?.(".room-canvas") ? ev.clientY : null; };
+    const onTouchMove = (ev: PointerEvent) => {
+      if (touchY === null || ev.pointerType !== "touch" || narrow || !TERM.includes(view.kind)) return;
+      const n = Math.trunc((touchY - ev.clientY) / 24);
+      if (n) { touchY -= n * 24; term.current?.drag(n); }
+    };
+    const onTouchEnd = () => { touchY = null; };
     addEventListener("keydown", onKey);
     addEventListener("wheel", onWheel, { passive: true });
-    return () => { removeEventListener("keydown", onKey); removeEventListener("wheel", onWheel); };
-  }, [navigate, view]);
+    addEventListener("pointerdown", onTouchDown); addEventListener("pointermove", onTouchMove);
+    addEventListener("pointerup", onTouchEnd); addEventListener("pointercancel", onTouchEnd);
+    return () => {
+      removeEventListener("keydown", onKey); removeEventListener("wheel", onWheel);
+      removeEventListener("pointerdown", onTouchDown); removeEventListener("pointermove", onTouchMove);
+      removeEventListener("pointerup", onTouchEnd); removeEventListener("pointercancel", onTouchEnd);
+    };
+  }, [navigate, view, narrow]);
 
   // settings: remembered in this browser
   useEffect(() => {
@@ -262,7 +284,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   };
 
   const atHome = view.kind === "home";
-  const navOn = (k: View["kind"]) => k === view.kind || (k === "about" && TERM.includes(view.kind) && view.kind !== "work");
+  const navOn = (k: View["kind"]) => k === view.kind;
 
   return (
     <div ref={host} className={`room ${ready ? "is-ready" : ""} view-${view.kind}`}>
@@ -325,7 +347,15 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       {narrow && TERM.includes(view.kind) && (
         <div className="term-full">
           <canvas ref={termView} className="term-tube" aria-label="Terminal. Tap a line to open it."
+            onPointerDown={(e) => { drag.current = { y: e.clientY, moved: false }; }}
+            onPointerMove={(e) => {
+              const d = drag.current, t = term.current; if (!d || !t || !e.buttons && e.pointerType === "mouse") return;
+              const row = e.currentTarget.getBoundingClientRect().height / 20.6;   // one terminal row on screen
+              const n = Math.trunc((d.y - e.clientY) / row);
+              if (n) { d.y -= n * row; d.moved = true; t.drag(n); }
+            }}
             onClick={(e) => {
+              if (drag.current?.moved) { drag.current = null; return; }   // that was a scroll, not a tap
               const t = term.current; if (!t) return;
               const r = e.currentTarget.getBoundingClientRect();
               const x = ((e.clientX - r.left) / r.width) * t.canvas.width, y = ((e.clientY - r.top) / r.height) * t.canvas.height;

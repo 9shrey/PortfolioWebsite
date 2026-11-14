@@ -73,6 +73,9 @@ export class RoomEngine {
   private from!: Pose;
   private to!: Pose;
   private tween = 1;
+  /** overall brightness, eased toward a target per view */
+  private gain = 1;
+  private gainTarget = 1;
   private tweenDur = 1.4;
   private cardHome = new Map<string, THREE.Matrix4>();
   private installedId: string | null = null;
@@ -303,10 +306,10 @@ export class RoomEngine {
     return { pos: center.clone().addScaledVector(n, dist), look: center.clone(), fov };
   }
 
-  private faceOn(name: string, fill = 1.1): Pose {
+  private faceOn(name: string, fill = 1.1, lean = 0.32): Pose {
     const s = this.info.live[name];
     const n = new THREE.Vector3(...s.normal).normalize();
-    if (n.y > 0.9) n.add(new THREE.Vector3(0, 0, 0.32)).normalize();   // lying on the desk: lean back a little, as a head does
+    if (n.y > 0.9) n.add(new THREE.Vector3(0, 0, lean)).normalize();   // lying on the desk: lean back a little, as a head does
     return this.frame3(new THREE.Vector3(...s.pos), n, s.size[0] * fill, s.size[1] * fill);
   }
 
@@ -333,9 +336,10 @@ export class RoomEngine {
       case "home": case "poster": return this.homePose();
       case "projector": return this.faceOn("screen", 1.08);
       case "year": return this.faceOn("calendar", 1.05);
-      case "about": case "work": case "writing": case "online": case "terminal": return this.faceOn("crt_screen", 1.6);
+      case "about": case "work": case "writing": case "online": case "terminal": return this.faceOn("crt_screen", 1.45);
       case "contact": return this.faceOn("phone_screen", 1.25);
-      case "resume": return this.faceOn("resume_page", 1.08);
+      // the lamp's head hangs over the tray: lean further back so it stays out of the way of the page
+      case "resume": return this.faceOn("resume_page", 1.08, 0.7);
       case "books": {
         // the books and the figurines standing beside them, all along the shelf
         const sp = Object.entries(this.info.live).filter(([k]) => k.startsWith("spine_")).map(([, v]) => v);
@@ -353,6 +357,7 @@ export class RoomEngine {
     this.look.yaw = 0; this.look.pitch = 0;
     this.from = this.clonePose(this.pose);
     this.to = this.poseFor(v);
+    this.gainTarget = v.kind === "books" ? 1.7 : 1;   // the shelf is the far, dim corner of the room
     const d = this.from.pos.distanceTo(this.to.pos);
     this.tweenDur = this.reduced || instant ? 0.001 : dur ?? THREE.MathUtils.clamp(0.9 + d * 0.35, 1.0, 2.2);
     this.tween = 0;
@@ -626,6 +631,8 @@ export class RoomEngine {
 
     this.city?.tick(t);
     this.beam?.tick(t, this.renderer.getPixelRatio() * this.canvas.clientHeight * 0.0016);
+    this.gain += (this.gainTarget - this.gain) * (this.reduced ? 1 : Math.min(1, dt * 2.5));
+    this.post?.setGain(this.gain);
     if (this.post) this.post.render(t); else this.renderer.render(this.scene, this.camera);
     this.frames++;
     if (t - this.fpsT > 0.5) { if (this.settings.fps) this.ev.fps?.(Math.round(this.frames / (t - this.fpsT))); this.frames = 0; this.fpsT = t; }

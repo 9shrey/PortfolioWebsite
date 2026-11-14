@@ -11,13 +11,14 @@ import { ShaderPass } from "three/addons/postprocessing/ShaderPass.js";
 
 // ------------------------------------------------------------------ post
 const finish = {
-  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uAspect: { value: 1 }, uGrain: { value: 1 } },
+  uniforms: { tDiffuse: { value: null }, uTime: { value: 0 }, uAspect: { value: 1 }, uGrain: { value: 1 }, uGain: { value: 1 } },
   vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
   fragmentShader: /* glsl */ `
-    uniform sampler2D tDiffuse; uniform float uTime; uniform float uAspect; uniform float uGrain; varying vec2 vUv;
+    uniform sampler2D tDiffuse; uniform float uTime; uniform float uAspect; uniform float uGrain; uniform float uGain; varying vec2 vUv;
     float h(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
     void main(){
       vec4 c = texture2D(tDiffuse, vUv);
+      c.rgb *= uGain;                                                  // eyes adjusting to a dim corner
       vec2 q = (vUv - .5) * vec2(uAspect, 1.);
       c.rgb *= mix(1., smoothstep(1.15, .35, length(q)), .55);        // vignette
       float g = h(vUv * 1000. + fract(uTime * 7.3) * 100.) - .5;
@@ -44,6 +45,7 @@ export function buildPost(renderer: THREE.WebGLRenderer, scene: THREE.Scene, cam
     },
     render(t: number) { fin.uniforms.uTime.value = t; composer.render(); },
     setGrain(on: boolean) { fin.uniforms.uGrain.value = on ? 1 : 0; },
+    setGain(v: number) { fin.uniforms.uGain.value = v; },
     dispose() { composer.dispose(); rt.dispose(); },
   };
 }

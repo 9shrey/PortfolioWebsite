@@ -23,7 +23,7 @@ html.room, html.room body { background: var(--r-night); overflow: hidden; height
 html.room .plain, html.room .skip { display: none; }
 
 .room { position: fixed; inset: 0; color: var(--r-paper); font-family: var(--font-sans); }
-.room-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: manipulation; }
+.room-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pinch-zoom; }
 
 /* loading: the room itself, dark and out of focus, sharpening as it loads; then the live room
    takes over at the same framing */
@@ -73,7 +73,7 @@ html.room .plain, html.room .skip { display: none; }
 /* on a phone the monitor's terminal fills the screen: the same canvas, behind a curved glass */
 .term-full { position: absolute; z-index: 9; inset: 0; display: grid; place-items: center; padding: 96px 10px 70px; background: rgba(5, 4, 2, 0.92); animation: sheet-in 0.4s both var(--r-ease); }
 .term-tube { width: 100%; max-height: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 18px / 22px; image-rendering: auto;
-  box-shadow: 0 0 0 10px #d8cfbd, 0 0 0 11px #a39a88, 0 0 60px rgba(255, 181, 74, 0.25); filter: saturate(1.1); cursor: pointer; }
+  box-shadow: 0 0 0 10px #d8cfbd, 0 0 0 11px #a39a88, 0 0 60px rgba(255, 181, 74, 0.25); filter: saturate(1.1); cursor: pointer; touch-action: none; }
 
 /* the nav's two small controls */
 .room-tools { display: inline-flex; gap: 6px; margin-left: 14px; }
@@ -102,6 +102,7 @@ html.room .plain, html.room .skip { display: none; }
 .room-back:hover { background: var(--r-phos); color: var(--r-night); }
 .room-back:focus-visible { outline: 2px solid var(--r-phos); outline-offset: 3px; }
 .room-back kbd { font: inherit; opacity: 0.7; }
+@media (hover: none) { .room-back kbd { display: none; } }
 .room-toast {
   position: absolute; z-index: 14; left: 50%; bottom: 74px; transform: translateX(-50%); margin: 0;
   background: var(--r-paper); color: var(--r-ink); font-size: 14px; padding: 6px 12px; border-radius: 3px;
@@ -177,7 +178,9 @@ html[data-theme="dark"]:not(.room) body:has(.plain) { background: #0f1013; }
 .plain .pl-y { font: 500 13px var(--font-mono); color: var(--pl-mute); padding-top: 4px; }
 .pl-posts { padding-left: 0; list-style: none; margin: 0; }
 .pl-posts li { margin: 0 0 8px; }
-.pl-books { padding-left: 18px; }
+.plain section > p { margin: 0 0 10px; }
+.plain section > ul { list-style: none; margin: 0; padding-left: 0; }
+.plain section > ul li { margin: 0 0 4px; }
 .pl-link { margin-right: 14px; }
 
 /* a post shown inside the laptop (?embed=1): the page without the site's chrome */
