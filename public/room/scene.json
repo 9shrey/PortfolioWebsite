@@ -7,18 +7,18 @@
   ],
   "look": [
    0.22,
-   1.2,
+   1.33,
    -2.0
   ],
   "fov": 42
  },
  "slot": [
-  -0.27,
+  -0.24,
   0.807,
   -1.649
  ],
  "bench": [
-  -0.22,
+  -0.19,
   0.76,
   -1.72
  ],
@@ -52,9 +52,9 @@
   "label_inferbench": {
    "image": "card_inferbench.png",
    "pos": [
-    -0.6361,
+    -0.5261,
     0.857,
-    -1.577
+    -1.597
    ],
    "normal": [
     0.3746,
@@ -69,9 +69,9 @@
   "label_schemabench": {
    "image": "card_schemabench.png",
    "pos": [
-    -0.6548,
+    -0.5448,
     0.891,
-    -1.6234
+    -1.6434
    ],
    "normal": [
     0.3746,
@@ -86,9 +86,9 @@
   "label_argus": {
    "image": "card_argus.png",
    "pos": [
-    -0.6736,
+    -0.5636,
     0.925,
-    -1.6698
+    -1.6898
    ],
    "normal": [
     0.3746,
@@ -103,9 +103,9 @@
   "label_rlarb": {
    "image": "card_rlarb.png",
    "pos": [
-    -0.6923,
+    -0.5823,
     0.959,
-    -1.7161
+    -1.7361
    ],
    "normal": [
     0.3746,
@@ -120,9 +120,9 @@
   "label_timeblock": {
    "image": "card_timeblock.png",
    "pos": [
-    -0.711,
+    -0.601,
     0.993,
-    -1.7625
+    -1.7825
    ],
    "normal": [
     0.3746,
@@ -137,9 +137,9 @@
   "label_agneyas": {
    "image": "card_agneyas.png",
    "pos": [
-    -0.7298,
+    -0.6198,
     1.027,
-    -1.8088
+    -1.8288
    ],
    "normal": [
     0.3746,
@@ -154,9 +154,9 @@
   "label_netapp": {
    "image": "card_netapp.png",
    "pos": [
-    -0.7485,
+    -0.6385,
     1.061,
-    -1.8552
+    -1.8752
    ],
    "normal": [
     0.3746,
@@ -307,9 +307,9 @@
   "resume_page": {
    "image": "resume.png",
    "pos": [
-    -0.74,
+    -0.81,
     0.7705,
-    -1.4
+    -1.44
    ],
    "normal": [
     0.0,

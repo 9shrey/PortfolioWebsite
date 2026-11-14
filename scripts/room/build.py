@@ -362,7 +362,7 @@ def mug(cx, cy):
 MOVERS.append(mug(0.95, 1.42))
 
 # ------------------------------------------------------------------ GPU test bench + card rack
-BENCH = Vector((-0.22, 1.72, TOP))
+BENCH = Vector((-0.19, 1.72, TOP))
 def bench():
     b = BENCH; parts = []
     parts.append(span("bench_tray", b.x - 0.19, b.x + 0.19, b.y - 0.17, b.y + 0.17, b.z, b.z + 0.006, M["alu"], bevel=0.003))
@@ -413,7 +413,7 @@ def gpu_card(c):
     return o
 
 # stepped rack: each card stands a step behind and above the one in front, so every label shows
-RACK = Vector((-0.64, 1.58, TOP)); STEP_Y, STEP_Z = 0.05, 0.034; RACK_TURN = 22
+RACK = Vector((-0.53, 1.60, TOP)); STEP_Y, STEP_Z = 0.05, 0.034; RACK_TURN = 22
 RACK_M = Matrix.Translation(RACK) @ Matrix.Rotation(math.radians(RACK_TURN), 4, "Z")
 rack_parts = []
 for i in range(len(CARDS)):
@@ -745,7 +745,7 @@ def resume_tray(cx, cy):
     top = plane("resume_page", 0.21, 0.297, (cx, cy, TOP + 0.0105), rot=(0, 0, 0), mat=principled("resume_white", (0.8, 0.8, 0.8), 0.8))
     top["image"] = "resume.png"; parent_keep(top, stack); DYN.append(top)
     return t, stack
-t, r = resume_tray(-0.74, 1.40); t.rotation_euler.z = r.rotation_euler.z = 0
+t, r = resume_tray(-0.81, 1.44); t.rotation_euler.z = r.rotation_euler.z = 0
 STATIC_PROPS.append(t); MOVERS.append(r)
 
 phone = box("phone", (0.074, 0.155, 0.008), (-0.42, 1.40, TOP + 0.004), M["phone"], rot=(0, 0, 11), bevel=0.006)
@@ -909,7 +909,7 @@ world = bpy.data.worlds.new("w"); scene.world = world; world.use_nodes = True
 world.node_tree.nodes["Background"].inputs["Color"].default_value = (0.005, 0.008, 0.02, 1)
 
 # home view (shared with the runtime: three.js camera = this, Y-up)
-HOME = dict(pos=(0.30, -0.55, 1.45), look=(0.22, 2.0, 1.2), fov=42)   # fov: vertical degrees
+HOME = dict(pos=(0.30, -0.55, 1.45), look=(0.22, 2.0, 1.33), fov=42)   # fov: vertical degrees
 cam = link(bpy.data.objects.new("cam", bpy.data.cameras.new("cam")))
 cam.location = HOME["pos"]; cam.rotation_euler = (Vector(HOME["look"]) - Vector(HOME["pos"])).to_track_quat("-Z", "Y").to_euler()
 cam.data.sensor_fit = "VERTICAL"; cam.data.angle_y = math.radians(HOME["fov"])
