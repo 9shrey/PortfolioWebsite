@@ -83,7 +83,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 200
   },
   "right": {
     "id": "abeb0c21d77173c1",
@@ -187,8 +187,9 @@
   },
   "active": "d25d15356e0b4a5a",
   "lastOpenFiles": [
-    "friends-matter-more-than-family.md",
     "why-the-iphone-duo-sucks.md",
+    "geographic-luck.md",
+    "friends-matter-more-than-family.md",
     "strict-mode-guarantees-a-shape.md",
     "images/Pasted image 20261103141738.png",
     "images/Pasted image 20261103141645.png",

@@ -7,19 +7,19 @@ topics: apple, opinion
 
 Apple has finally made a foldable iPhone. That should have been good news for people who wanted a pocket-sized iPad, though it beats me what the use is. Phones were meant for calling and now have somehow changed to become an everything device. 
 
-The iPhone Duo feels like Apple took a category it had spent years studying, polished the outside, and shipped the inside before aything was ready. Memes like the ones below have become mainstream speaking about how such things wouldn't happen under Jobs. No one can know for sure. 
+The iPhone Duo feels like Apple took a category it had spent years studying, polished the outside, and shipped the inside before anything was ready. Memes like the ones below have become mainstream speaking about how such things wouldn't happen under Jobs. No one can know for sure. 
 ![[Pasted image 20261103141738.png]]
 
-A lot of discourse is also going in blaming the new CEO, John Ternus; but I don't think he really had much say since the Iphone Duo was probably in works when Cook was still in charge.
+A lot of discourse is also going in blaming the new CEO, John Ternus; but I don't think he really had much say since the iPhone Duo was probably in works when Cook was still in charge.
 The hardware is impressive. The problem is that a $2,000 phone is not a technology demo. It is a product people have to live with. And seeing the phones break within less than a week is something no one should tolerate even from a $500 phone, let alone a $2,000 one made from a company with its valuation well in the trillions.
 
 ## The Apple strategy is not a secret
 
-Apple rarely invents a category from nothing. Copy and paste might be what has made it so successful. It watches other companies experiment, waits for the rough edges to become obvious, and then enters with a version that is easier to understand and nicer to use. It doesnt just copy though, it improves; so much improvement to the point where the final product reaches its perfect state (with the current tech atleast). this is why apple is the most dominant player in the market. steve jobs is well known for this fact alone. he was extremely harsh on the teams at apple, but the results speak for themselves.
+Apple rarely invents a category from nothing. Copy and paste might be what has made it so successful. It watches other companies experiment, waits for the rough edges to become obvious, and then enters with a version that is easier to understand and nicer to use. It doesn't just copy though, it improves; so much improvement to the point where the final product reaches its perfect state (with the current tech at least). This is why Apple is the most dominant player in the market. Steve Jobs is well known for this fact alone. He was extremely harsh on the teams at Apple, but the results speak for themselves.
 
-The original iPhone was not the first smartphone, the Apple Watch was not the first smartwatch, and AirPods were not the first truly wireless earbuds. Apple is very good at turning an awkward product category into a mainstream one. and even mainstream products into close to perfect ones.
+The original iPhone was not the first smartphone, the Apple Watch was not the first smartwatch, and AirPods were not the first truly wireless earbuds. Apple is very good at turning an awkward product category into a mainstream one. And even mainstream products into close to perfect ones.
 
-But the strategy creates a very specific expectation: if Apple arrives late, it should arrive finished and in recent days people expect it to be perfect. that's their legacy, anything less than perfect is bad for apple.
+But the strategy creates a very specific expectation: if Apple arrives late, it should arrive finished and in recent days people expect it to be perfect. That's their legacy, anything less than perfect is bad for Apple.
 
 That is what makes the Duo frustrating. Apple has had years to observe the problems with foldables: creases, fragile inner screens, awkward aspect ratios, software that treats a tablet like a stretched phone, and it still shipped a device with several of the same problems.
 
@@ -39,7 +39,7 @@ The Duo’s most embarrassing problem is not the crease. It is the software arou
 ![[Pasted image 20261103141645.png]]
 An app can technically run on the inner display and still feel completely broken. Some apps appear as a small phone-shaped window surrounded by empty space. Others stretch badly, waste the extra screen, or fail to understand that the device has changed shape. Even apps that work acceptably in portrait mode can become awkward when you open the phone and expect a useful tablet layout.
 
-This is not a minor launch inconvenience. The larger screen is the reason to buy the Duo in the first place and if apple's own built in apps are not optimized for the screen (simple software update fixes this i am aware, but why roll out phones without proper software?), it looks like shit.
+This is not a minor launch inconvenience. The larger screen is the reason to buy the Duo in the first place and if Apple's own built in apps are not optimized for the screen (simple software update fixes this I am aware, but why roll out phones without proper software?), it looks like shit.
 
 The App Store is a particularly strange example. Apple can sell a phone with a new screen shape, but it cannot make the entire software industry redesign its apps overnight. That is understandable from a developer’s perspective. It is less understandable from the customer’s perspective when the phone costs as much as a laptop.
 
