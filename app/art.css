@@ -1966,9 +1966,12 @@ html[data-motion] .cs-name {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--ink-3);
+}
+.cs-figs li span {
   max-width: 16ch;
 }
 .cs-figs b {
+  white-space: nowrap;
   font-family: var(--display);
   font-weight: 900;
   font-stretch: 130%;

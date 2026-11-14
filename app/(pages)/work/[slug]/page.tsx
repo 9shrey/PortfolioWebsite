@@ -104,7 +104,7 @@ export default async function ProjectPage({ params }: Params) {
           {p.headline.map((m) => (
             <li key={m.label}>
               <b>{m.value}</b>
-              {m.label}
+              <span>{m.label}</span>
             </li>
           ))}
         </ul>

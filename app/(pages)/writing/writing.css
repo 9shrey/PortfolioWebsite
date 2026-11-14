@@ -48,7 +48,7 @@ html:has(.wx) .foot { display: none; }
 .wx-bar-title[data-on] { opacity: 1; }
 .wx-bar-part { margin-left: auto; color: var(--wx-mute); white-space: nowrap; }
 .wx-bar-prog { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; background: var(--wx-link); transform-origin: left; }
-.wx-post { max-width: 73rem; margin: 0 auto; padding: 0 20px 120px; display: grid; grid-template-columns: 15rem minmax(0, 41rem); column-gap: 3rem; font-family: var(--font-serif), Georgia, serif; }
+.wx-post { max-width: 73rem; margin: 0 auto; padding: 0 20px 120px; display: grid; grid-template-columns: 15rem minmax(0, 41rem); justify-content: center; column-gap: 3rem; font-family: var(--font-serif), Georgia, serif; }
 .wx-bar { grid-column: 1 / -1; margin: 0 -20px; }
 .wx-toc { grid-column: 1; grid-row: 2; align-self: start; position: sticky; top: calc(var(--nav-h, 56px) + 72px); margin-top: 72px; display: flex; flex-direction: column; gap: 10px; font: 13px/1.4 var(--font-mono), monospace; }
 .wx-toc p { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--wx-mute); }

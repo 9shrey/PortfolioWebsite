@@ -58,7 +58,6 @@ const personLd = {
   jobTitle: site.title,
   url: site.url,
   email: `mailto:${site.email}`,
-  image: `${site.url}/field/portrait.png`,
   address: { "@type": "PostalAddress", addressLocality: "Bengaluru", addressCountry: "IN" },
   knowsAbout: site.knowsAbout,
   sameAs: [site.links.linkedin, site.links.github],

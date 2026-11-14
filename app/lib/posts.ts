@@ -93,7 +93,7 @@ export async function loadPost(slug: string) {
   // Obsidian embeds (![[file.png]]) become plain images served from /writing-images.
   const md = body.replace(
     /!\[\[([^\]|]+?)(?:\|[^\]]*)?\]\]/g,
-    (_, file: string) => `![](/writing-images/${encodeURIComponent(file.trim())})`
+    (_, file: string) => `\n\n![](/writing-images/${encodeURIComponent(file.trim())})\n\n`
   );
   const html = (await marked.parse(md)).replace(/<h2>(.*?)<\/h2>/g, (_, inner: string) => {
     const title = inner

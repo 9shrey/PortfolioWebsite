@@ -4,7 +4,7 @@ import { listPosts } from "@/app/lib/posts";
 
 export const metadata: Metadata = {
   title: "Writing",
-  description: "Notes by Shrey Singh on GPU kernels, inference performance and LLM evaluation: what broke, what I measured, what it was worth.",
+  description: "Essays by Shrey Singh: what I think about, written down.",
   alternates: { canonical: "/writing" },
 };
 
