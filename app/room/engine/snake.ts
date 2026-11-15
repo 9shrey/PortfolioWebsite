@@ -64,20 +64,21 @@ export class Snake {
   }
 
   /** Draws the board with its top left at (x, y). */
-  draw(g: CanvasRenderingContext2D, x: number, y: number, ink: string, dim: string, font: string) {
+  draw(g: CanvasRenderingContext2D, x: number, y: number, p: { ink: string; dim: string; bg: string }, font: string) {
+    const { ink, dim } = p;
     g.strokeStyle = dim; g.lineWidth = 3; g.strokeRect(x - 6, y - 6, Snake.W + 12, Snake.H + 12);
     g.fillStyle = dim;
     g.beginPath(); g.arc(x + (this.food[0] + 0.5) * CELL, y + (this.food[1] + 0.5) * CELL, CELL * 0.3, 0, Math.PI * 2); g.fill();
     this.body.forEach(([bx, by], i) => {
-      g.fillStyle = i ? ink : "#fff1d0";
+      g.fillStyle = i ? ink : "#fff";   // the head runs hot
       g.fillRect(x + bx * CELL + 2, y + by * CELL + 2, CELL - 4, CELL - 4);
     });
     const say = this.dead ? "GAME OVER" : this.paused ? "PRESS AN ARROW" : "";
     if (!say) return;
     g.save(); g.font = `72px ${font}`; g.textAlign = "center";
     const w = g.measureText(say).width;
-    g.shadowBlur = 0; g.fillStyle = "rgba(13,8,3,.85)"; g.fillRect(x + Snake.W / 2 - w / 2 - 24, y + Snake.H / 2 - 62, w + 48, 92);
-    g.shadowBlur = 10; g.fillStyle = ink; g.fillText(say, x + Snake.W / 2, y + Snake.H / 2 + 10);
+    g.shadowBlur = 0; g.globalAlpha = 0.85; g.fillStyle = p.bg; g.fillRect(x + Snake.W / 2 - w / 2 - 24, y + Snake.H / 2 - 62, w + 48, 92);
+    g.globalAlpha = 1; g.shadowBlur = 10; g.fillStyle = ink; g.fillText(say, x + Snake.W / 2, y + Snake.H / 2 + 10);
     g.restore();
   }
 }

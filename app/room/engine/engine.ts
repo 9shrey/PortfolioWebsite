@@ -121,7 +121,7 @@ export class RoomEngine {
   private cardK = 0; private cardOn = false;
   private regions = new Map<string, { regions: Region[]; w: number; h: number; flipY: boolean }>();
   /** the old monitor's tube: time and power for its shader (curve, scanlines, warm-up) */
-  private crt = { time: { value: 0 }, power: { value: 0 } };
+  private crt = { time: { value: 0 }, power: { value: 0 }, tint: { value: new THREE.Vector3(1, 0.75, 0.4) } };
   private crtOn = 0;
   /** lightning over the city: when the last strike was and how bright, and when the next is due */
   private flash = { at: -99, amp: 1 };
@@ -871,8 +871,8 @@ export class RoomEngine {
   /** The tube: the terminal's canvas, bowed like glass, with scanlines, a vignette and a slow warm-up. */
   private crtShader(m: THREE.MeshBasicMaterial) {
     m.onBeforeCompile = (sh) => {
-      sh.uniforms.uTime = this.crt.time; sh.uniforms.uPower = this.crt.power;
-      sh.fragmentShader = "uniform float uTime;\nuniform float uPower;\n" + sh.fragmentShader.replace("#include <map_fragment>", `
+      sh.uniforms.uTime = this.crt.time; sh.uniforms.uPower = this.crt.power; sh.uniforms.uTint = this.crt.tint;
+      sh.fragmentShader = "uniform float uTime;\nuniform float uPower;\nuniform vec3 uTint;\n" + sh.fragmentShader.replace("#include <map_fragment>", `
         #ifdef USE_MAP
           vec2 cc = vMapUv * 2.0 - 1.0;
           cc *= (1.0 + ${CRT_K.toFixed(3)} * dot(cc, cc)) * ${CRT_S.toFixed(3)};
@@ -889,9 +889,9 @@ export class RoomEngine {
           float vig = 1.0 - 0.42 * dot(cc, cc);
           float flick = 0.975 + 0.025 * sin(uTime * 53.0) + 0.012 * sin(uTime * 7.3);
           float roll = 0.04 * smoothstep(0.0, 0.03, abs(fract(tuv.y * 0.5 - uTime * 0.08) - 0.5) - 0.47);
-          vec3 glass = vec3(0.045, 0.03, 0.015) * vig;          // the tube's own faint glow, even dark
+          vec3 glass = uTint * vec3(0.045, 0.04, 0.0375) * vig;  // the tube's own faint glow, even dark, in its phosphor's colour
           vec3 col = (tex * scan * flick + roll) * vig * band * smoothstep(0.0, 1.0, uPower * 1.4);
-          col += vec3(1.0, 0.75, 0.4) * (1.0 - smoothstep(0.0, 0.004, abs(tuv.y - 0.5))) * (1.0 - open) * step(0.02, uPower);
+          col += uTint * (1.0 - smoothstep(0.0, 0.004, abs(tuv.y - 0.5))) * (1.0 - open) * step(0.02, uPower);
           diffuseColor.rgb = (col + glass) * edge;
         #endif`);
     };
@@ -899,6 +899,10 @@ export class RoomEngine {
   }
   /** Warm the tube up (or let it go dark). */
   setCrtPower(on: boolean) { this.crtOn = on ? 1 : 0.35; }
+  /** Switched off at the terminal: the picture folds to a line and goes. */
+  crtOff() { this.crtOn = 0; }
+  /** The phosphor's colour (linear rgb), for the tube's glow and its warm-up line. */
+  setCrtTint(r: number, g: number, b: number) { this.crt.tint.value.set(r, g, b); }
 
   // ------------------------------------------------------------------ drawn surfaces
   /** Clickable regions on a live surface ("screen"); glTF surfaces have v running down. */

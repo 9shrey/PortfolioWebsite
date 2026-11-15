@@ -11,9 +11,10 @@ import { Snake } from "./snake";
 
    Not on the menu: a colon opens a command line (help lists most of what it knows; it can work the lamp
    and the curtains, and it has a game), and when nobody has sat at the desk for a while the tube runs a
-   screensaver. */
+   screensaver. The tube comes in three phosphors, it can be switched off, and `secrets` counts what the
+   visitor has found around the room. */
 
-export type TermPage = "boot" | "menu" | "about" | "work" | "project" | "writing" | "online" | "shell" | "snake";
+export type TermPage = "boot" | "menu" | "about" | "work" | "project" | "writing" | "online" | "shell" | "snake" | "matrix";
 
 interface Line {
   text: string;
@@ -29,13 +30,24 @@ interface Line {
 
 const COLS = 48, ROWS = 18;
 const W = 1024, H = 768;
-const AMBER = "#ffb54a", DIM = "#a8702e", DARK = "#130b03", BG = "#0d0803";
+/** A phosphor: its lit colour, the same dimmed, the ink on a lit bar, the dark tube, and the tint (linear
+ *  rgb) the tube's glass glows with in the engine's shader. */
+interface Palette { ink: string; dim: string; dark: string; bg: string; tint: [number, number, number] }
+const PHOSPHORS: Record<"amber" | "green" | "white", Palette> = {
+  amber: { ink: "#ffb54a", dim: "#a8702e", dark: "#130b03", bg: "#0d0803", tint: [1, 0.75, 0.4] },
+  green: { ink: "#62ff96", dim: "#2f8f52", dark: "#031207", bg: "#030c06", tint: [0.4, 1, 0.55] },
+  white: { ink: "#e6edff", dim: "#8490ad", dark: "#07090f", bg: "#06080d", tint: [0.82, 0.88, 1] },
+};
+type Phosphor = keyof typeof PHOSPHORS;
+const isPhosphor = (v: string | null): v is Phosphor => !!v && Object.keys(PHOSPHORS).includes(v);
+const PHOSPHOR_KEY = "room.phosphor";
+const GLYPHS = "0123456789ABCDEF<>[]{}=+*:;/|";
 const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 /** The machine the boot screen and neofetch describe: the laptop the room was built and baked on. */
 const RIG = { cpu: "i7-9750H", gpu: "GTX 1650, 4 GB", mem: "16384 MB" };
 /** What Tab completes on the command line (the unlisted commands stay unlisted). */
 const WORDS = ["help", "ls", "open", "about", "work", "writing", "online", "resume", "lamp", "curtains", "sound", "storm", "chai",
-  "snake", "whoami", "date", "uptime", "neofetch", "clear", "exit"];
+  "reel", "snake", "whoami", "date", "uptime", "neofetch", "credits", "secrets", "clear", "exit"];
 
 export class Terminal {
   canvas = document.createElement("canvas");
@@ -59,6 +71,13 @@ export class Terminal {
   /** Reduced motion: the screensaver moves its name every few seconds instead of gliding. */
   reduced = false;
   private saverStep = -1;
+  private matrixStep = -1;
+  private phosphor: Phosphor = "amber";
+  private p: Palette = PHOSPHORS.amber;
+  /** switched off from the command line: the picture folds to a line, then the tube stays dark */
+  private off = false;
+  private offAt = 0;
+  private blank = false;
   // the command line: what it has printed, what is being typed, and what was typed before
   private out: Line[] = [];
   private input = "";
@@ -71,14 +90,25 @@ export class Terminal {
   /** `act` does what a link or a command asks of the room; a command gets a line back to print. */
   constructor(private c: RoomContent, private act: (action: string) => string | void) {
     this.canvas.width = W; this.canvas.height = H;
+    let saved: string | null = null;
+    try { saved = localStorage.getItem(PHOSPHOR_KEY); } catch {}
+    if (isPhosphor(saved) && saved !== "amber") this.setPhosphor(saved, false);
   }
 
-  /** Sitting down wakes the tube; getting up leaves a game waiting. */
+  /** Sitting down wakes the tube (and switches it back on); getting up leaves a game waiting. */
   seat(on: boolean) {
     this.seated = on; this.dirty = true;
-    if (on) this.saver = false;
+    if (!on) return;
+    this.saver = false;
+    if (this.off) { this.off = false; this.booted = false; }   // the page boots it again
   }
-  sleep() { if (!this.seated) { this.saver = true; this.saverStep = -1; } }
+  sleep() { if (!this.seated && !this.off) { this.saver = true; this.saverStep = -1; } }
+
+  private setPhosphor(name: Phosphor, save = true) {
+    this.phosphor = name; this.p = PHOSPHORS[name]; this.dirty = true;
+    this.act(`room:tint:${this.p.tint.join(",")}`);
+    if (save) try { localStorage.setItem(PHOSPHOR_KEY, name); } catch {}
+  }
 
   /** Power on: the first time, the BIOS lines run before the menu. */
   boot(now: number) {
@@ -103,13 +133,20 @@ export class Terminal {
     if (p === "shell") {
       if (!this.out.length) this.print("SHREY.SYS command line. Type help, or exit to leave.", "dim");
       this.toEnd();
+      this.act("found:shell");
     }
   }
 
   // ------------------------------------------------------------------ input
   key(e: KeyboardEvent): boolean {
     const k = e.key;
+    if (this.off) {   // any key switches it back on
+      this.off = false; this.booted = false;
+      this.act("room:power:on"); this.boot(performance.now() / 1000);
+      return true;
+    }
     if (this.page === "boot") { this.go("menu"); return true; }
+    if (this.page === "matrix") { this.go("shell"); return true; }
     if (this.page === "shell") return this.shellKey(e);
     if (this.page === "snake") return this.snakeKey(k);
     if (k === ":" || k === "/") return this.go("shell"), true;
@@ -209,7 +246,10 @@ export class Terminal {
     const [cmd, ...rest] = line.toLowerCase().split(/\s+/);
     const arg = rest.join(" ");
     const say = (text: string, kind?: Line["kind"], action?: string) => this.print(text, kind, action);
-    const room = (what: string) => { const r = this.act(`room:${what}`); if (r) say(r); };
+    const room = (what: string) => {
+      const r = this.act(`room:${what}`);
+      if (r) for (const l of r.split("\n")) say(l, l.startsWith("[ ]") ? "dim" : undefined);
+    };
     const up = () => {
       const s = Math.floor((performance.now() - this.since) / 1000);
       return s < 60 ? `${s} s` : s < 3600 ? `${Math.floor(s / 60)} min ${s % 60} s` : `${Math.floor(s / 3600)} h ${Math.floor((s % 3600) / 60)} min`;
@@ -219,10 +259,11 @@ export class Terminal {
         say("Pages   about  work  writing  online  resume");
         say("        ls lists them; open <name> for one", "dim");
         say("Room    lamp  curtains  sound  storm  chai");
+        say("        reel moves the projector on", "dim");
         say("Play    snake");
         say("Also    whoami  date  uptime  neofetch");
-        say("        clear  exit");
-        say("A few more aren't listed.", "dim");
+        say("        credits  secrets  clear  exit");
+        say("A few more aren't listed. secrets keeps count.", "dim");
         break;
       case "ls": case "dir": {
         const d = arg.replace(/^-\S+\s*/, "").replace(/\/$/, "");
@@ -236,7 +277,8 @@ export class Terminal {
         if (!arg || arg === "~" || arg === "..") { if (cmd !== "cd") say(`${cmd}: open what? ls lists what's here.`); }
         else if (!this.visit(arg)) say(`${cmd}: ${arg}: nothing here by that name`);
         break;
-      case "lamp": case "curtains": case "sound": case "storm": case "chai": room(cmd); break;
+      case "lamp": case "curtains": case "sound": case "storm": case "chai": case "reel": case "secrets": room(cmd); break;
+      case "next": room("reel"); break;
       case "light": case "lights": room("lamp"); break;
       case "curtain": room("curtains"); break;
       case "music": case "mute": room("sound"); break;
@@ -246,6 +288,14 @@ export class Terminal {
       case "snake":
         this.snake = new Snake((kind) => { this.act(`sfx:${kind}`); });
         this.page = "snake"; this.dirty = true;
+        this.act("found:snake");
+        break;
+      case "credits":
+        say("Built with three.js and Next.js. The light is baked in Blender.");
+        say("Furniture and textures: Poly Haven, CC0. The rest is modelled by a script.");
+        say("The city is a photograph by Anthony Delanoix, on Unsplash.");
+        say("This face is VT323. Every typeface here is under the OFL.");
+        say("The rain, the thunder and the waltz are synthesised in your browser.");
         break;
       case "whoami": say("guest"); break;
       case "pwd": say("/home/shrey/desk"); break;
@@ -260,6 +310,19 @@ export class Terminal {
       case "clear": case "cls": this.out = []; break;
       case "exit": case "quit": case "q": case "menu": this.go("menu"); break;
       // ---- the ones help doesn't list
+      case "color": case "colour": case "phosphor": case "theme":
+        if (!isPhosphor(arg)) say(`${cmd}: amber, green or white. It is ${this.phosphor} now.`);
+        else { this.setPhosphor(arg); say(`Phosphor: ${arg}.`); this.act("found:phosphor"); }
+        break;
+      case "matrix": this.page = "matrix"; this.matrixStep = -1; this.dirty = true; this.act("found:matrix"); break;
+      case "shutdown": case "poweroff": case "halt":
+        this.off = true; this.blank = false; this.offAt = performance.now() / 1000;
+        this.act("room:power:off"); this.act("found:shutdown");
+        break;
+      case "reboot": case "restart":
+        this.out = []; this.booted = false; this.boot(performance.now() / 1000);
+        break;
+      case "weather": say("Rain, as ever. Lightning now and then."); break;
       case "hire": this.hire(); break;
       case "sudo":
         if (arg.includes("hire")) this.hire();
@@ -375,7 +438,7 @@ export class Terminal {
         { text: "[c] copy the email address", kind: "dim" },
       ];
       case "shell": return [...this.out, { text: `$ ${this.input}`, cursor: true }];
-      case "snake": return [];
+      case "snake": case "matrix": return [];
     }
   }
 
@@ -403,12 +466,12 @@ export class Terminal {
     const g = this.canvas.getContext("2d")!, F = fonts();
     const cw = W / (COLS + 2), lh = H / (ROWS + 2.6), fs = Math.round(lh * 1.1);
     const x0 = cw * 1.6, y = (row: number) => lh * (row + 0.62) + lh * 1.25;
-    g.shadowBlur = 0; g.textAlign = "left"; g.fillStyle = BG; g.fillRect(0, 0, W, H);
+    g.shadowBlur = 0; g.textAlign = "left"; g.fillStyle = this.p.bg; g.fillRect(0, 0, W, H);
     g.font = `${fs}px ${F.pixel}`; g.textBaseline = "alphabetic";
-    g.shadowColor = AMBER; g.shadowBlur = 10;
+    g.shadowColor = this.p.ink; g.shadowBlur = 10;
     const bar = (row: number, left: string, right: string) => {
-      g.shadowBlur = 0; g.fillStyle = AMBER; g.fillRect(x0 * 0.5, y(row) - lh * 0.82, W - x0, lh);
-      g.fillStyle = DARK; g.fillText(left, x0, y(row)); g.textAlign = "right"; g.fillText(right, W - x0 * 1.7, y(row)); g.textAlign = "left";
+      g.shadowBlur = 0; g.fillStyle = this.p.ink; g.fillRect(x0 * 0.5, y(row) - lh * 0.82, W - x0, lh);
+      g.fillStyle = this.p.dark; g.fillText(left, x0, y(row)); g.textAlign = "right"; g.fillText(right, W - x0 * 1.7, y(row)); g.textAlign = "left";
       g.shadowBlur = 10;
     };
     return { g, F, cw, lh, fs, x0, y, bar };
@@ -425,8 +488,8 @@ export class Terminal {
     g.font = `${fs * 3}px ${F.pixel}`;
     const name = "SS-26", w = g.measureText(name).width, h = fs * 3.2, pad = 84;
     const x = pad + bounce(t * 0.11) * (W - pad * 2 - w), y = pad + bounce(t * 0.083 + 0.4) * (H - pad * 2 - h);
-    g.fillStyle = AMBER; g.fillText(name, x, y + fs * 2.1);
-    g.font = `${fs}px ${F.pixel}`; g.fillStyle = DIM; g.fillText(new Date().toTimeString().slice(0, 5), x + 4, y + fs * 3.1);
+    g.fillStyle = this.p.ink; g.fillText(name, x, y + fs * 2.1);
+    g.font = `${fs}px ${F.pixel}`; g.fillStyle = this.p.dim; g.fillText(new Date().toTimeString().slice(0, 5), x + 4, y + fs * 3.1);
     this.regionsNow = [];
     return true;
   }
@@ -439,15 +502,46 @@ export class Terminal {
     const { g, F, lh, y, bar } = this.pen();
     bar(0, ` snake   score ${s.score}   best ${Math.max(s.best, s.score)}`, "");
     const top = y(0) + lh * 0.18, bottom = y(ROWS) - lh * 0.82;
-    s.draw(g, (W - Snake.W) / 2, top + (bottom - top - Snake.H) / 2, AMBER, DIM, F.pixel);
+    s.draw(g, (W - Snake.W) / 2, top + (bottom - top - Snake.H) / 2, this.p, F.pixel);
     bar(ROWS, s.dead ? " Enter play again   Q quit" : " Arrows steer   Q quit", "");
+    this.regionsNow = [];
+    return true;
+  }
+
+  /** Characters falling down the tube, each column at its own pace. Any key stops it. */
+  private drawMatrix(now: number): boolean {
+    const step = this.reduced ? 0 : Math.floor(now * 14);
+    if (step === this.matrixStep && !this.dirty) return false;
+    this.matrixStep = step; this.dirty = false;
+    const { g, x0, y, bar } = this.pen();
+    const hash = (a: number, b: number) => { const s = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return s - Math.floor(s); };
+    const w = g.measureText("0").width, rows = ROWS - 1, tail = 9;
+    for (let c = 0; c < COLS - 2; c++) {
+      const span = rows + tail + 4 + Math.floor(hash(c, 2) * 14);
+      const head = Math.floor((step * (0.35 + hash(c, 1) * 0.6) + hash(c, 3) * span) % span) - 2;
+      for (let k = 0; k < tail; k++) {
+        const r = head - k;
+        if (r < 0 || r >= rows) continue;
+        g.globalAlpha = k ? 0.8 * (1 - k / tail) : 1;
+        g.fillStyle = k ? this.p.ink : "#fff";
+        g.fillText(GLYPHS[Math.floor(hash(c * 31 + r, Math.floor(step / 3) + k) * GLYPHS.length)], x0 + c * w, y(r + 1));
+      }
+    }
+    g.globalAlpha = 1;
+    bar(0, " matrix", ""); bar(ROWS, " Any key stops it", "");
     this.regionsNow = [];
     return true;
   }
 
   /** Draws if something changed (or the boot is running); returns whether it did. */
   draw(now: number): boolean {
+    if (this.off) {   // the engine folds the picture to a line; once it has, the tube is left dark
+      if (this.blank || now < this.offAt + 0.7) return false;
+      this.blank = true; this.pen(); this.regionsNow = [];
+      return true;
+    }
     if (this.saver) return this.drawSaver(now);
+    if (this.page === "matrix") return this.drawMatrix(now);
     if (this.page === "snake" && this.snake) return this.drawSnake(now);
     const booting = this.page === "boot";
     if (this.page === "shell") {   // the cursor
@@ -464,7 +558,7 @@ export class Terminal {
       const boot = ["SS-26 BIOS v2.6   (C) 2026 Shrey Singh", "", `${`CPU  ${RIG.cpu} `.padEnd(43, ".")} OK`, `${`GPU  ${RIG.gpu} `.padEnd(43, ".")} OK`,
         `${`MEM  ${RIG.mem} `.padEnd(43, ".")} OK`, "", "Loading SHREY.SYS", `${"Mounting /writing ".padEnd(43, ".")} ${this.c.posts.length}`, "", "Ready."];
       const n = Math.min(boot.length, Math.floor(t / 0.13));
-      g.fillStyle = AMBER;
+      g.fillStyle = this.p.ink;
       boot.slice(0, n).forEach((l, i) => g.fillText(l, x0, y(i + 1)));
       if (Math.floor(t * 3) % 2 === 0) g.fillRect(x0, y(n + 1) - lh * 0.7, cw * 0.9, lh * 0.8);   // the cursor
       if (t > boot.length * 0.13 + 0.5) { this.page = "menu"; this.dirty = true; }
@@ -473,7 +567,7 @@ export class Terminal {
     }
 
     const proj = this.c.cards.find((x) => x.id === this.card);
-    const names: Record<TermPage, string> = { boot: "", menu: "SS-26", about: "about.txt", work: "work/", project: `work/${proj?.id ?? ""}`, writing: "writing/", online: "online", shell: "command line", snake: "snake" };
+    const names: Record<TermPage, string> = { boot: "", menu: "SS-26", about: "about.txt", work: "work/", project: `work/${proj?.id ?? ""}`, writing: "writing/", online: "online", shell: "command line", snake: "snake", matrix: "matrix" };
     const rows = this.wrapped();
     const body = ROWS - 3;
     const pager = this.pager(), shell = this.page === "shell";
@@ -488,14 +582,14 @@ export class Terminal {
     visible.forEach((r, i) => {
       const row = i + 2;
       if (r.kind === "big") {
-        g.save(); g.font = `${fs * 2}px ${F.pixel}`; g.fillStyle = AMBER; g.fillText(r.text, x0, y(row + 0.6)); g.restore();
+        g.save(); g.font = `${fs * 2}px ${F.pixel}`; g.fillStyle = this.p.ink; g.fillText(r.text, x0, y(row + 0.6)); g.restore();
         return;
       }
       const isLink = !!r.action;
       if (isLink && !r.cont) li++;
       const on = isLink && li === this.sel && !pager;
-      if (on) { g.shadowBlur = 0; g.fillStyle = AMBER; g.fillRect(x0 - cw * 0.4, y(row) - lh * 0.8, W - x0 * 2 + cw * 0.8, lh * 0.98); g.shadowBlur = 10; }
-      g.fillStyle = on ? DARK : r.kind === "dim" ? DIM : AMBER;
+      if (on) { g.shadowBlur = 0; g.fillStyle = this.p.ink; g.fillRect(x0 - cw * 0.4, y(row) - lh * 0.8, W - x0 * 2 + cw * 0.8, lh * 0.98); g.shadowBlur = 10; }
+      g.fillStyle = on ? this.p.dark : r.kind === "dim" ? this.p.dim : this.p.ink;
       g.fillText(r.text, x0, y(row));
       if (r.cursor && this.blink) g.fillRect(x0 + g.measureText(r.text).width + 2, y(row) - lh * 0.7, cw * 0.9, lh * 0.8);
       if (isLink && !on) {
@@ -509,7 +603,7 @@ export class Terminal {
     const more = pager ? "" : rows.length > this.scroll + body ? "more ↓ " : this.scroll > 0 ? "more ↑ " : "";
     const hints: Record<TermPage, string> = {
       boot: "", menu: " 1-5 open   : command line   Q leave the desk",
-      shell: " help lists commands   exit leaves", snake: "", about: " ↑↓ Space scroll   1-4 pages   Q menu",
+      shell: " help lists commands   exit leaves", snake: "", matrix: "", about: " ↑↓ Space scroll   1-4 pages   Q menu",
       work: " ↑↓ choose   Enter open   Q menu", project: " ↑↓ scroll   N/P next, prev   Q work/",
       writing: " ↑↓ choose   Enter open   Q menu", online: " ↑↓ choose   Enter open   C copy   Q menu",
     };
@@ -522,10 +616,10 @@ export class Terminal {
         project: [["< work/", "term:work"], ["< prev", "card:prev"], ["next >", "card:next"]],
         writing: [["< menu", "term:menu"], ["tap to open"]],
         online: [["< menu", "term:menu"], ["tap to open"]],
-        shell: [["< menu", "term:menu"]], snake: [["< menu", "term:menu"]],
+        shell: [["< menu", "term:menu"]], snake: [["< menu", "term:menu"]], matrix: [["< menu", "term:menu"]],
       };
       bar(ROWS, "", more);
-      g.shadowBlur = 0; g.fillStyle = DARK;
+      g.shadowBlur = 0; g.fillStyle = this.p.dark;
       let x = x0;
       for (const [text, action] of taps[this.page]) {
         const w = g.measureText(text).width;

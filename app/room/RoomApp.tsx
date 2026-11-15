@@ -17,7 +17,8 @@ import type { RoomContent, View } from "./types";
 
    Hidden, for whoever goes looking: the monitor has a command line (a colon opens it) that can work the
    lamp and curtains and has a game; a certain old cheat code sets the shelf off; the ball answers the
-   seventh click; lightning now and then; and a note in the browser console. */
+   seventh click; lightning now and then; and a note in the browser console. The ones in SECRETS below
+   are counted as the visitor finds them (kept in this browser); `secrets` at the command line lists them. */
 
 /* Writing is the one section that leaves the room: it is its own pages, as on Felix's site. */
 const NAV: { view: View | null; href: string; label: string }[] = [
@@ -30,6 +31,27 @@ const LOADING = ["Opening the curtains", "Switching on the lamp", "Slotting the 
 
 const KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"];
 let greeted = false;
+
+/** The hidden things that are counted: what each is called once found, and the hint shown until then. */
+const SECRETS: [key: string, name: string, hint: string][] = [
+  ["shell", "the command line", "the monitor takes commands"],
+  ["snake", "snake", "help lists a game"],
+  ["konami", "the cheat code", "a cheat code older than this monitor"],
+  ["wish", "the ball, seven times", "something on the shelf answers to seven"],
+  ["storm", "lightning on demand", "the weather takes requests"],
+  ["cups", "five cups of chai", "the mug keeps count"],
+  ["battery", "the clock's battery", "the wall clock can be stopped"],
+  ["phosphor", "a different phosphor", "the tube comes in three colours"],
+  ["matrix", "the rain, indoors", "there is a rain you can run"],
+  ["shutdown", "the off switch", "it can be switched off, and on again"],
+];
+const FOUND_KEY = "room.found";
+function loadFound(): Set<string> {
+  try {
+    const saved: unknown = JSON.parse(localStorage.getItem(FOUND_KEY) || "[]");
+    return new Set(Array.isArray(saved) ? saved.filter((k) => SECRETS.some(([key]) => key === k)) : []);
+  } catch { return new Set(); }
+}
 
 const SETTINGS_KEY = "room.settings";
 function loadSettings(): Settings {
@@ -71,6 +93,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const [toast, setToast] = useState("");
   const toastTimer = useRef(0);
   const cups = useRef(0);
+  const reel = useRef<Reel | null>(null);
+  const [foundSet] = useState(loadFound);
   const code = useRef(0);
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
   // on a phone 48 columns on a tube across the room would be unreadable: the terminal fills the screen instead
@@ -83,6 +107,23 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     clearTimeout(toastTimer.current);
     toastTimer.current = window.setTimeout(() => setToast(""), ms);
   }, []);
+
+  /** Marks a hidden thing as found. The first time, a note says so with the running count; `lead` is
+   *  what the thing itself has to say, shown every time. */
+  const found = useCallback((key: string, lead?: string) => {
+    const name = SECRETS.find(([k]) => k === key)?.[1];
+    if (!name || foundSet.has(key)) { if (lead) say(lead); return; }
+    foundSet.add(key);
+    try { localStorage.setItem(FOUND_KEY, JSON.stringify([...foundSet])); } catch {}
+    say(`${lead ?? `Found: ${name}.`} ${foundSet.size} of ${SECRETS.length}.`, 3600);
+  }, [foundSet, say]);
+
+  /** One more cup from the mug; the fifth is worth a note. */
+  const cup = useCallback(() => {
+    const n = ++cups.current;
+    if (n === 5) found("cups", "Five cups. Maybe some water."); else if (n === 12) say("Twelve. That was the whole pot.");
+    return n;
+  }, [found, say]);
 
   const toggleSound = useCallback(async () => {
     const a = audio.current!;
@@ -124,15 +165,26 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     if (what === "lamp") { const on = e.toggleLamp(); a?.click("switch"); return on ? "The lamp is on." : "The lamp is off."; }
     if (what === "curtains") { const shut = e.toggleCurtains(); a?.click("swish"); return shut ? "Curtains drawn." : "Curtains open."; }
     if (what === "sound") { const on = !a?.on; toggleSound(); return on ? "Sound on: rain, and a waltz." : "Sound off."; }
-    if (what === "storm") return !e.strike() ? "No flashes while reduced motion is on." : a?.on ? "Count the seconds." : "Lightning. Turn sound on to hear it land.";
-    if (what === "chai") { e.sip(); a?.click("sip"); return `Cup ${++cups.current}.`; }
-  }, [toggleSound]);
+    if (what === "storm") {
+      if (!e.strike()) return "No flashes while reduced motion is on.";
+      found("storm");
+      return a?.on ? "Count the seconds." : "Lightning. Turn sound on to hear it land.";
+    }
+    if (what === "chai") { e.sip(); a?.click("sip"); return `Cup ${cup()}.`; }
+    if (what === "reel") { reel.current?.skip(); a?.click("tick"); return "The projector moves on to the next piece."; }
+    if (what === "secrets") return [`Found ${foundSet.size} of ${SECRETS.length}.`,
+      ...SECRETS.map(([key, name, hint]) => (foundSet.has(key) ? `[x] ${name}` : `[ ] ${hint}`))].join("\n");
+    if (what === "power:off") return e.crtOff();
+    if (what === "power:on") return e.setCrtPower(true);
+    if (what.startsWith("tint:")) { const [r, g, b] = what.slice(5).split(",").map(Number); return e.setCrtTint(r, g, b); }
+  }, [toggleSound, found, cup, foundSet]);
 
   // what a link drawn in the room does
   const act = useCallback((action: string): string | void => {
     const [kind, ...rest] = action.split(":"); const arg = rest.join(":");
     if (kind === "sfx") return audio.current?.click(arg as "blip" | "over");
     if (kind === "room") return roomCmd(arg);
+    if (kind === "found") return found(arg);
     audio.current?.click("tick");
     if (kind === "href") location.href = arg;
     else if (kind === "ext") { if (arg.startsWith("mailto:")) location.href = arg; else window.open(arg, "_blank", "noopener"); }
@@ -144,7 +196,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       if (arg === "menu") term.current?.go("menu");   // navigate() opens a page; the menu is the terminal with none open
       navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" ? "terminal" : arg }) as View);
     }
-  }, [step, navigate, roomCmd, say]);
+  }, [step, navigate, roomCmd, say, found]);
   useEffect(() => { actRef.current = act; }, [act]);
 
   // engine
@@ -159,7 +211,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       fps: (f) => alive && setFps(f),
       // thunder trails the flash, further off the smaller the strike
       thunder: (big) => setTimeout(() => alive && audio.current?.click("thunder"), big ? 350 : 900 + Math.random() * 1800),
-      secret: (name) => { if (alive && name === "wish") say("That's seven. Make a wish."); },
+      secret: (name) => { if (alive && name === "wish") found("wish", "That's seven. Make a wish."); },
     });
     engine.current = e;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __room: RoomEngine }).__room = e;
@@ -171,21 +223,24 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         "font: 700 22px monospace; color: #ffb54a; background: #0d0803; padding: 6px 12px", "font: 13px/1.6 monospace");
     }
     return () => { alive = false; e.dispose(); audio.current?.dispose(); engine.current = null; };
-  }, [content, onFail, say]);
+  }, [content, onFail, found]);
 
   // clicks in the room
   useEffect(() => {
     engine.current?.setEvents({
       click: (hit: Hit) => {
         if (hit.kind === "card") return navigate({ kind: "work", card: hit.id });
+        // looking at the projector already: a click on the screen winds the reel on to the next piece
+        if (hit.kind === "view" && hit.view.kind === "projector" && view.kind === "projector") { reel.current?.skip(); audio.current?.click("tick"); return; }
         if (hit.kind === "view") return navigate(TERM.includes(hit.view.kind) && TERM.includes(view.kind) ? view : hit.view);
         if (hit.kind === "action") return act(hit.action);
         if (hit.name.startsWith("poster_")) return navigate({ kind: "poster", i: Number(hit.name.slice(7)) });
-        if (hit.name === "mug") { const n = ++cups.current; if (n === 5) say("Five cups. Maybe some water."); else if (n === 12) say("Twelve. That was the whole pot."); }
+        if (hit.name === "mug") cup();
+        if (hit.name === "clock") found("battery");
         audio.current?.click(hit.name === "mug" ? "sip" : hit.name === "fan" ? "whirr" : hit.name === "lamp" ? "switch" : hit.name === "curtains" ? "swish" : "tick");
       },
     });
-  }, [navigate, act, ready, view, say]);
+  }, [navigate, act, ready, view, cup, found]);
 
   // the old monitor's terminal: drawn when it changes (and through the boot), on the tube and, on a phone, full screen
   useEffect(() => {
@@ -229,18 +284,20 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   // the projector: a reel of generative pieces on a loop, at 30 frames a second (slowed right down for reduced motion)
   useEffect(() => {
     if (!ready) return;
-    const reel = new Reel();
+    const r = new Reel();
+    reel.current = r;
+    if (process.env.NODE_ENV !== "production") (window as unknown as { __reel: Reel }).__reel = r;
     const slow = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0.08 : 1;
     let raf = 0, last = 0;
     const paint = (now: number) => {
       raf = requestAnimationFrame(paint);
       if (now - last < 1000 / 30) return;
       last = now;
-      reel.draw((now / 1000) * slow);
-      engine.current?.setSurface("screen", reel.canvas);
+      r.draw((now / 1000) * slow);
+      engine.current?.setSurface("screen", r.canvas);
     };
     raf = requestAnimationFrame(paint);
-    return () => cancelAnimationFrame(raf);
+    return () => { cancelAnimationFrame(raf); reel.current = null; };
   }, [ready]);
 
   // the phone: a lock screen lying on the desk, the contact card when it's picked up
@@ -284,14 +341,14 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       if (ev.target instanceof HTMLInputElement || ev.metaKey || ev.ctrlKey) return;
       if (ev.key === "Escape") { setSettingsOpen(false); navigate({ kind: "home" }); return; }
       // the old cheat code, from anywhere but a line being typed: the shelf answers
-      const typing = TERM.includes(view.kind) && (term.current?.page === "shell" || term.current?.page === "snake");
+      const typing = TERM.includes(view.kind) && ["shell", "snake", "matrix"].includes(term.current?.page ?? "");
       if (!typing) {
         const hit = ev.key.toLowerCase() === KONAMI[code.current].toLowerCase();
         code.current = hit ? code.current + 1 : ev.key === "ArrowUp" ? (code.current === 2 ? 2 : 1) : 0;   // a third Up is still two Ups
         if (code.current === KONAMI.length) {
           code.current = 0; ev.preventDefault();
           navigate({ kind: "books" }); engine.current?.wave(1.3);
-          audio.current?.click("win"); say("Cheat code accepted.");
+          audio.current?.click("win"); found("konami", "Cheat code accepted.");
           return;
         }
       }
@@ -302,7 +359,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         if (t.key(ev)) { ev.preventDefault(); audio.current?.click("key"); }
         const k: Record<TermPage, View> = {
           boot: { kind: "terminal" }, menu: { kind: "terminal" }, about: { kind: "about" }, writing: { kind: "writing" }, online: { kind: "online" },
-          work: { kind: "work", card: "" }, project: { kind: "work", card: t.card }, shell: { kind: "terminal" }, snake: { kind: "terminal" },
+          work: { kind: "work", card: "" }, project: { kind: "work", card: t.card }, shell: { kind: "terminal" }, snake: { kind: "terminal" }, matrix: { kind: "terminal" },
         };
         const want = k[t.page];
         if (toHash(want) !== toHash(view)) {
@@ -331,7 +388,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       removeEventListener("pointerdown", onTouchDown); removeEventListener("pointermove", onTouchMove);
       removeEventListener("pointerup", onTouchEnd); removeEventListener("pointercancel", onTouchEnd);
     };
-  }, [navigate, view, narrow, say]);
+  }, [navigate, view, narrow, found]);
 
   // settings: remembered in this browser
   useEffect(() => {

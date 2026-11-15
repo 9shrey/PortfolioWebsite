@@ -111,22 +111,58 @@ function flow(): Piece {
   });
 }
 
+/** Conway's Life on a torus: cells warm in colour as they age, and the board is reseeded when it settles. */
+function life(): Piece {
+  const cw = 100, ch = 75, s = W / cw;
+  let cells = new Uint8Array(cw * ch), age = new Uint16Array(cw * ch), acc = 0, quiet = 0, pop = 0;
+  const seed = () => { for (let i = 0; i < cells.length; i++) { cells[i] = Math.random() < 0.28 ? 1 : 0; age[i] = 0; } quiet = 0; };
+  seed();
+  return piece((g, _t, dt) => {
+    acc += dt;
+    if (acc >= 0.09) {
+      acc = 0;
+      const next = new Uint8Array(cw * ch), nextAge = new Uint16Array(cw * ch);
+      let n = 0;
+      for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {
+        let k = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx || dy) k += cells[((y + dy + ch) % ch) * cw + ((x + dx + cw) % cw)];
+        const i = y * cw + x, on = k === 3 || (k === 2 && cells[i] === 1);
+        if (on) { next[i] = 1; nextAge[i] = Math.min(999, age[i] + 1); n++; }
+      }
+      quiet = Math.abs(n - pop) < 3 ? quiet + 1 : 0;   // a board that has stopped changing gets a fresh one
+      pop = n; cells = next; age = nextAge;
+      if (quiet > 40 || n < 40) seed();
+    }
+    g.fillStyle = "rgba(4,6,10,.4)"; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < cells.length; i++) {
+      if (!cells[i]) continue;
+      g.fillStyle = `hsl(${Math.max(20, 190 - age[i] * 6)},85%,${age[i] < 2 ? 80 : 58}%)`;
+      g.fillRect((i % cw) * s + 1, Math.floor(i / cw) * s + 1, s - 2, s - 2);
+    }
+  });
+}
+
 export class Reel {
   canvas = document.createElement("canvas");
   private g: CanvasRenderingContext2D;
-  private pieces: Piece[] = [starfield(), torus(), scope(), plasma(), flow()];
+  private pieces: Piece[] = [starfield(), torus(), scope(), life(), plasma(), flow()];
   private last = -1;
+  /** seconds the reel has been wound on by hand */
+  private wound = 0;
 
   constructor() {
     this.canvas.width = W; this.canvas.height = H;
     this.g = this.canvas.getContext("2d")!;
   }
 
+  /** Winds on to the start of the next piece. */
+  skip() { this.wound += SHOW - ((Math.max(0, this.last) + this.wound) % SHOW); }
+
   /** Draws the frame for time `t` (seconds). */
   draw(t: number) {
     const dt = this.last < 0 ? 1 / 60 : Math.min(0.1, t - this.last);
     this.last = t;
-    const n = this.pieces.length, cycle = t / SHOW;
+    const n = this.pieces.length, cycle = (t + this.wound) / SHOW;
     const i = Math.floor(cycle) % n, into = (cycle % 1) * SHOW;
     const cur = this.pieces[i];
     cur.draw(t, dt);
