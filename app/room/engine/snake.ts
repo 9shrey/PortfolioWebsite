@@ -64,7 +64,7 @@ export class Snake {
   }
 
   /** Draws the board with its top left at (x, y). */
-  draw(g: CanvasRenderingContext2D, x: number, y: number, p: { ink: string; dim: string; bg: string }, font: string) {
+  draw(g: CanvasRenderingContext2D, x: number, y: number, p: { ink: string; dim: string; bg: string }, font: string, start = "PRESS AN ARROW") {
     const { ink, dim } = p;
     g.strokeStyle = dim; g.lineWidth = 3; g.strokeRect(x - 6, y - 6, Snake.W + 12, Snake.H + 12);
     g.fillStyle = dim;
@@ -73,7 +73,7 @@ export class Snake {
       g.fillStyle = i ? ink : "#fff";   // the head runs hot
       g.fillRect(x + bx * CELL + 2, y + by * CELL + 2, CELL - 4, CELL - 4);
     });
-    const say = this.dead ? "GAME OVER" : this.paused ? "PRESS AN ARROW" : "";
+    const say = this.dead ? "GAME OVER" : this.paused ? start : "";
     if (!say) return;
     g.save(); g.font = `72px ${font}`; g.textAlign = "center";
     const w = g.measureText(say).width;

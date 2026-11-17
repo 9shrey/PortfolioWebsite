@@ -12,7 +12,9 @@ import { Snake } from "./snake";
    Not on the menu: a colon opens a command line (help lists most of what it knows; it can work the lamp
    and the curtains, and it has a game), and when nobody has sat at the desk for a while the tube runs a
    screensaver. The tube comes in three phosphors, it can be switched off, and `secrets` counts what the
-   visitor has found around the room. */
+   visitor has found around the room. On a touch screen the menu has a sixth line for the command line:
+   the page keeps a text field for the on-screen keyboard and the prompt shows what it holds; snake is
+   steered by swiping. */
 
 export type TermPage = "boot" | "menu" | "about" | "work" | "project" | "writing" | "online" | "shell" | "snake" | "matrix";
 
@@ -131,14 +133,17 @@ export class Terminal {
     this.page = p; this.scroll = 0; this.sel = 0; this.dirty = true;
     if (p !== "snake") this.snake = null;
     if (p === "shell") {
-      if (!this.out.length) this.print("SHREY.SYS command line. Type help, or exit to leave.", "dim");
+      if (!this.out.length) {
+        this.print("SHREY.SYS command line. Type help, or exit to leave.", "dim");
+        if (this.touch) this.print("Tap the screen for the keyboard.", "dim");
+      }
       this.toEnd();
       this.act("found:shell");
     }
   }
 
   // ------------------------------------------------------------------ input
-  key(e: KeyboardEvent): boolean {
+  key(e: { key: string }): boolean {
     const k = e.key;
     if (this.off) {   // any key switches it back on
       this.off = false; this.booted = false;
@@ -170,7 +175,21 @@ export class Terminal {
   }
   wheel(dy: number) { this.scrollBy(Math.sign(dy) * 2); }
   /** A finger dragging the page: scrolls by whole rows. */
-  drag(rows: number) { this.scrollBy(rows); }
+  drag(rows: number) { if (this.page !== "snake") this.scrollBy(rows); }
+  /** A finger flicked across the tube: steers the snake. Returns whether it was used. */
+  swipe(dx: number, dy: number): boolean {
+    if (this.page !== "snake") return false;
+    return this.snakeKey(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "ArrowRight" : "ArrowLeft") : dy > 0 ? "ArrowDown" : "ArrowUp");
+  }
+  /** A touch keyboard types into a field of the page's own; the prompt shows what that field holds. */
+  type(text: string) {
+    if (this.page !== "shell") return;
+    this.input = text.slice(0, COLS - 6); this.toEnd(); this.dirty = true;
+  }
+  /** Whether the prompt is up and taking text (not after a command has left it, or switched the tube off). */
+  prompting() { return this.page === "shell" && !this.off; }
+  /** What is on the prompt (history and Tab change it; the page's field follows). */
+  typed() { return this.input; }
   private scrollBy(n: number) {
     const rows = this.wrapped(), body = ROWS - 3;
     const max = Math.max(0, rows.length - body);
@@ -201,7 +220,7 @@ export class Terminal {
     if (this.out.length > 160) this.out.splice(0, this.out.length - 160);
   }
 
-  private shellKey(e: KeyboardEvent): boolean {
+  private shellKey(e: { key: string }): boolean {
     const k = e.key;
     if (k === "Enter") {
       const line = this.input.trim();
@@ -381,6 +400,8 @@ export class Terminal {
         { text: `[3] writing/          ${count(c.posts.length, "post")}`, kind: "link", action: "term:writing" },
         { text: "[4] online", kind: "link", action: "term:online" },
         { text: "[5] resume.pdf", kind: "link", action: `ext:${c.resume}` },
+        // with keys a colon opens it; without, it needs a line to tap
+        ...(this.touch ? [{ text: "[6] command line", kind: "link" as const, action: "term:shell" }] : []),
         { text: "", kind: "gap" },
         { text: "Type a number, or click.", kind: "dim" },
       ];
@@ -474,7 +495,25 @@ export class Terminal {
       g.fillStyle = this.p.dark; g.fillText(left, x0, y(row)); g.textAlign = "right"; g.fillText(right, W - x0 * 1.7, y(row)); g.textAlign = "left";
       g.shadowBlur = 10;
     };
-    return { g, F, cw, lh, fs, x0, y, bar };
+    /** The bottom bar on a touch screen: things to tap in place of the keys. Returns their regions. */
+    const tapBar = (items: [string, string?][], right = ""): Region[] => {
+      const regions: Region[] = [];
+      bar(ROWS, "", right);
+      g.shadowBlur = 0; g.fillStyle = this.p.dark;
+      let x = x0;
+      for (const [text, action] of items) {
+        const w = g.measureText(text).width;
+        g.fillText(text, x, y(ROWS));
+        if (action) {
+          g.fillRect(x, y(ROWS) + 4, w, 2);
+          regions.push({ x: x - cw, y: y(ROWS) - lh * 1.1, w: w + cw * 2, h: lh * 1.6, action, label: text });
+        }
+        x += w + cw * 3;
+      }
+      g.shadowBlur = 10;
+      return regions;
+    };
+    return { g, F, cw, lh, fs, x0, y, bar, tapBar };
   }
 
   /** The screensaver: the machine's name and the time, drifting corner to corner so nothing burns in. */
@@ -499,12 +538,12 @@ export class Terminal {
     if (!this.seated) s.paused = true;
     if (!s.tick(now) && !this.dirty) return false;
     this.dirty = false;
-    const { g, F, lh, y, bar } = this.pen();
+    const { g, F, lh, y, bar, tapBar } = this.pen();
     bar(0, ` snake   score ${s.score}   best ${Math.max(s.best, s.score)}`, "");
     const top = y(0) + lh * 0.18, bottom = y(ROWS) - lh * 0.82;
-    s.draw(g, (W - Snake.W) / 2, top + (bottom - top - Snake.H) / 2, this.p, F.pixel);
-    bar(ROWS, s.dead ? " Enter play again   Q quit" : " Arrows steer   Q quit", "");
-    this.regionsNow = [];
+    s.draw(g, (W - Snake.W) / 2, top + (bottom - top - Snake.H) / 2, this.p, F.pixel, this.touch ? "SWIPE TO START" : undefined);
+    if (this.touch) this.regionsNow = tapBar(s.dead ? [["< quit", "key:q"], ["play again", "key:Enter"]] : [["< quit", "key:q"], ["swipe to steer"]]);
+    else { bar(ROWS, s.dead ? " Enter play again   Q quit" : " Arrows steer   Q quit", ""); this.regionsNow = []; }
     return true;
   }
 
@@ -528,8 +567,8 @@ export class Terminal {
       }
     }
     g.globalAlpha = 1;
-    bar(0, " matrix", ""); bar(ROWS, " Any key stops it", "");
-    this.regionsNow = [];
+    bar(0, " matrix", ""); bar(ROWS, this.touch ? " Tap to stop it" : " Any key stops it", "");
+    this.regionsNow = [{ x: 0, y: 0, w: W, h: H, action: "key: ", label: "Stop" }];
     return true;
   }
 
@@ -537,7 +576,8 @@ export class Terminal {
   draw(now: number): boolean {
     if (this.off) {   // the engine folds the picture to a line; once it has, the tube is left dark
       if (this.blank || now < this.offAt + 0.7) return false;
-      this.blank = true; this.pen(); this.regionsNow = [];
+      this.blank = true; this.pen();
+      this.regionsNow = [{ x: 0, y: 0, w: W, h: H, action: "key: ", label: "Switch on" }];   // a tap on the dark glass does what a key does
       return true;
     }
     if (this.saver) return this.drawSaver(now);
@@ -550,7 +590,7 @@ export class Terminal {
     }
     if (!this.dirty && !booting) return false;
     this.dirty = false;
-    const { g, F, cw, lh, fs, x0, y, bar } = this.pen();
+    const { g, F, cw, lh, fs, x0, y, bar, tapBar } = this.pen();
     const regions: Region[] = [];
 
     if (booting) {
@@ -616,21 +656,11 @@ export class Terminal {
         project: [["< work/", "term:work"], ["< prev", "card:prev"], ["next >", "card:next"]],
         writing: [["< menu", "term:menu"], ["tap to open"]],
         online: [["< menu", "term:menu"], ["tap to open"]],
-        shell: [["< menu", "term:menu"]], snake: [["< menu", "term:menu"]], matrix: [["< menu", "term:menu"]],
+        shell: [["< menu", "term:menu"], ["keyboard", "kbd:open"]], snake: [], matrix: [],
       };
-      bar(ROWS, "", more);
-      g.shadowBlur = 0; g.fillStyle = this.p.dark;
-      let x = x0;
-      for (const [text, action] of taps[this.page]) {
-        const w = g.measureText(text).width;
-        g.fillText(text, x, y(ROWS));
-        if (action) {
-          g.fillRect(x, y(ROWS) + 4, w, 2);
-          regions.push({ x: x - cw, y: y(ROWS) - lh * 1.1, w: w + cw * 2, h: lh * 1.6, action, label: text });
-        }
-        x += w + cw * 3;
-      }
-      g.shadowBlur = 10;
+      // anywhere on the command line that isn't a link brings the keyboard up
+      if (shell) regions.push({ x: 0, y: y(1) - lh * 0.82, w: W, h: lh * (ROWS - 1.4), action: "kbd:open", label: "Keyboard" });
+      regions.push(...tapBar(taps[this.page], more));
     } else bar(ROWS, hints[this.page], more);
     this.regionsNow = regions;
     return true;

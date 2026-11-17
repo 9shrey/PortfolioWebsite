@@ -75,6 +75,12 @@ html.room .plain, html.room .skip { display: none; }
 .term-tube { width: 100%; max-height: 100%; aspect-ratio: 4 / 3; object-fit: contain; border-radius: 18px / 22px; image-rendering: auto;
   box-shadow: 0 0 0 10px #d8cfbd, 0 0 0 11px #a39a88, 0 0 60px rgba(255, 181, 74, 0.25); filter: saturate(1.1); cursor: pointer; touch-action: none; }
 
+.term-full.is-typing { place-items: start center; padding-top: 112px; }   /* up against the header, clear of the keyboard */
+.term-full.is-typing .term-tube { width: min(100%, calc(46dvh * 4 / 3)); }
+/* the field a touch keyboard types into: there, but not to be seen (16px keeps iOS from zooming to it) */
+.term-kbd { position: fixed; top: 0; left: 0; width: 1px; height: 1px; overflow: hidden; opacity: 0; pointer-events: none; }
+.term-kbd input { width: 1px; height: 1px; padding: 0; border: 0; font-size: 16px; }
+
 /* the nav's two small controls */
 .room-tools { display: inline-flex; gap: 6px; margin-left: 14px; }
 .room-nav .room-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; color: rgba(243, 239, 230, 0.6); }

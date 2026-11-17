@@ -32,19 +32,23 @@ Hidden things (none of them need a rebake):
   `snake`, `whoami`, `date`, `uptime`, `neofetch`, `credits`, `reel` (winds the projector on). Unlisted:
   `color amber|green|white` (the tube's phosphor, remembered), `matrix`, `shutdown` (the picture folds to a
   line; any key boots it again), `reboot`, `hire`, `sudo`, `rm`, `42`, `vim`, `hello`, `xyzzy`, `weather`.
-  Tab completes, Up recalls. Keyboard only, so a phone never sees it.
+  Tab completes, Up recalls. On a touch screen the menu has a sixth line, `[6] command line`: the page
+  keeps an unseen text field for the on-screen keyboard and the prompt mirrors it (a tablet shows the
+  tube full screen, up top, while the keyboard is open).
 - **Secrets.** Ten of the hidden things are counted as they are found (`SECRETS` in `app/room/RoomApp.tsx`,
   kept in `localStorage`): a note says "4 of 10" the first time, and `secrets` at the prompt lists the
-  found ones by name and the rest as hints.
+  found ones by name and the rest as hints. Settings shows the count too, and the tenth sets the
+  figurines off.
 - **Snake** (`app/room/engine/snake.ts`) runs on the tube; the best score stays in the browser, and the
-  game waits whenever the visitor leaves the desk.
+  game waits whenever the visitor leaves the desk. Arrows or WASD steer; on a touch screen, swipes.
 - **Screensaver.** Thirty seconds with nobody at the desk and the tube shows its name and the time
   drifting about, until someone sits down.
 - **Lightning** every minute or so behind the skyline (thunder follows if sound is on). Never with
   reduced motion.
 - **The cheat code** (Up Up Down Down Left Right Left Right B A) sends the camera to the shelf, where
-  the figurines hop in turn.
+  the figurines hop in turn. Without keys: the eight directions as swipes across the room, then two taps.
 - **The ball**, clicked seven times: a strike close by and the lamp dips for a second.
+- Before five in the morning (the visitor's clock) the note on the desk asks if they're up late.
 - **The mug** counts cups (a note at five and at twelve), and there is a note in the browser console.
 - **The projector** has a sixth piece, Conway's Life; a click on the screen while looking at it skips
   to the next piece.

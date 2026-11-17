@@ -80,7 +80,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const audio = useRef<RoomAudio | null>(null);
   const term = useRef<Terminal | null>(null);
   const termView = useRef<HTMLCanvasElement>(null);
-  const drag = useRef<{ y: number; moved: boolean } | null>(null);
+  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null);
   const [progress, setProgress] = useState(0);
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<View>({ kind: "home" });
@@ -95,6 +95,11 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   const cups = useRef(0);
   const reel = useRef<Reel | null>(null);
   const [foundSet] = useState(loadFound);
+  const [foundCount, setFoundCount] = useState(() => foundSet.size);
+  // a touch screen's keyboard needs a text field to type into: this one, out of sight; the prompt mirrors it
+  const kbd = useRef<HTMLInputElement>(null);
+  const [typing, setTyping] = useState(false);
+  const [late] = useState(() => new Date().getHours() < 5);
   const code = useRef(0);
   const [minute, setMinute] = useState(() => Math.floor(Date.now() / 60000));
   // on a phone 48 columns on a tube across the room would be unreadable: the terminal fills the screen instead
@@ -115,7 +120,10 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     if (!name || foundSet.has(key)) { if (lead) say(lead); return; }
     foundSet.add(key);
     try { localStorage.setItem(FOUND_KEY, JSON.stringify([...foundSet])); } catch {}
-    say(`${lead ?? `Found: ${name}.`} ${foundSet.size} of ${SECRETS.length}.`, 3600);
+    setFoundCount(foundSet.size);
+    const all = foundSet.size === SECRETS.length;
+    say(`${lead ?? `Found: ${name}.`} ${foundSet.size} of ${SECRETS.length}.${all ? " That's all of them." : ""}`, all ? 5200 : 3600);
+    if (all) { engine.current?.wave(0.4); audio.current?.click("win"); }   // the shelf sees the last one in
   }, [foundSet, say]);
 
   /** One more cup from the mug; the fifth is worth a note. */
@@ -150,6 +158,37 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     const h = toHash(v);
     if (push && location.hash !== h) history.pushState(null, "", h || location.pathname + location.search);
   }, []);
+
+  /** A key for the terminal. Afterwards the view (and the URL) follows whatever page it ended up on. */
+  const termKey = useCallback((key: string) => {
+    const t = term.current;
+    if (!t) return false;
+    const used = t.key({ key });
+    if (used) audio.current?.click("key");
+    const k: Record<TermPage, View> = {
+      boot: { kind: "terminal" }, menu: { kind: "terminal" }, about: { kind: "about" }, writing: { kind: "writing" }, online: { kind: "online" },
+      work: { kind: "work", card: "" }, project: { kind: "work", card: t.card }, shell: { kind: "terminal" }, snake: { kind: "terminal" }, matrix: { kind: "terminal" },
+    };
+    const want = k[t.page];
+    if (toHash(want) !== toHash(view)) {
+      if (want.kind === "work" && want.card) engine.current?.install(want.card);
+      setView(want); history.replaceState(null, "", toHash(want) || location.pathname + location.search);
+    }
+    return used;
+  }, [view]);
+
+  /** The old cheat code, a step at a time: a key's name, or "tap" where a touch screen has no B and A.
+   *  Returns whether that step finished it. */
+  const cheat = useCallback((token: string) => {
+    const want = KONAMI[code.current];
+    const hit = token === "tap" ? want === "b" || want === "a" : token.toLowerCase() === want.toLowerCase();
+    code.current = hit ? code.current + 1 : token === "ArrowUp" ? (code.current === 2 ? 2 : 1) : 0;   // a third Up is still two Ups
+    if (code.current < KONAMI.length) return false;
+    code.current = 0;
+    navigate({ kind: "books" }); engine.current?.wave(1.3);
+    audio.current?.click("win"); found("konami", "Cheat code accepted.");
+    return true;
+  }, [navigate, found]);
 
   const step = useCallback((dir: 1 | -1) => {
     const cur = view.kind === "work" && view.card ? view.card : installed;
@@ -193,10 +232,15 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     else if (kind === "work") navigate({ kind: "work", card: arg });
     else if (kind === "view") navigate({ kind: arg } as View);
     else if (kind === "term") {
-      if (arg === "menu") term.current?.go("menu");   // navigate() opens a page; the menu is the terminal with none open
-      navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" ? "terminal" : arg }) as View);
+      // navigate() opens a page; the menu and the command line are the terminal with none open
+      if (arg === "menu" || arg === "shell") term.current?.go(arg);
+      navigate((arg === "work" ? { kind: "work", card: "" } : { kind: arg === "menu" || arg === "shell" ? "terminal" : arg }) as View);
+      if (arg === "shell") kbd.current?.focus(); else kbd.current?.blur();
     }
-  }, [step, navigate, roomCmd, say, found]);
+    else if (kind === "kbd") kbd.current?.focus();
+    // a tap standing in for a key (the dark tube, the game's bar); from elsewhere in the room it sits down first
+    else if (kind === "key") { if (TERM.includes(view.kind)) termKey(arg); else navigate({ kind: "terminal" }); }
+  }, [step, navigate, roomCmd, say, found, termKey, view]);
   useEffect(() => { actRef.current = act; }, [act]);
 
   // engine
@@ -341,44 +385,42 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       if (ev.target instanceof HTMLInputElement || ev.metaKey || ev.ctrlKey) return;
       if (ev.key === "Escape") { setSettingsOpen(false); navigate({ kind: "home" }); return; }
       // the old cheat code, from anywhere but a line being typed: the shelf answers
-      const typing = TERM.includes(view.kind) && ["shell", "snake", "matrix"].includes(term.current?.page ?? "");
-      if (!typing) {
-        const hit = ev.key.toLowerCase() === KONAMI[code.current].toLowerCase();
-        code.current = hit ? code.current + 1 : ev.key === "ArrowUp" ? (code.current === 2 ? 2 : 1) : 0;   // a third Up is still two Ups
-        if (code.current === KONAMI.length) {
-          code.current = 0; ev.preventDefault();
-          navigate({ kind: "books" }); engine.current?.wave(1.3);
-          audio.current?.click("win"); found("konami", "Cheat code accepted.");
-          return;
-        }
-      }
+      const busy = TERM.includes(view.kind) && ["shell", "snake", "matrix"].includes(term.current?.page ?? "");
+      if (!busy && cheat(ev.key)) { ev.preventDefault(); return; }
       // at the monitor, keys go to its terminal; Q on its menu gets up from the desk
       const t = term.current;
       if (t && TERM.includes(view.kind)) {
         if ((ev.key === "q" || ev.key === "Q") && t.page === "menu") { navigate({ kind: "home" }); return; }
-        if (t.key(ev)) { ev.preventDefault(); audio.current?.click("key"); }
-        const k: Record<TermPage, View> = {
-          boot: { kind: "terminal" }, menu: { kind: "terminal" }, about: { kind: "about" }, writing: { kind: "writing" }, online: { kind: "online" },
-          work: { kind: "work", card: "" }, project: { kind: "work", card: t.card }, shell: { kind: "terminal" }, snake: { kind: "terminal" }, matrix: { kind: "terminal" },
-        };
-        const want = k[t.page];
-        if (toHash(want) !== toHash(view)) {
-          if (want.kind === "work" && want.card) engine.current?.install(want.card);
-          setView(want); history.replaceState(null, "", toHash(want) || location.pathname + location.search);
-        }
-        return;
+        if (termKey(ev.key)) ev.preventDefault();
       }
     };
     const onWheel = (ev: WheelEvent) => { if (TERM.includes(view.kind) && !(ev.target as Element).closest?.(".room-settings")) term.current?.wheel(ev.deltaY); };
     // a finger dragged up or down over the room scrolls the tube (on a phone the full-screen terminal does this itself)
     let touchY: number | null = null;
-    const onTouchDown = (ev: PointerEvent) => { touchY = ev.pointerType === "touch" && (ev.target as Element).closest?.(".room-canvas") ? ev.clientY : null; };
+    let from: { x: number; y: number } | null = null;   // where the finger went down, for swipes
+    const onTouchDown = (ev: PointerEvent) => {
+      const on = ev.pointerType === "touch" && (ev.target as Element).closest?.(".room-canvas");
+      touchY = on ? ev.clientY : null; from = on ? { x: ev.clientX, y: ev.clientY } : null;
+    };
     const onTouchMove = (ev: PointerEvent) => {
       if (touchY === null || ev.pointerType !== "touch" || narrow || !TERM.includes(view.kind)) return;
+      const t = term.current;
+      if (t?.page === "snake" && from) {   // a flick steers the snake
+        const dx = ev.clientX - from.x, dy = ev.clientY - from.y;
+        if (Math.hypot(dx, dy) > 24) { t.swipe(dx, dy); from = { x: ev.clientX, y: ev.clientY }; }
+        return;
+      }
       const n = Math.trunc((touchY - ev.clientY) / 24);
-      if (n) { touchY -= n * 24; term.current?.drag(n); }
+      if (n) { touchY -= n * 24; t?.drag(n); }
     };
-    const onTouchEnd = () => { touchY = null; };
+    const onTouchEnd = (ev: PointerEvent) => {
+      // the cheat code without keys: the eight directions as swipes across the room, then two taps
+      if (from && ev.type === "pointerup" && !TERM.includes(view.kind)) {
+        const dx = ev.clientX - from.x, dy = ev.clientY - from.y, d = Math.hypot(dx, dy);
+        cheat(d < 10 ? "tap" : d < 40 ? "" : Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "ArrowRight" : "ArrowLeft") : dy > 0 ? "ArrowDown" : "ArrowUp");
+      }
+      touchY = null; from = null;
+    };
     addEventListener("keydown", onKey);
     addEventListener("wheel", onWheel, { passive: true });
     addEventListener("pointerdown", onTouchDown); addEventListener("pointermove", onTouchMove);
@@ -388,7 +430,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       removeEventListener("pointerdown", onTouchDown); removeEventListener("pointermove", onTouchMove);
       removeEventListener("pointerup", onTouchEnd); removeEventListener("pointercancel", onTouchEnd);
     };
-  }, [navigate, view, narrow, found]);
+  }, [navigate, view, narrow, cheat, termKey]);
 
   // settings: remembered in this browser
   useEffect(() => {
@@ -451,22 +493,47 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         </nav>
       </header>
 
-      {settingsOpen && <SettingsPanel s={settings} onChange={changeSettings} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <SettingsPanel s={settings} onChange={changeSettings} onClose={() => setSettingsOpen(false)} found={foundCount} hidden={SECRETS.length} />}
       {settings.fps && ready && <p className="room-fps" aria-hidden>{fps} fps</p>}
 
-      {ready && hint && atHome && <p className="room-hint">Have a look around.</p>}
+      {ready && hint && atHome && <p className="room-hint">{late ? "Up late? Have a look around." : "Have a look around."}</p>}
 
       {!atHome && (
         <button className="room-back" onClick={() => navigate({ kind: "home" })}>Back to the desk <kbd>· Esc</kbd></button>
       )}
       {toast && <p className="room-toast" role="status">{toast}</p>}
 
-      {narrow && TERM.includes(view.kind) && (
-        <div className="term-full">
+      {(narrow || coarse) && (
+        <form className="term-kbd" onSubmit={(e) => {
+          e.preventDefault();
+          termKey("Enter");
+          if (kbd.current) { kbd.current.value = ""; if (!term.current?.prompting()) kbd.current.blur(); }   // a command may have left the prompt
+        }}>
+          <input ref={kbd} type="text" aria-label="Command line" enterKeyHint="go" autoCapitalize="none" autoCorrect="off" autoComplete="off" spellCheck={false}
+            onFocus={() => { setTyping(true); if (term.current) term.current.dirty = true; }} onBlur={() => setTyping(false)}
+            onInput={(e) => {
+              const t = term.current, el = e.currentTarget;
+              if (t?.prompting()) t.type(el.value); else { el.value = ""; el.blur(); }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") e.currentTarget.blur();
+              else if (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab") { e.preventDefault(); termKey(e.key); e.currentTarget.value = term.current?.typed() ?? ""; }
+            }} />
+        </form>
+      )}
+
+      {/* a phone always reads the terminal full screen; a tablet does while its keyboard is up, so the prompt clears it */}
+      {(narrow || typing) && TERM.includes(view.kind) && (
+        <div className={`term-full ${typing ? "is-typing" : ""}`}>
           <canvas ref={termView} className="term-tube" aria-label="Terminal. Tap a line to open it."
-            onPointerDown={(e) => { drag.current = { y: e.clientY, moved: false }; }}
+            onPointerDown={(e) => { drag.current = { x: e.clientX, y: e.clientY, moved: false }; }}
             onPointerMove={(e) => {
               const d = drag.current, t = term.current; if (!d || !t || !e.buttons && e.pointerType === "mouse") return;
+              if (t.page === "snake") {   // a flick steers the snake
+                const dx = e.clientX - d.x, dy = e.clientY - d.y;
+                if (Math.hypot(dx, dy) > 24) { t.swipe(dx, dy); d.x = e.clientX; d.y = e.clientY; d.moved = true; }
+                return;
+              }
               const row = e.currentTarget.getBoundingClientRect().height / 20.6;   // one terminal row on screen
               const n = Math.trunc((d.y - e.clientY) / row);
               if (n) { d.y -= n * row; d.moved = true; t.drag(n); }
@@ -486,7 +553,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   );
 }
 
-function SettingsPanel({ s, onChange, onClose }: { s: Settings; onChange(s: Settings): void; onClose(): void }) {
+function SettingsPanel({ s, onChange, onClose, found, hidden }: { s: Settings; onChange(s: Settings): void; onClose(): void; found: number; hidden: number }) {
   const set = <K extends keyof Settings>(k: K, v: Settings[K]) => onChange({ ...s, [k]: v });
   const toggles: [keyof Settings, string, string][] = [
     ["glow", "Glow", "Light from the lamp, the slide and the windows blooms a little."],
@@ -515,6 +582,7 @@ function SettingsPanel({ s, onChange, onClose }: { s: Settings; onChange(s: Sett
         </label>
       ))}
       <p className="rs-note">Saved in this browser. <a href="?plain=1">Reading view</a> has everything as plain text.</p>
+      <p className="rs-note">Hidden things found: {found} of {hidden}.</p>
     </div>
   );
 }
