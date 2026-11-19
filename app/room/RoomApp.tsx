@@ -154,7 +154,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     }
     setView(v);
     if (v.kind === "poster") e?.showPoster(v.i); else { e?.hidePoster(); e?.go(v); }
-    e?.setCrtPower(TERM.includes(v.kind));
+    if (t?.isOff) e?.crtOff(); else e?.setCrtPower(TERM.includes(v.kind));   // switched off at the prompt: dark until someone sits down
     setHint(false);
     const h = toHash(v);
     if (push && location.hash !== h) history.pushState(null, "", h || location.pathname + location.search);
@@ -250,6 +250,10 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
   }, [step, navigate, roomCmd, say, found, termKey, view]);
   useEffect(() => { actRef.current = act; }, [act]);
 
+  // the engine is built once; what it calls back into can change without rebuilding the room
+  const foundRef = useRef(found);
+  useEffect(() => { foundRef.current = found; }, [found]);
+
   // engine
   useEffect(() => {
     if (!host.current) return;
@@ -264,7 +268,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       burst: (delay) => setTimeout(() => alive && audio.current?.click("pop"), (delay + 0.5 + Math.random() * 0.6) * 1000),
       // thunder trails the flash, further off the smaller the strike
       thunder: (big) => setTimeout(() => alive && audio.current?.click("thunder"), big ? 350 : 900 + Math.random() * 1800),
-      secret: (name) => { if (alive && name === "wish") found("wish", "That's seven. Make a wish."); },
+      secret: (name) => { if (alive && name === "wish") foundRef.current("wish", "That's seven. Make a wish."); },
     });
     engine.current = e;
     if (process.env.NODE_ENV !== "production") (window as unknown as { __room: RoomEngine }).__room = e;
@@ -276,7 +280,7 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
         "font: 700 22px monospace; color: #ffb54a; background: #0d0803; padding: 6px 12px", "font: 13px/1.6 monospace");
     }
     return () => { alive = false; e.dispose(); audio.current?.dispose(); engine.current = null; };
-  }, [content, onFail, found]);
+  }, [content, onFail]);
 
   // clicks in the room
   useEffect(() => {

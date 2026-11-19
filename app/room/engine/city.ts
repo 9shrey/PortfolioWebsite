@@ -85,7 +85,7 @@ void main(){
   float streak = step(.93, h11(col * 3.1)) * smoothstep(.0, .02, y) * smoothstep(.12, .02, y);
   c += vec3(.55, .62, .75) * streak * .045 * (1. - uSnow);
   // snow: the flakes, and the low cloud glowing with the city's light
-  c += (vec3(.8, .83, .9) * snow(vUv * vec2(40., 24.)) * .28 + vec3(.03, .03, .04) * smoothstep(.35, .9, uv.y)) * uSnow;
+  if (uSnow > .001) c += (vec3(.8, .83, .9) * snow(vUv * vec2(40., 24.)) * .28 + vec3(.03, .03, .04) * smoothstep(.35, .9, uv.y)) * uSnow;
   if (uFwOn > .5) c += fireworks(uv);
   // lightning: the cloud lights up from behind the skyline, and the towers catch a little of it
   c += (vec3(.21, .25, .38) * smoothstep(.36, .72, uv.y) + c * .4) * uFlash;

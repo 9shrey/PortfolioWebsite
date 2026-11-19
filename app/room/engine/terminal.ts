@@ -105,6 +105,8 @@ export class Terminal {
     if (this.off) { this.off = false; this.booted = false; }   // the page boots it again
   }
   sleep() { if (!this.seated && !this.off) { this.saver = true; this.saverStep = -1; } }
+  /** Switched off from the command line (and not yet back on). */
+  get isOff() { return this.off; }
 
   private setPhosphor(name: Phosphor, save = true) {
     this.phosphor = name; this.p = PHOSPHORS[name]; this.dirty = true;
