@@ -341,7 +341,8 @@ export class Terminal {
       case "reboot": case "restart":
         this.out = []; this.booted = false; this.boot(performance.now() / 1000);
         break;
-      case "weather": say("Rain, as ever. Lightning now and then."); break;
+      case "weather": case "snow": case "fireworks": room(cmd); break;
+      case "firework": room("fireworks"); break;
       case "hire": this.hire(); break;
       case "sudo":
         if (arg.includes("hire")) this.hire();

@@ -30,6 +30,8 @@ export class RoomAudio {
   private beat = 0;
   private track: HTMLAudioElement | null = null;
   private noise!: AudioBuffer;
+  /** snow falls quietly: the rain's hiss drops right down and no drops tap the glass */
+  private snow = false;
   on = false;
 
   async start() {
@@ -40,7 +42,7 @@ export class RoomAudio {
       const verb = this.reverb();
       this.musicBus = c.createGain(); this.musicBus.gain.value = 0.22;
       this.musicBus.connect(this.master); this.musicBus.connect(verb.input); verb.output.connect(this.master);
-      this.rainBus = c.createGain(); this.rainBus.gain.value = 0.5; this.rainBus.connect(this.master);
+      this.rainBus = c.createGain(); this.rainBus.gain.value = this.snow ? 0.08 : 0.5; this.rainBus.connect(this.master);
       this.rain();
       if (MUSIC_URL) {
         this.track = new Audio(MUSIC_URL); this.track.loop = true; this.track.volume = 0.35;
@@ -78,7 +80,7 @@ export class RoomAudio {
     const drop = () => {
       if (!this.ctx) return;
       const t = c.currentTime;
-      if (this.on) {
+      if (this.on && !this.snow) {
         const n = c.createBufferSource(); n.buffer = buf;
         const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2500 + Math.random() * 3500; bp.Q.value = 6;
         const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25 + Math.random() * 0.3, t + 0.004); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
@@ -134,7 +136,7 @@ export class RoomAudio {
   }
 
   // ---------------------------------------------------------------- effects
-  click(kind: "card" | "tick" | "sip" | "whirr" | "key" | "switch" | "swish" | "thunder" | "win" | "blip" | "over") {
+  click(kind: "card" | "tick" | "sip" | "whirr" | "key" | "switch" | "swish" | "thunder" | "win" | "blip" | "over" | "pop") {
     if (!this.ctx || !this.on) return;
     const c = this.ctx, t = c.currentTime;
     if (kind === "thunder") {      // a crack, then the rumble rolling away over the river
@@ -144,6 +146,20 @@ export class RoomAudio {
       ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.9, t + 0.05);
       ng.gain.exponentialRampToValueAtTime(0.3, t + 0.6); ng.gain.exponentialRampToValueAtTime(0.0001, t + 4.6);
       n.connect(lp).connect(ng).connect(this.master); n.start(t, Math.random() * 2); n.stop(t + 4.7);
+      return;
+    }
+    if (kind === "pop") {          // a shell bursting a few blocks away: a soft thump, then crackle
+      const n = c.createBufferSource(); n.buffer = this.noise;
+      const lp = c.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 260 + Math.random() * 120;
+      const ng = c.createGain(); ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.45, t + 0.02); ng.gain.exponentialRampToValueAtTime(0.0001, t + 0.9);
+      n.connect(lp).connect(ng).connect(this.master); n.start(t, Math.random() * 2, 1);
+      for (let i = 0; i < 9; i++) {
+        const at = t + 0.25 + Math.random() * 0.9;
+        const s = c.createBufferSource(); s.buffer = this.noise;
+        const bp = c.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 3000 + Math.random() * 3000; bp.Q.value = 4;
+        const sg = c.createGain(); sg.gain.setValueAtTime(0.0001, at); sg.gain.exponentialRampToValueAtTime(0.05 + Math.random() * 0.05, at + 0.003); sg.gain.exponentialRampToValueAtTime(0.0001, at + 0.03);
+        s.connect(bp).connect(sg).connect(this.master); s.start(at, Math.random() * 3, 0.04);
+      }
       return;
     }
     if (kind === "win") {          // four notes up, on the music box
@@ -195,6 +211,12 @@ export class RoomAudio {
       g.gain.setValueAtTime(0.06, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.04);
       o.start(t); o.stop(t + 0.05);
     }
+  }
+
+  /** Rain, or snow (and the quiet that comes with it). Works before sound is on, too. */
+  setSnow(on: boolean) {
+    this.snow = on;
+    if (this.ctx) this.rainBus.gain.setTargetAtTime(on ? 0.08 : 0.5, this.ctx.currentTime, 1.2);
   }
 
   dispose() { this.stop(); this.ctx?.close(); this.ctx = null; }

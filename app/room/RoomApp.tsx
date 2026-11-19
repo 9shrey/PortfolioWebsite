@@ -6,6 +6,7 @@ import { RoomAudio } from "./engine/audio";
 import { drawCalendar, fontsLoaded } from "./engine/surfaces";
 import { drawPhone } from "./engine/cards";
 import { Reel } from "./engine/reel";
+import { occasion } from "./engine/occasions";
 import { Terminal, type TermPage } from "./engine/terminal";
 import type { RoomContent, View } from "./types";
 
@@ -210,6 +211,12 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       return a?.on ? "Count the seconds." : "Lightning. Turn sound on to hear it land.";
     }
     if (what === "chai") { e.sip(); a?.click("sip"); return `Cup ${cup()}.`; }
+    if (what === "fireworks") {
+      if (!e.fireworks(20, 1.3)) return "No fireworks while reduced motion is on.";
+      return a?.on ? "Out of the window, over the city." : "Out of the window, over the city. Sound on for the bangs.";
+    }
+    if (what === "snow") { const on = !e.snowing; e.setSnow(on); a?.setSnow(on); return on ? "Snow. The city goes quiet." : "Back to rain."; }
+    if (what === "weather") return e.snowing ? "Snow, and the city quiet for once." : "Rain, as ever. Lightning now and then.";
     if (what === "reel") { reel.current?.skip(); a?.click("tick"); return "The projector moves on to the next piece."; }
     if (what === "secrets") return [`Found ${foundSet.size} of ${SECRETS.length}.`,
       ...SECRETS.map(([key, name, hint]) => (foundSet.has(key) ? `[x] ${name}` : `[ ] ${hint}`))].join("\n");
@@ -253,6 +260,8 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
       installed: (id) => { setInstalled(id); audio.current?.click("card"); },
       key: () => audio.current?.click("key"),
       fps: (f) => alive && setFps(f),
+      // the bang trails the burst: it's a few blocks away
+      burst: (delay) => setTimeout(() => alive && audio.current?.click("pop"), (delay + 0.5 + Math.random() * 0.6) * 1000),
       // thunder trails the flash, further off the smaller the strike
       thunder: (big) => setTimeout(() => alive && audio.current?.click("thunder"), big ? 350 : 900 + Math.random() * 1800),
       secret: (name) => { if (alive && name === "wish") found("wish", "That's seven. Make a wish."); },
@@ -319,6 +328,25 @@ export default function RoomApp({ content, onFail }: { content: RoomContent; onF
     const id = setTimeout(() => term.current?.sleep(), 30000);
     return () => clearTimeout(id);
   }, [ready, seated]);
+
+  // the sky outside, by the date: snow in deep winter, fireworks at New Year and around Diwali.
+  // Checked again each minute, so midnight on the 31st arrives on its own.
+  useEffect(() => {
+    if (!ready) return;
+    const override = new URLSearchParams(location.search).get("sky");
+    let season: boolean | null = null, greeted = false;
+    const look = () => {
+      const e = engine.current, s = occasion(new Date(), override);
+      if (!e) return;
+      if (s.snow !== season) { season = s.snow; e.setSnow(s.snow); audio.current?.setSnow(s.snow); }   // the season only, so `snow` at the prompt sticks
+      if (!s.fireworks) return;
+      if (!e.firing) e.fireworks(s.fireworks === "newyear" ? 70 : 25, s.fireworks === "newyear" ? 1.6 : 0.8);
+      if (!greeted) { greeted = true; setTimeout(() => say(s.fireworks === "newyear" ? "Happy New Year." : "Happy Diwali.", 4000), 3000); }
+    };
+    look();
+    const id = setInterval(look, 60000);
+    return () => clearInterval(id);
+  }, [ready, say]);
 
   // the planner once fonts are in
   useEffect(() => {

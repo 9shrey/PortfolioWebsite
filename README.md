@@ -50,6 +50,13 @@ Hidden things (none of them need a rebake):
 - **The ball**, clicked seven times: a strike close by and the lamp dips for a second.
 - Before five in the morning (the visitor's clock) the note on the desk asks if they're up late.
 - **The mug** counts cups (a note at five and at twelve), and there is a note in the browser console.
+- **The calendar outside** (`app/room/engine/occasions.ts`, by the visitor's clock): from 20 December to
+  10 January the rain turns to snow (the rain's sound goes quiet, frost gathers in the window's
+  corners); in the last five minutes of the year and the first hour of the next there are fireworks
+  over the skyline, and on the evenings around Diwali too (the main day from the Delhi panchang, with
+  the evening before and after, since elsewhere it can fall a day earlier; dates are listed to 2030).
+  Add `?sky=snow`, `?sky=diwali` or `?sky=newyear` to the URL to see one any day. At the prompt,
+  `fireworks` and `snow` (unlisted) do the same, and `weather` says what's outside.
 - **The projector** has a sixth piece, Conway's Life; a click on the screen while looking at it skips
   to the next piece.
 

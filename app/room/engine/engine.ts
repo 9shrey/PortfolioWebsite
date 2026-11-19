@@ -47,6 +47,8 @@ export interface EngineEvents {
   installed(id: string): void;
   /** Lightning struck outside: the sound follows a moment later. */
   thunder(big: boolean): void;
+  /** A firework burst over the city `delay` seconds from now; the bang is the page's to play. */
+  burst(delay: number): void;
   /** Something hidden was found ("wish": the ball, seven times). */
   secret(name: string): void;
 }
@@ -126,6 +128,10 @@ export class RoomEngine {
   /** lightning over the city: when the last strike was and how bright, and when the next is due */
   private flash = { at: -99, amp: 1 };
   private nextStrike = 0;
+  /** snow: how far the rain has turned (eased), and where it is heading */
+  private snowK = 0; private snowTarget = 0;
+  /** fireworks: a show runs until `until`, a shell going up every so often */
+  private fw = { until: -1, next: 0, rate: 1 };
   private ballClicks = 0;
 
   /** Makes its own canvas inside `host`: two engines must never share a WebGL context
@@ -646,9 +652,12 @@ export class RoomEngine {
     const fk = t - this.flash.at;
     const flash = fk < 1.4 ? this.flash.amp * Math.max(Math.exp(-fk * 10), fk > 0.2 ? 0.7 * Math.exp(-(fk - 0.2) * 6) : 0) : 0;
     this.city?.tick(t, flash);
+    this.snowK += (this.snowTarget - this.snowK) * Math.min(1, dt * 0.6);   // rain turns to snow over a few seconds
+    this.city?.setSnow(this.snowK);
+    const glow = this.tickFireworks(t);
     this.beam?.tick(t, this.renderer.getPixelRatio() * this.canvas.clientHeight * 0.0016);
     this.gain += (this.gainTarget - this.gain) * (this.reduced ? 1 : Math.min(1, dt * 2.5));
-    this.post?.setGain(this.gain * (1 + flash * 0.07));
+    this.post?.setGain(this.gain * (1 + flash * 0.07 + glow));
     if (this.post) this.post.render(t); else this.renderer.render(this.scene, this.camera);
     this.frames++;
     if (t - this.fpsT > 0.5) { if (this.settings.fps) this.ev.fps?.(Math.round(this.frames / (t - this.fpsT))); this.frames = 0; this.fpsT = t; }
@@ -964,6 +973,40 @@ export class RoomEngine {
     if (this.reduced) return false;
     this.flash = { at: this.clock.elapsedTime, amp: big ? 1.35 : 1 };
     return true;
+  }
+  /** Rain, or snow. */
+  setSnow(on: boolean) { this.snowTarget = on ? 1 : 0; }
+  get snowing() { return this.snowTarget === 1; }
+  /** Fireworks over the skyline for `seconds`, about `rate` shells a second. None with reduced motion
+   *  (they flash), and this says so. */
+  fireworks(seconds: number, rate = 1) {
+    if (this.reduced || !this.city) return false;
+    const t = this.clock.elapsedTime;
+    if (this.fw.until < t) this.fw.next = t;
+    this.fw.until = Math.max(this.fw.until, t + seconds); this.fw.rate = rate;
+    return true;
+  }
+  get firing() { return this.fw.until > this.clock.elapsedTime; }
+  /** Sends shells up while a show runs; returns how much the bursts light the room this frame. */
+  private tickFireworks(t: number) {
+    const slots = this.city?.fireworks;
+    if (!slots) return 0;
+    if (t < this.fw.until && t >= this.fw.next) {
+      // the slot whose burst is longest gone; a new shell climbs for .8 s from somewhere along the skyline
+      const free = slots.reduce((a, b) => (b.z < a.z ? b : a));
+      free.set(0.3 + Math.random() * 0.62, 0.56 + Math.random() * 0.26, t + 0.8, Math.random());
+      this.ev.burst?.(0.8);
+      // now and then two go up together
+      this.fw.next = t + (Math.random() < 0.25 ? 0.12 : (0.4 + Math.random() * 1.2) / this.fw.rate);
+    }
+    let on = false, glow = 0;
+    for (const s of slots) {
+      const age = t - s.z;
+      if (age > -0.8 && age < 2.8) on = true;
+      if (age > 0 && age < 1) glow += Math.exp(-age * 5) * 0.05;
+    }
+    this.city?.setFireworksOn(on);
+    return glow;
   }
   /** Every figurine on the shelf hops in turn, after `delay` seconds (time for the camera to get there). */
   wave(delay = 0) {
